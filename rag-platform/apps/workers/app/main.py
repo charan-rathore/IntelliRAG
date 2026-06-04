@@ -1,0 +1,1 @@
+"""Workers service entrypoint placeholder."""

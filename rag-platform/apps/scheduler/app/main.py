@@ -1,0 +1,1 @@
+"""Scheduler service entrypoint placeholder."""
