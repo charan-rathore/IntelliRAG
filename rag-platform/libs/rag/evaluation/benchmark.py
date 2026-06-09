@@ -111,42 +111,71 @@ class SimpleRetriever:
 class EmbeddingRetriever:
     """Embedding-based retriever for more accurate benchmarking.
     
-    Uses sentence embeddings for semantic similarity search.
-    Requires sentence-transformers library.
+    Supports multiple embedding backends:
+    - nomic-embed-text via Ollama (recommended, 8K context)
+    - sentence-transformers models (legacy)
+    
+    For production RAG, use nomic-embed-text which handles 512-token chunks
+    without truncation and provides better semantic retrieval.
     """
     
     def __init__(
         self,
         chunks: List[Tuple[str, str]],
-        model_name: str = "all-MiniLM-L6-v2",
+        model_name: str = "nomic-embed-text",
+        use_ollama: bool = True,
     ) -> None:
         """Initialize with chunks and embedding model.
         
         Args:
             chunks: List of (chunk_id, chunk_text) tuples.
-            model_name: Sentence transformer model name.
+            model_name: Embedding model name.
+            use_ollama: If True, use Ollama for nomic/mxbai models.
         """
         self.chunks = chunks
         self._model = None
         self._embeddings = None
         self._model_name = model_name
+        self._use_ollama = use_ollama
+        self._nomic_retriever = None
         
         try:
             self._initialize_embeddings()
-        except ImportError:
+        except Exception as e:
             logger.warning(
-                "sentence-transformers not installed. "
+                f"Failed to initialize embeddings ({model_name}): {e}. "
                 "Falling back to lexical retrieval."
             )
     
     def _initialize_embeddings(self) -> None:
         """Initialize embedding model and compute chunk embeddings."""
+        # Try nomic-embed-text via our embeddings module first
+        if self._use_ollama and self._model_name in ["nomic-embed-text", "mxbai-embed-large"]:
+            try:
+                from ..embeddings import NomicEmbeddingRetriever, EmbeddingConfig
+                
+                if self._model_name == "nomic-embed-text":
+                    config = EmbeddingConfig.for_nomic()
+                else:
+                    config = EmbeddingConfig.for_mxbai()
+                
+                self._nomic_retriever = NomicEmbeddingRetriever(self.chunks, config)
+                if self._nomic_retriever.is_initialized:
+                    logger.info(f"Using {self._model_name} via Ollama")
+                    return
+                else:
+                    self._nomic_retriever = None
+            except ImportError:
+                pass
+        
+        # Fallback to sentence-transformers
         from sentence_transformers import SentenceTransformer
         
         self._model = SentenceTransformer(self._model_name)
         
         texts = [text for _, text in self.chunks]
         self._embeddings = self._model.encode(texts, convert_to_numpy=True)
+        logger.info(f"Using {self._model_name} via sentence-transformers")
     
     def retrieve(self, query: str, top_k: int = 5) -> List[str]:
         """Retrieve top-k chunks by embedding similarity.
@@ -158,6 +187,10 @@ class EmbeddingRetriever:
         Returns:
             List of chunk texts.
         """
+        # Use nomic retriever if available
+        if self._nomic_retriever is not None:
+            return self._nomic_retriever.retrieve(query, top_k)
+        
         if self._model is None or self._embeddings is None:
             fallback = SimpleRetriever(self.chunks)
             return fallback.retrieve(query, top_k)
@@ -199,6 +232,8 @@ class ChunkingBenchmark:
         source_documents: Optional[Dict[str, str]] = None,
         ragas_config: Optional[RagasConfig] = None,
         use_embeddings: bool = False,
+        embedding_model: str = "nomic-embed-text",
+        use_ollama: bool = True,
     ) -> None:
         """Initialize benchmark runner.
         
@@ -208,11 +243,17 @@ class ChunkingBenchmark:
                 If None, uses concatenated reference_context from samples.
             ragas_config: RAGAS configuration.
             use_embeddings: Whether to use embedding-based retrieval.
+            embedding_model: Embedding model for retrieval.
+                Recommended: "nomic-embed-text" (8K context, handles 512-token chunks)
+                Legacy: "all-MiniLM-L6-v2" (256 token limit, may truncate)
+            use_ollama: Use Ollama for nomic/mxbai models.
         """
         self.dataset = dataset
         self.source_documents = source_documents
         self.evaluator = RagasEvaluator(ragas_config)
         self.use_embeddings = use_embeddings
+        self.embedding_model = embedding_model
+        self.use_ollama = use_ollama
         
         if not source_documents:
             self._infer_source_documents()
@@ -301,7 +342,11 @@ class ChunkingBenchmark:
             )
         
         if self.use_embeddings:
-            retriever = EmbeddingRetriever(all_chunks)
+            retriever = EmbeddingRetriever(
+                all_chunks,
+                model_name=self.embedding_model,
+                use_ollama=self.use_ollama,
+            )
         else:
             retriever = SimpleRetriever(all_chunks)
         
