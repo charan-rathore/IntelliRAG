@@ -247,3 +247,60 @@ Reranking gives an ordered candidate list, but LLMs have finite context windows.
 Feed AssembledContext into Ollama with citation-aware prompts. Evaluate faithfulness and citation accuracy.
 
 ---
+
+## Phase 9: LLM Generation Layer
+
+**Date:** 2026-07-06
+
+### Why
+
+Context assembly produces citation-labeled chunks, but users need grounded answers with verifiable source attribution. Generation-time citations (G-Cite) commit the model to evidence during decoding, avoiding post-hoc rationalization where models generate answers first and hunt for supporting passages afterward.
+
+### What We Built
+
+1. **GenerationService** - Ollama-based answer generation from AssembledContext
+2. **Citation-aware prompts** - G-Cite system prompts requiring inline [Source N] citations
+3. **Citation parser** - Maps generated citations back to chunk IDs
+4. **OllamaClient** - httpx /api/chat client (consistent with embedder pattern)
+5. **MockLLMClient** - Deterministic client for tests and offline benchmarks
+6. **FaithfulnessEvaluator** - Atomic claim decomposition + entailment checking
+7. **GenerationBenchmark** - End-to-end eval with prompt style comparison
+8. **Eval script** - `scripts/eval/run_generation_benchmark.py`
+9. **Architecture doc** - `docs/architecture/phase9-llm-generation-architecture.md`
+
+### Evaluation Strategies (Best Practices)
+
+| Strategy | What It Measures | Source |
+|---|---|---|
+| Atomic claim decomposition | One verifiable assertion per claim | Tian Pan 2026, Wallat 2025 |
+| Citation entailment (SUPPORTS/CONTRADICTS/NEUTRAL) | Citation correctness per claim | RAG Triad, NLI-based eval |
+| Faithfulness score | Fraction of claims grounded in cited sources | RAGAS faithfulness |
+| Citation precision/recall | Correct citations / cited claims | Fine-grained attribution eval |
+| Hallucination rate | Unsupported or uncited claims | Inverse groundedness |
+| G-Cite over P-Cite | Generation-time vs post-hoc attribution | Wallat et al. 2025 |
+| LLM-as-judge + lexical fallback | Accurate eval with offline resilience | SN Computer Science 2026 |
+| Prompt style ablation | citation_aware vs concise vs detailed | A/B testable configs |
+
+### Alternatives Considered
+
+| Decision | Chosen | Rationale |
+|---|---|---|
+| Citation approach | G-Cite (generation-time) | 94% correctness vs 75% for post-hoc on FEVER |
+| LLM client | httpx direct to Ollama | No LangChain dep for core path; matches embedder |
+| Entailment judge | LLM-as-judge + lexical fallback | Best accuracy with offline test support |
+| Default model | llama3.2 (3B) | Smallest model meeting quality bar per constraints |
+
+### Production Gap
+
+| Local | Production | Upgrade Trigger |
+|---|---|---|
+| llama3.2 3B on CPU | GPU-served 7B+ or fine-tuned RAG model | Faithfulness <70% |
+| Lexical entailment proxy | Dedicated NLI model (deberta-v3) | Judge accuracy insufficient |
+| Single judge | Multi-judge agreement (2+ models) | Before production SLA |
+| No adversarial faithfulness test | Canary injection in irrelevant docs | Phase 10 eval platform |
+
+### Next: Phase 10 Evaluation Platform
+
+Unified eval dashboard tracking retrieval, generation, and operational metrics. Continuous eval in CI with held-out dataset.
+
+---

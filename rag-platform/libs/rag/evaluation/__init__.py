@@ -46,6 +46,8 @@ from .ragas_wrapper import (
     create_openai_evaluator,
 )
 from .benchmark import ChunkingBenchmark
+from .faithfulness import FaithfulnessEvaluator, FaithfulnessResult
+from .generation_benchmark import GenerationBenchmark, GenerationBenchmarkResult
 
 __all__ = [
     # Models
@@ -65,4 +67,9 @@ __all__ = [
     "create_openai_evaluator",
     # Benchmark
     "ChunkingBenchmark",
+    "GenerationBenchmark",
+    "GenerationBenchmarkResult",
+    # Faithfulness
+    "FaithfulnessEvaluator",
+    "FaithfulnessResult",
 ]
