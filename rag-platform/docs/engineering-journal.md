@@ -374,3 +374,47 @@ Layer-specific benchmarks (Phases 3-9) measure individual components, but produc
 Structured logging, metrics, tracing, and dashboards. Wire production spans to the same rubrics used in CI.
 
 ---
+
+## Phase 11: Observability Platform
+
+**Date:** 2026-07-06
+
+### Why
+
+Evaluation gates (Phase 10) catch regressions before deploy, but production needs real-time visibility: which layer is slow, what's failing, and whether live answers meet the same faithfulness rubrics tested in CI. Without span-attached scoring, production monitoring and CI eval are disconnected systems.
+
+### What We Built
+
+1. **MetricsRegistry** - In-memory counters, gauges, histograms with Prometheus text export
+2. **Tracer + SpanContext** - Distributed tracing with parent/child spans across all layers
+3. **ObservabilityCollector** - Aggregates metrics, traces, health into snapshots
+4. **ObservedRAGPipeline** - Full instrumented query path with per-layer latency + eval scores
+5. **Dashboard** - Self-contained HTML dashboard (layer latency, eval scores, traces, health)
+6. **FastAPI endpoints** - `/health`, `/metrics`, `/dashboard`, `/traces`
+7. **HealthChecker** - Component health aggregation (Ollama, metrics registry)
+8. **Span-attached eval scoring** - Phase 10 rubrics on every production query span
+9. **Scripts** - `demo_observed_query.py`, `serve_dashboard.py`
+10. **Architecture doc** - `docs/architecture/phase11-observability-architecture.md`
+
+### Key Design Decisions
+
+| Decision | Chosen | Rationale |
+|---|---|---|
+| Metrics storage | In-memory registry | Local-first; Prometheus export without server |
+| Tracing | Custom spans + existing trace_context | Zero new deps; integrates with ingestion logging |
+| Dashboard | Self-contained HTML | No Grafana infra at current scale |
+| Eval bridge | Span-attached scores | Same rubric in CI and production (FutureAGI pattern) |
+
+### Production Gap
+
+| Local | Production | Upgrade |
+|---|---|---|
+| In-memory metrics/traces | Prometheus + Jaeger | Multi-instance deployment |
+| HTML dashboard | Grafana with alerts | On-call rotation needed |
+| 100% eval scoring | 5-20% sampling | Cost at scale |
+
+### Next: Phase 12 Scalability Reviews
+
+What breaks at 10K, 100K, 1M, 10M documents? Storage, compute, throughput, cost analysis.
+
+---

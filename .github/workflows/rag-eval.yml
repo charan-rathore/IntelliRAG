@@ -37,6 +37,7 @@ jobs:
             libs/rag/evaluation/tests/ \
             libs/rag/generation/tests/ \
             libs/rag/context/tests/ \
+            libs/observability/tests/ \
             -v --tb=short
 
   quality-gate:
