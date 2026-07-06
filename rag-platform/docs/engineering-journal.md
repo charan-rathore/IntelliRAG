@@ -192,3 +192,58 @@ Retrieval scores (cosine similarity, BM25) treat query and document independentl
 Select, deduplicate, and budget reranked chunks for LLM prompt. Measure token efficiency and context precision.
 
 ---
+
+## Phase 8: Context Assembly
+
+**Date:** 2026-07-06
+
+### Why
+
+Reranking gives an ordered candidate list, but LLMs have finite context windows. Sending all chunks wastes tokens on duplicates and low-value content. Context assembly maximizes answer-relevant information per token before Phase 9 generation.
+
+### What We Built
+
+1. **Deduplication** - Jaccard similarity (threshold 0.85) removes near-duplicate chunks
+2. **MMR Selection** - Maximal Marginal Relevance balances relevance and diversity
+3. **Token Budget Packing** - Greedy score-per-token knapsack fits chunks within budget
+4. **Extractive Compression** - Query-guided sentence extraction preserves headers and key facts
+5. **ContextAssemblyService** - Orchestrates 6 strategies: top_k, dedup_only, mmr, budget, full, full_compressed
+6. **Citation formatting** - [Source N] labels ready for Phase 9 attribution
+7. **ContextBenchmark** - 8 metrics with strategy comparison and budget sweep
+8. **Eval script** - `scripts/eval/run_context_benchmark.py`
+
+### Evaluation Strategies
+
+| Metric | What It Measures |
+|---|---|
+| Context precision | Relevant tokens / total tokens in assembled context |
+| Context recall | Reference phrase coverage in final context |
+| Token efficiency | Precision * recall / budget utilization |
+| Dedup rate | Fraction of redundant chunks removed |
+| Budget utilization | Tokens used vs budget limit |
+| Source diversity | Unique documents represented |
+| Compression ratio | Tokens saved by extractive compression |
+| Budget sweep | Optimal token budget inflection point |
+
+### Alternatives Considered
+
+| Decision | Chosen | Rationale |
+|---|---|---|
+| Dedup method | Jaccard on tokens | Zero deps, fast, sufficient for chunk-level overlap |
+| Selection | MMR | No extra model, proven diversity selection |
+| Compression | Extractive | Free, preserves facts; LLM summarize deferred to scale needs |
+| Token counting | chars/4 heuristic | Consistent with chunking layer; tiktoken at Phase 9 |
+
+### Production Gap
+
+| Local | Production | Upgrade Trigger |
+|---|---|---|
+| chars/4 token estimate | Model-specific tokenizer | Before production LLM integration |
+| Jaccard dedup | Embedding-based semantic dedup | When paraphrase dupes are common |
+| Extractive compression | Ollama summarization | Budget <512 tokens |
+
+### Next: Phase 9 LLM Generation
+
+Feed AssembledContext into Ollama with citation-aware prompts. Evaluate faithfulness and citation accuracy.
+
+---
