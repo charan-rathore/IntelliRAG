@@ -73,6 +73,7 @@ celery_app.conf.update(
     # Task routing for dead letter queue
     task_routes={
         "apps.workers.app.tasks.ingestion.*": {"queue": "ingestion"},
+        "apps.workers.app.tasks.processing.*": {"queue": "processing"},
     },
     
     # Dead letter queue configuration

@@ -177,6 +177,56 @@ class PostgresDocumentRepository:
                 return None
             return row["document_id"]
 
+    def update_lifecycle_state(
+        self,
+        document_id: UUID,
+        lifecycle_state: str,
+        conn: psycopg.Connection | None = None,
+    ) -> None:
+        """Update document lifecycle state."""
+        query = """
+        UPDATE documents
+        SET lifecycle_state = %(lifecycle_state)s,
+            updated_at = %(updated_at)s
+        WHERE document_id = %(document_id)s
+        """
+        params = {
+            "document_id": str(document_id),
+            "lifecycle_state": lifecycle_state,
+            "updated_at": datetime.now(),
+        }
+        if conn is None:
+            with self._conn() as owned_conn:
+                with owned_conn.cursor() as cur:
+                    cur.execute(query, params)
+                    owned_conn.commit()
+        else:
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+
+    def get_document(
+        self,
+        document_id: UUID,
+        conn: psycopg.Connection | None = None,
+    ) -> dict | None:
+        """Fetch a document row by ID."""
+        query = """
+        SELECT document_id, external_id, title, source_type, source_uri, tenant_id,
+               owners, tags, labels, environment, service, component, access_policy,
+               hash_content, created_at, updated_at, ingested_at, lifecycle_state
+        FROM documents
+        WHERE document_id = %(document_id)s
+        LIMIT 1
+        """
+        if conn is None:
+            with self._conn() as owned_conn:
+                with owned_conn.cursor() as cur:
+                    cur.execute(query, {"document_id": str(document_id)})
+                    return cur.fetchone()
+        with conn.cursor() as cur:
+            cur.execute(query, {"document_id": str(document_id)})
+            return cur.fetchone()
+
     def deactivate_active_version(
         self,
         document_id: UUID,
