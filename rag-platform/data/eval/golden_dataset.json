@@ -1,0 +1,65 @@
+{
+  "name": "golden_rag_eval_v1",
+  "description": "Versioned golden evaluation dataset for CI quality gates. Grows via failure feed.",
+  "version": "1.0",
+  "created_at": "2026-07-06T00:00:00",
+  "source_documents": ["k8s-incident", "python-async"],
+  "samples": [
+    {
+      "sample_id": "golden-001",
+      "question": "What caused the Kubernetes pod scheduling failures?",
+      "ground_truth": "Resource fragmentation on cluster nodes prevented scheduling. Individual nodes had fragmented CPU and memory allocations.",
+      "reference_context": [
+        "resource fragmentation on the cluster nodes",
+        "fragmented CPU and memory allocations",
+        "stuck in Pending state"
+      ],
+      "document_id": "k8s-incident",
+      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident"}
+    },
+    {
+      "sample_id": "golden-002",
+      "question": "How were the scheduling failures resolved?",
+      "ground_truth": "Resource quotas, pod priority classes, and node affinity rules were implemented.",
+      "reference_context": [
+        "resource quotas, pod priority classes, and node affinity rules"
+      ],
+      "document_id": "k8s-incident",
+      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident"}
+    },
+    {
+      "sample_id": "golden-003",
+      "question": "How should you manage the Python asyncio event loop?",
+      "ground_truth": "Use asyncio.run() for top-level entry points in Python 3.7+. Avoid creating multiple event loops in the same thread.",
+      "reference_context": [
+        "Always use asyncio.run() for top-level entry points",
+        "Avoid creating multiple event loops"
+      ],
+      "document_id": "python-async",
+      "metadata": {"topic": "python", "difficulty": "basic", "route": "async"}
+    },
+    {
+      "sample_id": "golden-004",
+      "question": "What is the recommended approach for aiohttp connection pooling?",
+      "ground_truth": "Use aiohttp ClientSession as a context manager to reuse TCP connections. Set appropriate timeouts.",
+      "reference_context": [
+        "Use aiohttp ClientSession as a context manager",
+        "reuse TCP connections",
+        "appropriate timeouts"
+      ],
+      "document_id": "python-async",
+      "metadata": {"topic": "python", "difficulty": "intermediate", "route": "async"}
+    },
+    {
+      "sample_id": "golden-005",
+      "question": "How should you handle errors in concurrent asyncio tasks?",
+      "ground_truth": "Wrap coroutines in try/except and use asyncio.gather with return_exceptions=True.",
+      "reference_context": [
+        "asyncio.gather with return_exceptions=True",
+        "Wrap coroutines in try/except"
+      ],
+      "document_id": "python-async",
+      "metadata": {"topic": "python", "difficulty": "intermediate", "route": "async"}
+    }
+  ]
+}

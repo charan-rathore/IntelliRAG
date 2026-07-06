@@ -1,31 +1,14 @@
-"""RAG Evaluation module using RAGAS.
+"""Unified RAG evaluation platform.
 
-This module provides tools to objectively measure and compare chunking
-strategies instead of relying on intuition. It integrates with RAGAS
-to compute retrieval quality metrics like context precision and recall.
+Phase 10: End-to-end evaluation across all pipeline layers with
+CI quality gates, baseline tracking, adversarial probes, and failure feed.
 
-Supports multiple LLM providers:
-- Ollama (local, no API key needed) - RECOMMENDED
-- OpenAI
-- HuggingFace
+Usage:
+    from libs.rag.evaluation import EvaluationPlatform, QualityGateConfig
 
-Usage with Ollama (no API key needed):
-    from libs.rag.evaluation import (
-        ChunkingBenchmark,
-        EvaluationDataset,
-        RagasConfig,
-        create_ollama_evaluator,
-    )
-    
-    # Load or create evaluation dataset
-    dataset = EvaluationDataset.from_json("eval_data.json")
-    
-    # Run benchmark with Ollama (local)
-    config = RagasConfig.for_ollama(model="llama3")
-    benchmark = ChunkingBenchmark(dataset, ragas_config=config)
-    results = benchmark.run_comparison(["recursive", "structure_aware"])
-    
-    print(results.to_summary_table())
+    platform = EvaluationPlatform(dataset, pipeline, baseline_dir="data/eval/baselines")
+    report = platform.run()
+    print(report.to_summary())
 """
 
 from .models import (
@@ -48,6 +31,15 @@ from .ragas_wrapper import (
 from .benchmark import ChunkingBenchmark
 from .faithfulness import FaithfulnessEvaluator, FaithfulnessResult
 from .generation_benchmark import GenerationBenchmark, GenerationBenchmarkResult
+from .platform import EvaluationPlatform, PipelineHandles
+from .quality_gate import QualityGate, QualityGateResult, GateVerdict
+from .thresholds import QualityGateConfig, MetricThreshold, ThresholdLevel
+from .baseline import BaselineStore, BaselineMetrics, DeltaResult
+from .adversarial import AdversarialProbe, AdversarialReport
+from .failure_feed import FailureFeed, FailureRecord
+from .report import EvalReport
+from .parameters import PipelineParameters
+from .metrics import DistributionStats, LayerMetrics, compute_distribution
 
 __all__ = [
     # Models
@@ -65,11 +57,31 @@ __all__ = [
     "create_evaluator",
     "create_ollama_evaluator",
     "create_openai_evaluator",
-    # Benchmark
+    # Layer benchmarks
     "ChunkingBenchmark",
     "GenerationBenchmark",
     "GenerationBenchmarkResult",
-    # Faithfulness
     "FaithfulnessEvaluator",
     "FaithfulnessResult",
+    # Phase 10 platform
+    "EvaluationPlatform",
+    "PipelineHandles",
+    "QualityGate",
+    "QualityGateResult",
+    "GateVerdict",
+    "QualityGateConfig",
+    "MetricThreshold",
+    "ThresholdLevel",
+    "BaselineStore",
+    "BaselineMetrics",
+    "DeltaResult",
+    "AdversarialProbe",
+    "AdversarialReport",
+    "FailureFeed",
+    "FailureRecord",
+    "EvalReport",
+    "PipelineParameters",
+    "DistributionStats",
+    "LayerMetrics",
+    "compute_distribution",
 ]

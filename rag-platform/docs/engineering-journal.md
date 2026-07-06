@@ -304,3 +304,73 @@ Context assembly produces citation-labeled chunks, but users need grounded answe
 Unified eval dashboard tracking retrieval, generation, and operational metrics. Continuous eval in CI with held-out dataset.
 
 ---
+
+## Phase 10: Evaluation Platform
+
+**Date:** 2026-07-06
+
+### Why
+
+Layer-specific benchmarks (Phases 3-9) measure individual components, but production RAG quality is an emergent property of the full pipeline. Without unified evaluation before optimization, teams cherry-pick examples, ship regressions, and cannot distinguish retrieval failures from generation failures. Industry surveys cite evaluation as the #2 deployment challenge.
+
+### What We Built
+
+1. **EvaluationPlatform** - Unified orchestrator across retrieval → reranking → context → generation
+2. **DistributionStats** - P10/P50/P90/P95 percentiles + pass rate (not just averages)
+3. **QualityGate** - 3-tier thresholds (good/warning/critical) with P10 tail detection
+4. **BaselineStore** - Versioned JSON baselines with Welch's t-test delta comparison
+5. **AdversarialProbe** - Canary injection for post-rationalization detection
+6. **FailureFeed** - Closed-loop promotion of failures to golden dataset
+7. **PipelineParameters** - Full parameter logging for reproducibility
+8. **EvalReport** - JSON + text reports with layer breakdowns
+9. **Golden dataset** - `data/eval/golden_dataset.json` (5 samples, versioned)
+10. **CI scripts** - `run_full_evaluation.py`, `run_quality_gate.py`
+11. **GitHub Actions** - `.github/workflows/rag-eval.yml`
+12. **Architecture doc** - `docs/architecture/phase10-evaluation-platform-architecture.md`
+
+### Evaluation Strategies (2026 Best Practices)
+
+| Strategy | What It Measures | Source |
+|---|---|---|
+| RAG Triad (4 core metrics) | Faithfulness, relevancy, context precision/recall | RAGAS, Krunal Kanojiya 2026 |
+| Distribution tracking | P10/P90 tails, not just mean | NiteAgent CI/CD guide 2026 |
+| Absolute + delta gates | Floor thresholds + baseline comparison | FutureAGI CI/CD playbook |
+| Adversarial canary injection | Post-rationalization detection | Wallat et al. 2025 |
+| Failure-to-golden loop | Production failures → test cases | FutureAGI closed-loop eval |
+| Parameter versioning | All pipeline config logged per run | SN Computer Science 2026 |
+| PR-blocking CI gate | `--fail-on-threshold-breach` | DeepEval/pytest pattern |
+| Layer-isolated metrics | Per-layer latency and quality | FutureAGI per-layer scorers |
+
+### Quality Gate Thresholds
+
+| Metric | Good | Warning | Critical |
+|---|---|---|---|
+| Faithfulness | ≥0.85 | ≥0.70 | <0.70 |
+| Context Precision | ≥0.85 | ≥0.65 | <0.65 |
+| Hallucination Rate | ≤0.15 | ≤0.30 | >0.30 |
+| Adversarial Pass Rate | ≥0.90 | ≥0.70 | <0.70 |
+
+### Alternatives Considered
+
+| Decision | Chosen | Rationale |
+|---|---|---|
+| Eval orchestration | Unified platform | Single report; layer isolation preserved |
+| Gate framework | Custom thresholds | No SaaS; pytest-native pass/fail |
+| Baseline storage | JSON files | Local-first; MLflow deferred to scale |
+| Adversarial method | Canary injection | Simple, interpretable, no model internals needed |
+| CI strictness | Lenient on PR, strict nightly | Fast PR feedback; thorough nightly |
+
+### Production Gap
+
+| Local | Production | Upgrade Trigger |
+|---|---|---|
+| 5-sample golden set | 100-200 production-sampled cases | Before strict merge gate |
+| JSON baselines | MLflow experiment tracking | Multiple concurrent eval runs |
+| Lenient PR gate | Strict gate blocking merge | Golden set ≥50 samples |
+| Manual failure promotion | Auto-promote from observability | Phase 11 observability layer |
+
+### Next: Phase 11 Observability Platform
+
+Structured logging, metrics, tracing, and dashboards. Wire production spans to the same rubrics used in CI.
+
+---
