@@ -2,7 +2,7 @@
 
 A production-oriented RAG platform built from first principles, not a demo. This project implements the full document intelligence pipeline: ingestion, chunking, embedding, indexing, hybrid retrieval, reranking, context assembly, citation-aware generation, unified evaluation, and observability.
 
-**Current Status:** Phases 1-11 complete. Full RAG query pipeline operational with benchmark-driven evaluation and CI quality gates. Phase 12 (scalability reviews) is next.
+**Current Status:** Phases 1-12 complete. Query API operational. Full RAG pipeline with benchmark-driven evaluation and CI quality gates.
 
 **Repository:** [github.com/charan-rathore/IntelliRAG](https://github.com/charan-rathore/IntelliRAG)
 
@@ -101,7 +101,7 @@ Ingest → Chunk → Embed → Index → Retrieve → Rerank → Assemble Contex
 | **10** | Unified Evaluation Platform | ✅ | `libs/rag/evaluation/platform.py` |
 | **10** | CI Quality Gates + Golden Dataset | ✅ | `.github/workflows/rag-eval.yml` |
 | **11** | Observability (metrics/tracing/dashboard) | ✅ | `libs/observability/` |
-| **12** | Scalability Reviews | 🔜 | N/A |
+| **12** | Scalability Reviews + Query API | ✅ | `libs/scalability/`, `apps/api/app/api/v1/query.py` |
 
 ### Test Coverage
 
@@ -503,7 +503,7 @@ print(f"Trace ID: {result.trace_id}")
 
 ## Roadmap
 
-### Completed (Phases 1-11)
+### Completed (Phases 1-12)
 
 - [x] Ingestion pipeline with idempotency and lifecycle tracking
 - [x] Chunking library (5 strategies, benchmark-driven defaults)
@@ -516,11 +516,11 @@ print(f"Trace ID: {result.trace_id}")
 - [x] Faithfulness evaluation (atomic claims + entailment)
 - [x] Unified evaluation platform with CI quality gates
 - [x] Observability (metrics, tracing, dashboard, span-attached eval)
+- [x] Query API endpoint (`POST /query` with full instrumented pipeline)
+- [x] Scalability reviews (10K-10M capacity model, load test harness)
 
-### Coming Next (Phase 12+)
+### Coming Next (Phase 13+)
 
-- [ ] Scalability reviews (10K → 10M documents)
-- [ ] Query API endpoint (wire ObservedRAGPipeline to FastAPI)
 - [ ] Docker Compose for one-command local deployment
 - [ ] Expand golden dataset to 100+ production-sampled cases
 - [ ] Strict CI merge gate (after golden set ≥50 samples)

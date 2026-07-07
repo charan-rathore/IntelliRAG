@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
@@ -52,6 +52,7 @@ class PipelineHandles:
     generation_service: GenerationService
     faithfulness_evaluator: FaithfulnessEvaluator
     corpus: List[tuple[str, str]]
+    chunk_doc_ids: Dict[str, str] = field(default_factory=dict)
 
 
 class EvaluationPlatform:
@@ -97,7 +98,11 @@ class EvaluationPlatform:
 
         # --- Layer 1: Retrieval ---
         logger.info("Evaluating retrieval layer...")
-        retrieval_bench = RetrievalBenchmark(self.dataset, self.pipeline.corpus)
+        retrieval_bench = RetrievalBenchmark(
+            self.dataset,
+            self.pipeline.corpus,
+            chunk_doc_ids=self.pipeline.chunk_doc_ids,
+        )
 
         def hybrid_retrieve(query: str, top_k: int):
             return self.pipeline.retrieval_service.retrieve(
@@ -130,7 +135,11 @@ class EvaluationPlatform:
 
         # --- Layer 2: Reranking ---
         logger.info("Evaluating reranking layer...")
-        rerank_bench = RerankingBenchmark(self.dataset, self.pipeline.corpus)
+        rerank_bench = RerankingBenchmark(
+            self.dataset,
+            self.pipeline.corpus,
+            chunk_doc_ids=self.pipeline.chunk_doc_ids,
+        )
 
         def retrieve_fn(query: str, top_n: int):
             return self.pipeline.retrieval_service.retrieve(
@@ -172,7 +181,11 @@ class EvaluationPlatform:
 
         # --- Layer 3: Context Assembly ---
         logger.info("Evaluating context assembly layer...")
-        context_bench = ContextBenchmark(self.dataset, self.pipeline.corpus)
+        context_bench = ContextBenchmark(
+            self.dataset,
+            self.pipeline.corpus,
+            chunk_doc_ids=self.pipeline.chunk_doc_ids,
+        )
 
         def chunks_provider(query: str):
             rr = self.pipeline.reranking_service.retrieve_and_rerank(

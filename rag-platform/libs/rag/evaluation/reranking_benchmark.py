@@ -132,10 +132,14 @@ class RerankingBenchmark:
         self,
         dataset: EvaluationDataset,
         corpus: List[tuple[str, str]],
+        chunk_doc_ids: Optional[Dict[str, str]] = None,
     ) -> None:
         self.dataset = dataset
         self.corpus = corpus
-        self._retrieval_benchmark = RetrievalBenchmark(dataset, corpus=corpus)
+        self.chunk_doc_ids = chunk_doc_ids or {}
+        self._retrieval_benchmark = RetrievalBenchmark(
+            dataset, corpus=corpus, chunk_doc_ids=self.chunk_doc_ids
+        )
 
     def _resolve_relevant_ids(self, sample) -> Set[str]:
         from libs.rag.evaluation.retrieval_benchmark import RetrievalEvalSample
@@ -145,11 +149,9 @@ class RerankingBenchmark:
             relevant_chunk_ids=set(sample.metadata.get("relevant_chunk_ids", [])),
             relevant_texts=sample.reference_context,
         )
-        relevant = set(eval_sample.relevant_chunk_ids)
-        for chunk_id, text in self.corpus:
-            if _is_relevant(chunk_id, text, eval_sample):
-                relevant.add(chunk_id)
-        return relevant
+        return self._retrieval_benchmark._resolve_relevant_ids(
+            eval_sample, sample.document_id
+        )
 
     def _evaluate_rerank_result(
         self,

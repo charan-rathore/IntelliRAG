@@ -177,13 +177,17 @@ class ContextBenchmark:
         self,
         dataset: EvaluationDataset,
         corpus: List[tuple[str, str]],
+        chunk_doc_ids: Optional[Dict[str, str]] = None,
     ) -> None:
         self.dataset = dataset
         self.corpus = corpus
+        self.chunk_doc_ids = chunk_doc_ids or {}
 
     def _resolve_relevant_ids(self, sample) -> Set[str]:
         relevant = set(sample.metadata.get("relevant_chunk_ids", []))
         for chunk_id, text in self.corpus:
+            if sample.document_id and self.chunk_doc_ids.get(chunk_id) == sample.document_id:
+                relevant.add(chunk_id)
             for ref in sample.reference_context:
                 ref_lower = ref.lower().strip()
                 if ref_lower and (

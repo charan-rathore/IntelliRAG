@@ -1,0 +1,20 @@
+{
+  "name": "pre_phase12_baseline",
+  "version": "1.0",
+  "timestamp": "2026-07-07T01:02:33",
+  "metrics": {
+    "retrieval_mrr": 0.9,
+    "retrieval_recall": 1.0,
+    "retrieval_precision": 0.24,
+    "rerank_mrr_lift": 0.0,
+    "rerank_mrr": 0.9,
+    "context_precision": 0.4063,
+    "context_recall": 1.0,
+    "faithfulness": 0.5,
+    "citation_precision": 0.5,
+    "hallucination_rate": 0.5,
+    "answer_relevancy": 0.1524,
+    "e2e_latency_p95_ms": 12.2359,
+    "adversarial_pass_rate": 1.0
+  }
+}

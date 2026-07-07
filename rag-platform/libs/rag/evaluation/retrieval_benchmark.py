@@ -126,38 +126,46 @@ class RetrievalBenchmark:
         self,
         dataset: EvaluationDataset,
         corpus: Optional[List[tuple[str, str]]] = None,
+        chunk_doc_ids: Optional[Dict[str, str]] = None,
     ) -> None:
         """
         Args:
             dataset: Evaluation dataset with questions and reference contexts.
             corpus: Optional full (chunk_id, text) corpus for recall computation.
+            chunk_doc_ids: Optional chunk_id -> source document id mapping.
         """
         self.dataset = dataset
         self.corpus = corpus or []
+        self.chunk_doc_ids = chunk_doc_ids or {}
 
-    def _resolve_relevant_ids(self, sample: RetrievalEvalSample) -> Set[str]:
+    def _resolve_relevant_ids(
+        self,
+        sample: RetrievalEvalSample,
+        document_id: Optional[str] = None,
+    ) -> Set[str]:
         """Determine ground-truth relevant chunk IDs from corpus and references."""
         relevant = set(sample.relevant_chunk_ids)
 
         for chunk_id, text in self.corpus:
             if _is_relevant(chunk_id, text, sample):
                 relevant.add(chunk_id)
+            elif document_id and self.chunk_doc_ids.get(chunk_id) == document_id:
+                relevant.add(chunk_id)
 
         return relevant
 
-    def _build_samples(self) -> List[RetrievalEvalSample]:
+    def _build_samples(self) -> List[tuple[RetrievalEvalSample, Optional[str]]]:
         samples = []
         for sample in self.dataset.samples:
             relevant_ids = set()
             if "relevant_chunk_ids" in sample.metadata:
                 relevant_ids = set(sample.metadata["relevant_chunk_ids"])
-            samples.append(
-                RetrievalEvalSample(
-                    question=sample.question,
-                    relevant_chunk_ids=relevant_ids,
-                    relevant_texts=sample.reference_context,
-                )
+            eval_sample = RetrievalEvalSample(
+                question=sample.question,
+                relevant_chunk_ids=relevant_ids,
+                relevant_texts=sample.reference_context,
             )
+            samples.append((eval_sample, sample.document_id))
         return samples
 
     def evaluate_retriever(
@@ -170,10 +178,10 @@ class RetrievalBenchmark:
         eval_samples = self._build_samples()
         per_query: List[RetrievalEvalResult] = []
 
-        for eval_sample in eval_samples:
+        for eval_sample, document_id in eval_samples:
             result = retriever_fn(eval_sample.question, top_k)
             retrieved_ids = [c.chunk_id for c in result.chunks]
-            relevant = self._resolve_relevant_ids(eval_sample)
+            relevant = self._resolve_relevant_ids(eval_sample, document_id)
 
             rec = recall_at_k(retrieved_ids, relevant, top_k)
             prec = precision_at_k(retrieved_ids, relevant, top_k)

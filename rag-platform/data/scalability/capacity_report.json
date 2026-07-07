@@ -1,0 +1,58 @@
+{
+  "10K": {
+    "tier": "10K",
+    "storage_mb": 390.625,
+    "estimated_index_build_minutes": 40.0,
+    "estimated_query_latency_p95_ms": 7.0,
+    "bottlenecks": [],
+    "mitigations": []
+  },
+  "100K": {
+    "tier": "100K",
+    "storage_mb": 3906.25,
+    "estimated_index_build_minutes": 400.0,
+    "estimated_query_latency_p95_ms": 25.0,
+    "bottlenecks": [
+      "Chroma SQLite single-node index size exceeds comfortable local limits",
+      "Vector storage ~3906MB stresses local disk budget"
+    ],
+    "mitigations": [
+      "Shard collections by tenant or document type",
+      "Use 512d or binary embeddings; prune stale document versions"
+    ]
+  },
+  "1M": {
+    "tier": "1M",
+    "storage_mb": 39062.5,
+    "estimated_index_build_minutes": 4000.0,
+    "estimated_query_latency_p95_ms": 205.0,
+    "bottlenecks": [
+      "Chroma SQLite single-node index size exceeds comfortable local limits",
+      "In-memory BM25 corpus rebuild becomes expensive",
+      "Vector storage ~39062MB stresses local disk budget"
+    ],
+    "mitigations": [
+      "Shard collections by tenant or document type",
+      "Move keyword index to persistent inverted index (Tantivy/Elasticsearch)",
+      "Use 512d or binary embeddings; prune stale document versions"
+    ]
+  },
+  "10M": {
+    "tier": "10M",
+    "storage_mb": 390625.0,
+    "estimated_index_build_minutes": 40000.0,
+    "estimated_query_latency_p95_ms": 2005.0,
+    "bottlenecks": [
+      "Chroma SQLite single-node index size exceeds comfortable local limits",
+      "In-memory BM25 corpus rebuild becomes expensive",
+      "Single-process Ollama embedding throughput cannot keep up with ingestion",
+      "Vector storage ~390625MB stresses local disk budget"
+    ],
+    "mitigations": [
+      "Shard collections by tenant or document type",
+      "Move keyword index to persistent inverted index (Tantivy/Elasticsearch)",
+      "Batch embedding workers with queue backpressure and int8 quantization",
+      "Use 512d or binary embeddings; prune stale document versions"
+    ]
+  }
+}
