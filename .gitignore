@@ -43,6 +43,19 @@ credentials.json
 *.log
 logs/
 
+# Generated / local runtime artifacts
+rag-platform/data/index/
+rag-platform/data/raw/
+rag-platform/data/observability/dashboard.html
+rag-platform/data/eval/reports/ci_report.json
+rag-platform/data/eval/failure_feed.jsonl
+
+# Editor agent rules (local)
+.cursor/
+
+# Ops scripts with cloud account IDs
+scripts/azure-status.sh
+
 # Test artifacts
 .pytest_cache/
 .coverage

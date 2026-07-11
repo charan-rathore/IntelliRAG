@@ -17,11 +17,12 @@ A production-oriented RAG platform built from first principles, not a demo. This
 5. [Tech Stack](#tech-stack)
 6. [Project Structure](#project-structure)
 7. [Getting Started](#getting-started)
-8. [Running Benchmarks & Evaluation](#running-benchmarks--evaluation)
-9. [Observability Dashboard](#observability-dashboard)
-10. [CI/CD Quality Gates](#cicd-quality-gates)
-11. [Configuration](#configuration)
-12. [Roadmap](#roadmap)
+8. [Query Console (UI)](#query-console-ui)
+9. [Running Benchmarks & Evaluation](#running-benchmarks--evaluation)
+10. [Observability Dashboard](#observability-dashboard)
+11. [CI/CD Quality Gates](#cicd-quality-gates)
+12. [Configuration](#configuration)
+13. [Roadmap](#roadmap)
 
 ---
 
@@ -517,6 +518,7 @@ print(f"Trace ID: {result.trace_id}")
 - [x] Unified evaluation platform with CI quality gates
 - [x] Observability (metrics, tracing, dashboard, span-attached eval)
 - [x] Query API endpoint (`POST /query` with full instrumented pipeline)
+- [x] Query console UI for live grounded Q&A testing
 - [x] Scalability reviews (10K-10M capacity model, load test harness)
 
 ### Coming Next (Phase 13+)

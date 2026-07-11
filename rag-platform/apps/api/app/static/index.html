@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IntelliRAG</title>
+  <meta name="description" content="Ask questions against your indexed knowledge base with grounded, cited answers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="IntelliRAG home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">IntelliRAG</span>
+    </a>
+    <div class="topbar-meta">
+      <span id="health-pill" class="health-pill" data-state="checking">Checking…</span>
+      <button type="button" id="settings-toggle" class="ghost-btn" aria-expanded="false" aria-controls="settings-panel">
+        Options
+      </button>
+    </div>
+  </header>
+
+  <div id="settings-panel" class="settings-panel" hidden>
+    <label class="field">
+      <span>Retrieval</span>
+      <select id="retrieval-mode">
+        <option value="hybrid" selected>Hybrid (dense + keyword)</option>
+        <option value="dense">Dense only</option>
+        <option value="keyword">Keyword only</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Sources to retrieve</span>
+      <input id="top-k" type="number" min="1" max="20" value="5" />
+    </label>
+    <label class="field check">
+      <input id="include-eval" type="checkbox" checked />
+      <span>Show quality scores</span>
+    </label>
+  </div>
+
+  <main class="shell">
+    <section id="welcome" class="welcome">
+      <p class="eyebrow">Knowledge console</p>
+      <h1 class="welcome-brand">IntelliRAG</h1>
+      <p class="welcome-lede">
+        Ask a question. Answers are retrieved from your indexed docs, then grounded with citations.
+      </p>
+      <div class="prompt-grid" id="example-prompts" role="list"></div>
+    </section>
+
+    <section id="thread" class="thread" aria-live="polite" hidden></section>
+  </main>
+
+  <footer class="composer-dock">
+    <form id="query-form" class="composer" autocomplete="off">
+      <label class="sr-only" for="question">Your question</label>
+      <textarea
+        id="question"
+        name="question"
+        rows="1"
+        maxlength="4000"
+        placeholder="Ask about your documents…"
+        required
+      ></textarea>
+      <button type="submit" id="ask-btn" class="ask-btn">
+        <span class="ask-label">Ask</span>
+        <span class="ask-spinner" aria-hidden="true"></span>
+      </button>
+    </form>
+    <p class="composer-hint">Enter to send · Shift+Enter for a new line</p>
+  </footer>
+
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
