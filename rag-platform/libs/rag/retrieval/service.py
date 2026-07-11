@@ -24,15 +24,20 @@ class RetrievalService:
         self,
         indexing_service: IndexingService,
         chunk_corpus: Optional[List[Tuple[str, str]]] = None,
+        chunk_metadata: Optional[Dict[str, Dict[str, Any]]] = None,
     ) -> None:
         self.indexing_service = indexing_service
         self.dense = DenseRetriever(indexing_service)
-        self.keyword = KeywordRetriever(chunk_corpus or [])
+        self.keyword = KeywordRetriever(chunk_corpus or [], chunk_metadata=chunk_metadata)
         self.hybrid = HybridRetriever(self.dense, self.keyword)
 
-    def refresh_keyword_index(self, chunks: List[Tuple[str, str]]) -> None:
+    def refresh_keyword_index(
+        self,
+        chunks: List[Tuple[str, str]],
+        chunk_metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> None:
         """Rebuild the keyword index with updated chunks."""
-        self.keyword.refresh(chunks)
+        self.keyword.refresh(chunks, chunk_metadata=chunk_metadata)
 
     def retrieve(
         self,
@@ -45,5 +50,7 @@ class RetrievalService:
         if mode == "dense":
             return self.dense.retrieve(query, top_k=top_k, filter_metadata=filter_metadata)
         if mode == "keyword":
-            return self.keyword.retrieve(query, top_k=top_k)
+            return self.keyword.retrieve(
+                query, top_k=top_k, filter_metadata=filter_metadata
+            )
         return self.hybrid.retrieve(query, top_k=top_k, filter_metadata=filter_metadata)

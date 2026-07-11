@@ -47,6 +47,7 @@ class HybridRetriever:
         keyword_result = self.keyword_retriever.retrieve(
             query=query,
             top_k=top_k * 2,
+            filter_metadata=filter_metadata,
         )
 
         fused = self._reciprocal_rank_fusion(

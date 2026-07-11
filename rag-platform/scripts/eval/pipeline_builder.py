@@ -9,12 +9,14 @@ from libs.rag.pipeline.factory import PipelineBuildConfig, PipelineFactory
 def build_eval_pipeline(
     persist_dir: str | None = None,
     use_ollama_embeddings: bool = False,
+    config: PipelineBuildConfig | None = None,
 ) -> PipelineHandles:
     """Build a complete RAG pipeline for evaluation."""
-    built = PipelineFactory.build(
-        PipelineBuildConfig(
-            persist_dir=persist_dir,
-            use_ollama_embeddings=use_ollama_embeddings,
-        )
+    cfg = config or PipelineBuildConfig(
+        persist_dir=persist_dir,
+        use_ollama_embeddings=use_ollama_embeddings,
     )
+    if persist_dir and config is None:
+        cfg.persist_dir = persist_dir
+    built = PipelineFactory.build(cfg)
     return built.handles

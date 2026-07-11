@@ -392,7 +392,7 @@ class IndexingService:
         - Model tracking (which model generated this embedding)
         """
         meta = chunk.metadata
-        return {
+        payload = {
             "document_id": str(document_id),
             "version_id": str(version_id),
             "chunk_id": str(chunk.chunk_id),
@@ -411,3 +411,7 @@ class IndexingService:
             "embedding_model": embedding_model,
             "embedding_dimensions": embedding_dimensions,
         }
+        source_doc_id = meta.extra.get("source_doc_id")
+        if source_doc_id:
+            payload["source_doc_id"] = str(source_doc_id)
+        return payload

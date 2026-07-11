@@ -1,8 +1,8 @@
 {
-  "name": "golden_rag_eval_v1",
-  "description": "Versioned golden evaluation dataset for CI quality gates. Grows via failure feed.",
-  "version": "1.0",
-  "created_at": "2026-07-06T00:00:00",
+  "name": "intellirag_task_benchmark_v1",
+  "description": "Task-specific golden benchmark for enterprise technical-doc RAG. Covers incident RCA, resolution, and how-to queries against k8s-incident and python-async corpus.",
+  "version": "1.1",
+  "created_at": "2026-07-11T00:00:00",
   "source_documents": ["k8s-incident", "python-async"],
   "samples": [
     {
@@ -15,7 +15,7 @@
         "stuck in Pending state"
       ],
       "document_id": "k8s-incident",
-      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident"}
+      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident", "task_type": "incident_rca"}
     },
     {
       "sample_id": "golden-002",
@@ -25,7 +25,7 @@
         "resource quotas, pod priority classes, and node affinity rules"
       ],
       "document_id": "k8s-incident",
-      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident"}
+      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident", "task_type": "incident_resolution"}
     },
     {
       "sample_id": "golden-003",
@@ -36,7 +36,7 @@
         "Avoid creating multiple event loops"
       ],
       "document_id": "python-async",
-      "metadata": {"topic": "python", "difficulty": "basic", "route": "async"}
+      "metadata": {"topic": "python", "difficulty": "basic", "route": "async", "task_type": "how_to"}
     },
     {
       "sample_id": "golden-004",
@@ -48,7 +48,7 @@
         "appropriate timeouts"
       ],
       "document_id": "python-async",
-      "metadata": {"topic": "python", "difficulty": "intermediate", "route": "async"}
+      "metadata": {"topic": "python", "difficulty": "intermediate", "route": "async", "task_type": "how_to"}
     },
     {
       "sample_id": "golden-005",
@@ -59,7 +59,62 @@
         "Wrap coroutines in try/except"
       ],
       "document_id": "python-async",
-      "metadata": {"topic": "python", "difficulty": "intermediate", "route": "async"}
+      "metadata": {"topic": "python", "difficulty": "intermediate", "route": "async", "task_type": "how_to"}
+    },
+    {
+      "sample_id": "golden-006",
+      "question": "What state were pods stuck in during the scheduling incident?",
+      "ground_truth": "Pods were stuck in Pending state for 10-15 minutes during peak hours.",
+      "reference_context": [
+        "Pods were getting stuck in Pending state",
+        "10-15 minutes during peak hours"
+      ],
+      "document_id": "k8s-incident",
+      "metadata": {"topic": "kubernetes", "difficulty": "basic", "route": "incident", "task_type": "incident_rca"}
+    },
+    {
+      "sample_id": "golden-007",
+      "question": "What resource constraints prevented pod placement on individual nodes?",
+      "ground_truth": "Node A had 2 CPUs free but only 512Mi memory. Node B had 4Gi memory free but only 0.5 CPU. Pod requests of 1 CPU + 2Gi memory could not be satisfied by any single node.",
+      "reference_context": [
+        "Node A had 2 CPUs free but only 512Mi memory",
+        "Node B had 4Gi memory free but only 0.5 CPU",
+        "Pod requests: 1 CPU + 2Gi memory"
+      ],
+      "document_id": "k8s-incident",
+      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident", "task_type": "incident_rca"}
+    },
+    {
+      "sample_id": "golden-008",
+      "question": "What mitigation was confirmed after repeated analysis of the scheduling issue?",
+      "ground_truth": "Repeated analysis confirmed resource fragmentation as the root cause, and resource quotas, pod priority classes, and node affinity rules were implemented.",
+      "reference_context": [
+        "Repeated analysis confirmed resource fragmentation as the root cause",
+        "resource quotas, pod priority classes, and node affinity rules"
+      ],
+      "document_id": "k8s-incident",
+      "metadata": {"topic": "kubernetes", "difficulty": "intermediate", "route": "incident", "task_type": "incident_resolution"}
+    },
+    {
+      "sample_id": "golden-009",
+      "question": "Why should you avoid creating multiple asyncio event loops?",
+      "ground_truth": "Avoid creating multiple event loops in the same thread to prevent conflicts and unpredictable behavior.",
+      "reference_context": [
+        "Avoid creating multiple event loops in the same thread"
+      ],
+      "document_id": "python-async",
+      "metadata": {"topic": "python", "difficulty": "basic", "route": "async", "task_type": "how_to"}
+    },
+    {
+      "sample_id": "golden-010",
+      "question": "What is the purpose of return_exceptions in asyncio.gather?",
+      "ground_truth": "Using asyncio.gather with return_exceptions=True allows concurrent tasks to not fail together when one task raises an exception.",
+      "reference_context": [
+        "asyncio.gather with return_exceptions=True",
+        "concurrent tasks that should not fail together"
+      ],
+      "document_id": "python-async",
+      "metadata": {"topic": "python", "difficulty": "intermediate", "route": "async", "task_type": "how_to"}
     }
   ]
 }

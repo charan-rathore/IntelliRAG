@@ -21,8 +21,9 @@ from libs.rag.indexing.service import IndexingConfig, IndexingService
 from libs.observability import ObservedRAGPipeline, ObservabilityCollector
 from libs.rag.pipeline.embedders import TfidfEmbedder
 from libs.rag.reranking.cross_encoder import LexicalReranker
+from libs.rag.reranking.pass_through import PassThroughReranker
 from libs.rag.reranking.service import RerankingService
-from libs.rag.retrieval.service import RetrievalService
+from libs.rag.retrieval.service import RetrievalService, RetrieverMode
 from libs.shared.models.document import CanonicalDocument, DocumentMetadata, DocumentVersion
 from libs.shared.models.lifecycle import IngestionSource, IngestionState
 
@@ -78,6 +79,8 @@ class PipelineBuildConfig:
     context_max_tokens: int = 2048
     context_max_chunks: int = 5
     retrieve_top_n: int = 20
+    default_retrieval_mode: RetrieverMode = "hybrid"
+    reranker_type: str = "lexical"  # lexical | pass_through | cross_encoder
 
 
 @dataclass
@@ -149,23 +152,38 @@ class PipelineFactory:
         embedder = cls._create_embedder(cfg, corpus_texts, indexing_config)
         service._embedder = embedder
 
-        doc_id = all_chunks[0].document_id
-        ver_id = all_chunks[0].version_id
+        indexed_by_doc: Dict[str, List] = {}
         for chunk in all_chunks:
-            chunk.document_id = doc_id
-            chunk.version_id = ver_id
+            source_key = chunk.metadata.extra.get("source_doc_id", "unknown")
+            indexed_by_doc.setdefault(source_key, []).append(chunk)
 
-        service.index_document_chunks(
-            chunks=all_chunks,
-            document_id=doc_id,
-            version_id=ver_id,
-            delete_old_vectors=False,
-        )
+        for source_key, doc_chunks in indexed_by_doc.items():
+            doc_id = doc_chunks[0].document_id
+            ver_id = doc_chunks[0].version_id
+            service.index_document_chunks(
+                chunks=doc_chunks,
+                document_id=doc_id,
+                version_id=ver_id,
+                delete_old_vectors=False,
+            )
+            logger.info(
+                "Indexed %d chunks for source=%s document=%s",
+                len(doc_chunks),
+                source_key,
+                doc_id,
+            )
 
         corpus = [(str(c.chunk_id), c.chunk_text) for c in all_chunks]
-        retrieval_svc = RetrievalService(service, chunk_corpus=corpus)
+        chunk_metadata = {
+            str(c.chunk_id): {"source_doc_id": chunk_doc_ids[str(c.chunk_id)]}
+            for c in all_chunks
+        }
+        retrieval_svc = RetrievalService(
+            service, chunk_corpus=corpus, chunk_metadata=chunk_metadata
+        )
+        reranker = cls._create_reranker(cfg.reranker_type)
         rerank_svc = RerankingService(
-            retrieval_svc, LexicalReranker(), retrieve_top_n=cfg.retrieve_top_n
+            retrieval_svc, reranker, retrieve_top_n=cfg.retrieve_top_n
         )
         context_svc = ContextAssemblyService(
             ContextAssemblyConfig(
@@ -218,3 +236,13 @@ class PipelineFactory:
         tfidf.fit(corpus_texts)
         logger.info("Using TF-IDF content-aware embeddings (%d dims)", tfidf.dimensions)
         return tfidf
+
+    @staticmethod
+    def _create_reranker(reranker_type: str):
+        if reranker_type == "pass_through":
+            return PassThroughReranker()
+        if reranker_type == "cross_encoder":
+            from libs.rag.reranking.cross_encoder import CrossEncoderReranker
+
+            return CrossEncoderReranker()
+        return LexicalReranker()

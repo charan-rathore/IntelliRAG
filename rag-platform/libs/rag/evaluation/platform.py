@@ -96,6 +96,16 @@ class EvaluationPlatform:
         layer_metrics: Dict[str, LayerMetrics] = {}
         operational: Dict[str, float] = {}
 
+        question_to_doc = {
+            s.question: s.document_id
+            for s in self.dataset.samples
+            if s.document_id
+        }
+
+        def _doc_filter(query: str) -> Optional[Dict[str, str]]:
+            doc_key = question_to_doc.get(query)
+            return {"source_doc_id": doc_key} if doc_key else None
+
         # --- Layer 1: Retrieval ---
         logger.info("Evaluating retrieval layer...")
         retrieval_bench = RetrievalBenchmark(
@@ -104,13 +114,18 @@ class EvaluationPlatform:
             chunk_doc_ids=self.pipeline.chunk_doc_ids,
         )
 
+        retrieval_mode = self.parameters.retrieval_mode
+
         def hybrid_retrieve(query: str, top_k: int):
             return self.pipeline.retrieval_service.retrieve(
-                query=query, mode="hybrid", top_k=top_k
+                query=query,
+                mode=retrieval_mode,
+                top_k=top_k,
+                filter_metadata=_doc_filter(query),
             )
 
         retrieval_result = retrieval_bench.evaluate_retriever(
-            hybrid_retrieve, "hybrid", top_k=self.parameters.retrieval_top_k
+            hybrid_retrieve, retrieval_mode, top_k=self.parameters.retrieval_top_k
         )
 
         per_sample["retrieval_mrr"] = [q.mrr for q in retrieval_result.per_query]
@@ -121,6 +136,7 @@ class EvaluationPlatform:
         aggregate["retrieval_mrr"] = retrieval_result.avg_mrr
         aggregate["retrieval_recall"] = retrieval_result.avg_recall_at_k
         aggregate["retrieval_precision"] = retrieval_result.avg_precision_at_k
+        aggregate["retrieval_ndcg"] = retrieval_result.avg_ndcg_at_k
 
         layer_metrics["retrieval"] = LayerMetrics(
             layer="retrieval",
@@ -143,7 +159,10 @@ class EvaluationPlatform:
 
         def retrieve_fn(query: str, top_n: int):
             return self.pipeline.retrieval_service.retrieve(
-                query=query, mode="hybrid", top_k=top_n
+                query=query,
+                mode=retrieval_mode,
+                top_k=top_n,
+                filter_metadata=_doc_filter(query),
             )
 
         def rerank_fn(query: str, retrieval_result, top_k: int):
@@ -154,8 +173,8 @@ class EvaluationPlatform:
         rerank_result = rerank_bench.evaluate_pipeline(
             retrieve_fn=retrieve_fn,
             rerank_fn=rerank_fn,
-            pipeline_name="hybrid+rerank",
-            retrieval_mode="hybrid",
+            pipeline_name=f"{retrieval_mode}+rerank",
+            retrieval_mode=retrieval_mode,
             reranker_name=self.parameters.reranker,
             top_k=self.parameters.rerank_top_k,
             retrieve_top_n=self.parameters.retrieve_top_n,
@@ -166,6 +185,9 @@ class EvaluationPlatform:
 
         aggregate["rerank_mrr_lift"] = rerank_result.mrr_lift
         aggregate["rerank_mrr"] = rerank_result.avg_mrr
+        aggregate["rerank_ndcg"] = rerank_result.avg_ndcg_at_k
+        aggregate["rerank_ndcg_lift"] = rerank_result.ndcg_lift
+        aggregate["top1_change_rate"] = rerank_result.top1_change_rate
 
         layer_metrics["reranking"] = LayerMetrics(
             layer="reranking",
@@ -189,7 +211,10 @@ class EvaluationPlatform:
 
         def chunks_provider(query: str):
             rr = self.pipeline.reranking_service.retrieve_and_rerank(
-                query=query, retrieval_mode="hybrid", top_k=10
+                query=query,
+                retrieval_mode=retrieval_mode,
+                top_k=10,
+                filter_metadata=_doc_filter(query),
             )
             return rr.chunks
 
@@ -229,7 +254,10 @@ class EvaluationPlatform:
 
         def context_fn(query: str) -> AssembledContext:
             rr = self.pipeline.reranking_service.retrieve_and_rerank(
-                query=query, retrieval_mode="hybrid", top_k=self.parameters.rerank_top_k
+                query=query,
+                retrieval_mode=retrieval_mode,
+                top_k=self.parameters.rerank_top_k,
+                filter_metadata=_doc_filter(query),
             )
             return self.pipeline.context_service.assemble_from_rerank(rr)
 

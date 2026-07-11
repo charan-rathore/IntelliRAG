@@ -7,7 +7,7 @@ import math
 import re
 import time
 from collections import Counter
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .models import RetrievedChunk, RetrievalResult
 
@@ -108,8 +108,13 @@ class BM25Index:
 class KeywordRetriever:
     """BM25 keyword retriever backed by an in-memory index."""
 
-    def __init__(self, chunks: List[Tuple[str, str]]) -> None:
+    def __init__(
+        self,
+        chunks: List[Tuple[str, str]],
+        chunk_metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> None:
         self._index = BM25Index(chunks)
+        self._chunk_metadata = chunk_metadata or {}
 
     @classmethod
     def from_chunk_rows(cls, rows: List[dict]) -> "KeywordRetriever":
@@ -117,10 +122,20 @@ class KeywordRetriever:
         chunks = [(str(row["chunk_id"]), row["chunk_text"]) for row in rows]
         return cls(chunks)
 
-    def retrieve(self, query: str, top_k: int = 10) -> RetrievalResult:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 10,
+        filter_metadata: Optional[Dict[str, Any]] = None,
+    ) -> RetrievalResult:
         """Retrieve top-k chunks by BM25 score."""
         start = time.time()
-        results = self._index.search(query, top_k=top_k)
+        results = self._index.search(query, top_k=top_k * 4 if filter_metadata else top_k)
+        if filter_metadata:
+            results = [
+                item for item in results
+                if self._matches_filter(item[0], filter_metadata)
+            ][:top_k]
         latency_ms = (time.time() - start) * 1000
 
         retrieved = [
@@ -130,6 +145,7 @@ class KeywordRetriever:
                 score=score,
                 rank=i + 1,
                 retriever="keyword",
+                metadata=self._chunk_metadata.get(chunk_id, {}),
             )
             for i, (chunk_id, text, score) in enumerate(results)
         ]
@@ -142,6 +158,16 @@ class KeywordRetriever:
             total_candidates=len(retrieved),
         )
 
-    def refresh(self, chunks: List[Tuple[str, str]]) -> None:
+    def _matches_filter(self, chunk_id: str, filter_metadata: Dict[str, Any]) -> bool:
+        meta = self._chunk_metadata.get(chunk_id, {})
+        return all(meta.get(k) == v for k, v in filter_metadata.items())
+
+    def refresh(
+        self,
+        chunks: List[Tuple[str, str]],
+        chunk_metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> None:
         """Rebuild the index with new chunks."""
         self._index = BM25Index(chunks)
+        if chunk_metadata is not None:
+            self._chunk_metadata = chunk_metadata

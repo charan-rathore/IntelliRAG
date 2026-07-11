@@ -66,6 +66,15 @@ jobs:
             --no-fail \
             --output data/eval/reports/ci_report.json
 
+      - name: Run task-specific evaluation
+        run: |
+          PYTHONPATH=. python scripts/eval/run_task_eval.py \
+            --output data/eval/reports/task_eval_report.json
+
+      - name: Run SOTA baseline comparison (push gate)
+        run: |
+          PYTHONPATH=. python scripts/eval/compare_sota.py
+
       - name: Upload evaluation report
         uses: actions/upload-artifact@v4
         if: always()

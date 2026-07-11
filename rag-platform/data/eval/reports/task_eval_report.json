@@ -1,0 +1,85 @@
+{
+  "dataset_name": "intellirag_task_benchmark_v1",
+  "timestamp": "2026-07-11T18:14:07.509000",
+  "all_passed": true,
+  "task_results": [
+    {
+      "task_type": "how_to",
+      "description": "Procedural how-to questions from technical guides",
+      "num_samples": 5,
+      "aggregate_metrics": {
+        "retrieval_mrr": 1.0,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 0.2,
+        "retrieval_ndcg": 1.0,
+        "rerank_mrr_lift": 0.0,
+        "rerank_mrr": 1.0,
+        "rerank_ndcg": 1.0,
+        "rerank_ndcg_lift": 0.0,
+        "top1_change_rate": 0.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "faithfulness": 0.2,
+        "citation_precision": 0.2,
+        "hallucination_rate": 0.8,
+        "answer_relevancy": 0.4556,
+        "e2e_latency_p95_ms": 13.6821,
+        "adversarial_pass_rate": 1.0
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "task_type": "incident_rca",
+      "description": "Root-cause analysis from incident documentation",
+      "num_samples": 3,
+      "aggregate_metrics": {
+        "retrieval_mrr": 1.0,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 0.4,
+        "retrieval_ndcg": 1.0,
+        "rerank_mrr_lift": 0.0,
+        "rerank_mrr": 1.0,
+        "rerank_ndcg": 1.0,
+        "rerank_ndcg_lift": 0.0,
+        "top1_change_rate": 0.0,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "faithfulness": 0.3333,
+        "citation_precision": 0.3333,
+        "hallucination_rate": 0.6667,
+        "answer_relevancy": 0.4063,
+        "e2e_latency_p95_ms": 3.5426,
+        "adversarial_pass_rate": 1.0
+      },
+      "passed": true,
+      "failures": []
+    },
+    {
+      "task_type": "incident_resolution",
+      "description": "Remediation steps and fixes for incidents",
+      "num_samples": 2,
+      "aggregate_metrics": {
+        "retrieval_mrr": 1.0,
+        "retrieval_recall": 1.0,
+        "retrieval_precision": 0.4,
+        "retrieval_ndcg": 1.0,
+        "rerank_mrr_lift": 0.0,
+        "rerank_mrr": 1.0,
+        "rerank_ndcg": 1.0,
+        "rerank_ndcg_lift": 0.0,
+        "top1_change_rate": 0.5,
+        "context_precision": 1.0,
+        "context_recall": 1.0,
+        "faithfulness": 0.5,
+        "citation_precision": 0.5,
+        "hallucination_rate": 0.5,
+        "answer_relevancy": 0.1818,
+        "e2e_latency_p95_ms": 3.5879,
+        "adversarial_pass_rate": 1.0
+      },
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

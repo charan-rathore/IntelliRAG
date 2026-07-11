@@ -80,6 +80,67 @@ class EvaluationDataset:
     
     def __iter__(self):
         return iter(self.samples)
+
+    def filter_by_metadata(self, **filters: Any) -> "EvaluationDataset":
+        """Return subset where sample metadata matches all filters."""
+        filtered = []
+        for sample in self.samples:
+            if all(sample.metadata.get(k) == v for k, v in filters.items()):
+                filtered.append(sample)
+        return EvaluationDataset(
+            name=f"{self.name}_filtered",
+            description=self.description,
+            samples=filtered,
+            created_at=self.created_at,
+            version=self.version,
+            source_documents=list(self.source_documents),
+        )
+
+    def group_by(self, key: str) -> Dict[str, "EvaluationDataset"]:
+        """Group samples by a metadata key into separate datasets."""
+        groups: Dict[str, List[EvaluationSample]] = {}
+        for sample in self.samples:
+            value = str(sample.metadata.get(key, "unknown"))
+            groups.setdefault(value, []).append(sample)
+        return {
+            group_key: EvaluationDataset(
+                name=f"{self.name}_{group_key}",
+                description=f"{self.description} ({key}={group_key})",
+                samples=group_samples,
+                created_at=self.created_at,
+                version=self.version,
+                source_documents=list(self.source_documents),
+            )
+            for group_key, group_samples in groups.items()
+        }
+
+    def with_task_types(self) -> "EvaluationDataset":
+        """Return copy with task_type populated in each sample metadata."""
+        from .task_taxonomy import resolve_task_type
+
+        enriched = []
+        for sample in self.samples:
+            metadata = dict(sample.metadata)
+            if "task_type" not in metadata:
+                metadata["task_type"] = resolve_task_type(sample).value
+            enriched.append(
+                EvaluationSample(
+                    sample_id=sample.sample_id,
+                    question=sample.question,
+                    ground_truth=sample.ground_truth,
+                    reference_context=list(sample.reference_context),
+                    document_id=sample.document_id,
+                    metadata=metadata,
+                )
+            )
+        return EvaluationDataset(
+            name=self.name,
+            description=self.description,
+            samples=enriched,
+            created_at=self.created_at,
+            version=self.version,
+            source_documents=list(self.source_documents),
+        )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""

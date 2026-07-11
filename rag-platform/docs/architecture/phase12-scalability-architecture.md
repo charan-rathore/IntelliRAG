@@ -40,9 +40,14 @@ Phases 1-11 built a functional RAG pipeline with evaluation and observability, b
 ## Evaluation Strategy
 
 1. **Document-scoped relevance**: chunks from the target document count as relevant (fixes artificially low precision)
-2. **TF-IDF content-aware embeddings**: deterministic offline retrieval that beats random mock vectors
-3. **Context-aware MockLLM**: extracts answers from retrieved sources for CI without Ollama
-4. **Baseline comparison gate**: `compare_baseline.py` blocks push unless 3+ metrics improve
+2. **Task-specific evals**: golden benchmark sliced by `task_type` (incident_rca, incident_resolution, how_to) with per-task thresholds
+3. **SOTA baseline comparison**: naive_dense, bm25_only, hybrid_no_rerank vs intellirag production config
+4. **Composite task score**: weighted MRR, NDCG, rerank lift, context precision, faithfulness, relevancy
+5. **Push gate**: `compare_sota.py` blocks merge unless IntelliRAG beats all baselines on composite score
+6. **TF-IDF content-aware embeddings**: deterministic offline retrieval for CI without Ollama
+7. **Context-aware MockLLM**: extracts answers from retrieved sources for CI without Ollama
+8. **Document-scoped retrieval filter**: `source_doc_id` metadata filter for task-specific queries
+9. **Baseline comparison gate**: `compare_baseline.py` blocks push unless 3+ metrics improve
 
 ## Production Gap vs Local
 
