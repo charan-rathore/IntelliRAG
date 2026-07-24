@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/styles.css" />
+  <link rel="stylesheet" href="/assets/styles.css?v=stream1" />
 </head>
 <body>
   <div class="atmosphere" aria-hidden="true"></div>
@@ -40,8 +40,8 @@
       <input id="top-k" type="number" min="1" max="20" value="5" />
     </label>
     <label class="field check">
-      <input id="include-eval" type="checkbox" checked />
-      <span>Show quality scores</span>
+      <input id="include-eval" type="checkbox" />
+      <span>Show quality scores (slower)</span>
     </label>
   </div>
 
@@ -77,6 +77,6 @@
     <p class="composer-hint">Enter to send · Shift+Enter for a new line</p>
   </footer>
 
-  <script src="/assets/app.js" defer></script>
+  <script src="/assets/app.js?v=stream1" defer></script>
 </body>
 </html>

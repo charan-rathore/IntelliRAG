@@ -51,6 +51,23 @@ class OllamaClient:
         except Exception:
             return False
 
+    def warmup(self) -> None:
+        """Prime the model weights so the first real query is not a cold start."""
+        try:
+            client = self._get_client()
+            client.post(
+                "/api/chat",
+                json={
+                    "model": self.config.model,
+                    "messages": [{"role": "user", "content": "ping"}],
+                    "stream": False,
+                    "keep_alive": "30m",
+                    "options": {"num_predict": 1, "temperature": 0},
+                },
+            )
+        except Exception as exc:
+            logger.warning("Ollama warmup skipped: %s", exc)
+
     def generate(
         self,
         messages: List[Dict[str, str]],
@@ -63,7 +80,8 @@ class OllamaClient:
         payload = {
             "model": cfg.model,
             "messages": messages,
-            "stream": cfg.stream,
+            "stream": False,
+            "keep_alive": "30m",
             "options": {
                 "temperature": cfg.temperature,
                 "num_ctx": cfg.num_ctx,
@@ -92,6 +110,46 @@ class OllamaClient:
             "total_tokens": prompt_tokens + completion_tokens,
             "done": data.get("done", True),
         }
+
+    def stream(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[GenerationConfig] = None,
+    ):
+        """Yield content tokens from Ollama streaming chat."""
+        import json
+
+        cfg = config or self.config
+        client = self._get_client()
+        payload = {
+            "model": cfg.model,
+            "messages": messages,
+            "stream": True,
+            "keep_alive": "30m",
+            "options": {
+                "temperature": cfg.temperature,
+                "num_ctx": cfg.num_ctx,
+                "num_predict": cfg.max_tokens,
+            },
+        }
+
+        with client.stream("POST", "/api/chat", json=payload) as response:
+            if response.status_code != 200:
+                raise RuntimeError(
+                    f"Ollama stream failed: {response.status_code} {response.read().decode()}"
+                )
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                piece = (data.get("message") or {}).get("content") or ""
+                if piece:
+                    yield piece
+                if data.get("done"):
+                    break
 
 
 class MockLLMClient:
@@ -154,7 +212,21 @@ class MockLLMClient:
             return 0.0
         return len(q_tokens & t_tokens) / len(q_tokens)
 
+    # Minimum query↔source token overlap before the mock will invent an answer.
+    # Below this, refuse — mirrors the real citation-aware prompt contract.
+    MIN_ANSWER_OVERLAP = 0.28
+
+    @staticmethod
+    def _clean_sentence(text: str) -> str:
+        """Strip markdown headings / noise so mock answers read like prose."""
+        cleaned = re.sub(r"^#+\s*", "", text.strip())
+        cleaned = re.sub(r"\s*#+\s*", " ", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        return cleaned
+
     def _build_context_answer(self, user_msg: str) -> str:
+        from libs.rag.generation.service import REFUSAL_PHRASE
+
         question = ""
         for line in user_msg.splitlines():
             if line.startswith("Question:"):
@@ -162,10 +234,8 @@ class MockLLMClient:
                 break
 
         sources = self._extract_sources(user_msg)
-        if not sources:
-            return (
-                "Resource fragmentation on cluster nodes prevented scheduling. [Source 1]"
-            )
+        if not sources or not question:
+            return REFUSAL_PHRASE
 
         ranked = sorted(
             sources,
@@ -173,16 +243,20 @@ class MockLLMClient:
             reverse=True,
         )
         top_idx, top_text = ranked[0]
+        if self._score_overlap(question, top_text) < self.MIN_ANSWER_OVERLAP:
+            return REFUSAL_PHRASE
 
         sentences = [
-            s.strip()
+            self._clean_sentence(s)
             for s in re.split(r"(?<=[.!?])\s+", top_text.replace("\n", " "))
-            if len(s.strip()) >= 20
+            if len(self._clean_sentence(s)) >= 20
         ]
         if not sentences:
-            return f"{top_text[:180].strip()} [Source {top_idx}]"
+            return REFUSAL_PHRASE
 
         best_sentence = max(sentences, key=lambda s: self._score_overlap(question, s))
+        if self._score_overlap(question, best_sentence) < self.MIN_ANSWER_OVERLAP:
+            return REFUSAL_PHRASE
         return f"{best_sentence.rstrip('.')}. [Source {top_idx}]"
 
     def generate(
@@ -217,3 +291,16 @@ class MockLLMClient:
             "total_tokens": prompt_tokens + completion_tokens,
             "done": True,
         }
+
+    def stream(
+        self,
+        messages: List[Dict[str, str]],
+        config: Optional[GenerationConfig] = None,
+    ):
+        """Yield mock answer in small chunks for streaming UI tests."""
+        result = self.generate(messages, config or GenerationConfig())
+        content = result["content"]
+        # Chunk by words so the UI can exercise token events.
+        words = re.findall(r"\S+\s*", content)
+        for word in words:
+            yield word

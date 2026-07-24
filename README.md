@@ -369,6 +369,45 @@ export RAW_PAYLOAD_DIR="./data/raw"
 
 ---
 
+## Query Console (UI)
+
+Launch the API and open the IntelliRAG console in your browser:
+
+```bash
+cd rag-platform
+source .venv/bin/activate
+export PYTHONPATH=.
+export RAG_CHROMA_DIR=./data/index/chroma
+# Generation uses Ollama automatically when it is reachable (RAG_USE_OLLAMA=auto).
+# export RAG_LLM_MODEL=llama3
+# Do not set RAG_USE_OLLAMA_EMBED=true unless you re-index — the local Chroma
+# collection is TF-IDF by default.
+
+uvicorn apps.api.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+Open [http://localhost:8000](http://localhost:8000). Ask a question, inspect citations, latency by layer, and quality scores.
+
+The top-bar health pill shows the active LLM backend. If it says **Mock LLM**, answers will be weak — run `ollama serve` and restart the API.
+
+**Failure-mode routing (interactive console):**
+- Greetings (`hey`, `hi`) → instant welcome
+- Capability asks (`what can you do`) → indexed topics + source links (no LLM wait)
+- Off-topic (`weather`, `joke`, …) → fast refuse with guidance
+- Document questions → retrieve → generate (Ollama)
+
+**Source links:** each citation includes `url` like `/sources/k8s-incident` (full document page). Quality scores are **off by default** to keep latency down; enable “Show quality scores” in Options when debugging.
+
+**Latency note:** local `llama3` (8B) generation often takes ~15–25s on a laptop. Keep Ollama warm (`keep_alive`), or install a smaller model (`ollama pull llama3.2`) and set `RAG_LLM_MODEL=llama3.2`.
+
+```bash
+curl -s http://localhost:8000/query \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"What caused the Kubernetes pod scheduling failures?","retrieval_mode":"hybrid","top_k":5}'
+```
+
+---
+
 ## Running Benchmarks & Evaluation
 
 All commands assume `cd rag-platform && PYTHONPATH=.`.

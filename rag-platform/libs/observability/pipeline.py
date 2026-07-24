@@ -77,8 +77,13 @@ class ObservedRAGPipeline:
         question: str,
         retrieval_mode: str = "hybrid",
         top_k: int = 5,
+        run_eval: bool = True,
     ) -> ObservedQueryResult:
-        """Execute a full instrumented RAG query."""
+        """Execute a full instrumented RAG query.
+
+        Args:
+            run_eval: When False, skip faithfulness scoring (faster interactive path).
+        """
         layer_latencies: Dict[str, float] = {}
         eval_scores: Dict[str, float] = {}
         start = time.monotonic()
@@ -126,36 +131,41 @@ class ObservedRAGPipeline:
                 span.set_attribute("citations", len(generation.citations))
                 self.collector.record_layer_latency("generation", layer_latencies["generation"])
 
-            # Layer 5: Faithfulness eval (span-attached scoring)
-            with SpanContext(self.tracer, "faithfulness_eval", layer="eval") as span:
-                t0 = time.monotonic()
-                faith_result = self.faithfulness.evaluate(generation, assembled)
-                layer_latencies["eval"] = (time.monotonic() - t0) * 1000
+            faith_result = None
+            if run_eval:
+                with SpanContext(self.tracer, "faithfulness_eval", layer="eval") as span:
+                    t0 = time.monotonic()
+                    faith_result = self.faithfulness.evaluate(generation, assembled)
+                    layer_latencies["eval"] = (time.monotonic() - t0) * 1000
 
-                eval_scores = {
-                    "faithfulness": faith_result.faithfulness,
-                    "citation_precision": faith_result.citation_precision,
-                    "hallucination_rate": faith_result.hallucination_rate,
-                    "answer_relevancy": faith_result.answer_relevancy,
-                }
-                for metric, value in eval_scores.items():
-                    span.set_eval_score(metric, value)
-                    root.set_eval_score(metric, value)
-                    self.collector.record_eval_score(metric, value)
+                    eval_scores = {
+                        "faithfulness": faith_result.faithfulness,
+                        "citation_precision": faith_result.citation_precision,
+                        "hallucination_rate": faith_result.hallucination_rate,
+                        "answer_relevancy": faith_result.answer_relevancy,
+                    }
+                    for metric, value in eval_scores.items():
+                        span.set_eval_score(metric, value)
+                        root.set_eval_score(metric, value)
+                        self.collector.record_eval_score(metric, value)
 
-                self.collector.record_layer_latency("eval", layer_latencies["eval"])
+                    self.collector.record_layer_latency("eval", layer_latencies["eval"])
 
             total_ms = (time.monotonic() - start) * 1000
             get_registry().histogram("rag_e2e_latency_ms").observe(total_ms)
 
-            success = not generation.refused and faith_result.faithfulness > 0.3
+            if faith_result is not None:
+                success = not generation.refused and faith_result.faithfulness > 0.3
+            else:
+                success = not generation.refused
             self.collector.record_query(success=success)
 
             log_event(logger, "rag_query_completed", "RAG query completed", {
                 "trace_id": trace_id,
                 "total_latency_ms": round(total_ms, 2),
-                "faithfulness": faith_result.faithfulness,
+                "faithfulness": (faith_result.faithfulness if faith_result else None),
                 "refused": generation.refused,
+                "run_eval": run_eval,
             })
 
             return ObservedQueryResult(
@@ -163,7 +173,7 @@ class ObservedRAGPipeline:
                 answer=generation.answer,
                 trace_id=trace_id,
                 generation=generation,
-                faithfulness=faith_result.faithfulness,
+                faithfulness=(faith_result.faithfulness if faith_result else 0.0),
                 total_latency_ms=total_ms,
                 layer_latencies=layer_latencies,
                 eval_scores=eval_scores,

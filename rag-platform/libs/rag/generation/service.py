@@ -8,9 +8,9 @@ from typing import Optional, Union
 
 from libs.rag.context.models import AssembledContext
 
-from .citations import parse_citations
+from .citations import normalize_answer_citations, parse_citations
 from .config import GenerationConfig
-from .models import GenerationResult, GenerationStats
+from .models import GenerationResult, GenerationStats, ParsedCitation
 from .ollama import LLMClient, MockLLMClient, OllamaClient
 from .prompts import build_messages
 
@@ -55,12 +55,28 @@ class GenerationService:
 
         messages = build_messages(context, cfg)
         response = self.llm_client.generate(messages, cfg)
-        answer = response.get("content", "").strip()
+        answer = normalize_answer_citations(response.get("content", "").strip())
 
         refused = REFUSAL_PHRASE.lower() in answer.lower()
-        citations = [] if refused else parse_citations(
-            answer, context, citation_prefix=cfg.citation_prefix
-        )
+        citations: list[ParsedCitation] = []
+        if not refused:
+            citations = parse_citations(
+                answer, context, citation_prefix=cfg.citation_prefix
+            )
+            # Ensure the UI always has at least one openable source when we answered.
+            if not citations and context.chunks:
+                top = context.chunks[0]
+                citations = [
+                    ParsedCitation(
+                        label="[Source 1]",
+                        source_index=1,
+                        chunk_id=top.chunk_id,
+                        source_text=top.text,
+                        position=0,
+                    )
+                ]
+                if "[Source " not in answer:
+                    answer = f"{answer.rstrip()} [Source 1]"
 
         stats = GenerationStats(
             prompt_tokens=response.get("prompt_tokens", 0),

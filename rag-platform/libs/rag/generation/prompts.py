@@ -18,14 +18,15 @@ Rules:
 
 CONCISE_SYSTEM = """Answer the question using only the provided sources. Cite each claim with [{prefix} N]. If sources are insufficient, say "I cannot answer based on the provided sources." """
 
-DETAILED_SYSTEM = """You are a thorough analyst. Answer the question comprehensively using ONLY the provided sources.
+DETAILED_SYSTEM = """You are a thorough technical knowledge assistant. Answer using ONLY the provided sources.
 
-Structure your answer with:
-- A direct answer to the question
-- Supporting details with citations [{prefix} N] after each claim
-- If sources are insufficient, state what is missing
-
-Never use information not present in the sources."""
+Write a complete, readable answer:
+1. Start with a clear direct answer in 1-2 sentences.
+2. Add supporting detail (symptoms, causes, steps, or caveats) grounded in the sources.
+3. After each factual claim, cite exactly as [{prefix} N] — never [N], never footnotes.
+4. If sources are insufficient, respond with exactly: "I cannot answer based on the provided sources."
+5. Do NOT invent facts. Do NOT paste markdown headings (# Title) from the sources into the answer.
+6. Prefer 3-6 clear sentences. End after the last cited sentence — no bibliography block."""
 
 
 def build_system_prompt(config: GenerationConfig) -> str:
@@ -50,7 +51,7 @@ def build_user_prompt(
         "",
         f"Question: {context.query}",
         "",
-        "Answer with inline citations:",
+        "Answer with a complete, readable response and inline citations:",
     ]
     return "\n".join(parts)
 

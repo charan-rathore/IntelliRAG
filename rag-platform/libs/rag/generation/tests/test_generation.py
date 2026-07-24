@@ -80,6 +80,35 @@ class TestCitations:
         claims = extract_claims("I cannot answer based on the provided sources.")
         assert claims == []
 
+    def test_trailing_citation_stays_with_claim(self):
+        from libs.rag.generation.citations import citations_for_claim
+
+        ctx = _assembled_context()
+        answer = (
+            "Resource fragmentation on cluster nodes causes pod scheduling failures. "
+            "[Source 1]"
+        )
+        claims = extract_claims(answer)
+        assert len(claims) == 1
+        linked = citations_for_claim(answer, claims[0], ctx)
+        assert len(linked) == 1
+        assert linked[0].source_index == 1
+
+    def test_normalize_bare_numeric_citations(self):
+        from libs.rag.generation.citations import normalize_answer_citations, parse_citations
+
+        ctx = _assembled_context()
+        raw = (
+            "Resource fragmentation caused the failures [1]. "
+            "Nodes had fragmented allocations [1].\n\n"
+            "[1] # Kubernetes Pod Scheduling Failures"
+        )
+        cleaned = normalize_answer_citations(raw)
+        assert "[Source 1]" in cleaned
+        assert "# Kubernetes" not in cleaned
+        citations = parse_citations(cleaned, ctx)
+        assert len(citations) >= 1
+
 
 class TestGenerationService:
     def test_generate_with_mock_llm(self):
@@ -110,6 +139,17 @@ class TestGenerationService:
         result = service.generate(empty_ctx)
         assert result.refused
         assert not result.has_citations
+
+    def test_mock_refuses_off_topic_context_echo(self):
+        """Mock must not dump unrelated source text for meta questions."""
+        from libs.rag.generation.service import REFUSAL_PHRASE
+
+        mock = MockLLMClient()
+        service = GenerationService(llm_client=mock)
+        ctx = _assembled_context("what are the things can i ask here about?")
+        result = service.generate(ctx)
+        assert result.refused or REFUSAL_PHRASE.lower() in result.answer.lower()
+        assert "Kubernetes Pod Scheduling Failures" not in result.answer
 
 
 class TestFaithfulness:
