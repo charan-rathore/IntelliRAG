@@ -8,22 +8,7 @@ I wanted to know where retrieval-augmented generation actually breaks - not how 
 
 **Repository:** [github.com/charan-rathore/IntelliRAG](https://github.com/charan-rathore/IntelliRAG)
 
-## Live web console
-
-The dark-theme browser lab lives in [`web/`](web/) on this repo (same functionality as the standalone lab; Python in `rag-platform/` is untouched).
-
-- Guided tour cuts a hole around the **actual** control it is describing
-- Hybrid retrieve + Graphify cache + answer feedback
-- Live: [intellirag-web.vercel.app](https://intellirag-web.vercel.app/)
-
-```bash
-cd web
-npm install
-npm run dev   # 0.0.0.0:8080
-```
-
-Server env only: `OPENROUTER_API_KEY`, optional `GEMINI_API_KEY`, optional `DATABASE_URL`.
-Refresh `web/` from the live tree with `./scripts/sync-web-console.sh`.
+See [WEB.md](WEB.md) for the dark-theme live console (`web/`).
 
 ---
 
@@ -42,5 +27,3 @@ Refresh `web/` from the live tree with `./scripts/sync-web-console.sh`.
 11. [CI/CD Quality Gates](#cicd-quality-gates)
 12. [Configuration](#configuration)
 13. [Roadmap](#roadmap)
-
-The rest of this README (pipeline, eval numbers, local Python setup) is unchanged from main.
