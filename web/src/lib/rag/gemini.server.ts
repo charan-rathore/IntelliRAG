@@ -4,6 +4,7 @@ import {
   EMBEDDING_MODEL_OPENROUTER,
   GENERATION_MODEL,
   GENERATION_MODEL_OPENROUTER,
+  GENERATION_MODEL_XAI,
   type KeyProvider,
 } from "./types";
 import { resolveRuntime } from "./keys.server";
@@ -11,6 +12,7 @@ import { l2Normalize } from "./text";
 
 const GEMINI_ROOT = "https://generativelanguage.googleapis.com/v1beta/models";
 const OPENROUTER_ROOT = "https://openrouter.ai/api/v1";
+const XAI_ROOT = "https://api.x.ai/v1";
 
 function geminiUrl(path: string, apiKey: string, extra = "") {
   return `${GEMINI_ROOT}/${path}?key=${encodeURIComponent(apiKey)}${extra}`;
@@ -400,6 +402,108 @@ async function streamOpenRouter(opts: {
   return full.trim();
 }
 
+async function generateXai(opts: {
+  apiKey: string;
+  system: string;
+  user: string;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const res = await fetch(`${XAI_ROOT}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${opts.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: GENERATION_MODEL_XAI,
+      temperature: 0.1,
+      max_tokens: 1024,
+      stream: false,
+      messages: [
+        { role: "system", content: opts.system },
+        { role: "user", content: opts.user },
+      ],
+    }),
+    signal: opts.signal,
+  });
+  if (!res.ok) throw new GeminiError(await readError(res), res.status);
+  const body = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  return body.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+async function streamXai(opts: {
+  apiKey: string;
+  system: string;
+  user: string;
+  onToken: (text: string) => void;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const res = await fetch(`${XAI_ROOT}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${opts.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: GENERATION_MODEL_XAI,
+      temperature: 0.1,
+      max_tokens: 1024,
+      stream: true,
+      messages: [
+        { role: "system", content: opts.system },
+        { role: "user", content: opts.user },
+      ],
+    }),
+    signal: opts.signal,
+  });
+  if (!res.ok) throw new GeminiError(await readError(res), res.status);
+  if (!res.body) {
+    const text = await generateXai({
+      apiKey: opts.apiKey,
+      system: opts.system,
+      user: opts.user,
+      signal: opts.signal,
+    });
+    if (text) opts.onToken(text);
+    return text;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let full = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+    for (const event of events) {
+      const line = event
+        .split("\n")
+        .filter((l) => l.startsWith("data:"))
+        .map((l) => l.slice(5).trim())
+        .join("");
+      if (!line || line === "[DONE]") continue;
+      try {
+        const json = JSON.parse(line) as {
+          choices?: Array<{ delta?: { content?: string | null }; message?: { content?: string } }>;
+        };
+        const piece = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
+        if (piece) {
+          full += piece;
+          opts.onToken(piece);
+        }
+      } catch {
+        // ignore keepalives
+      }
+    }
+  }
+  return full.trim();
+}
+
 export async function streamGenerate(opts: {
   system: string;
   user: string;
@@ -412,6 +516,9 @@ export async function streamGenerate(opts: {
   }
   if (runtime.generate.provider === "openrouter") {
     return streamOpenRouter({ ...opts, apiKey: runtime.generate.apiKey });
+  }
+  if (runtime.generate.provider === "xai") {
+    return streamXai({ ...opts, apiKey: runtime.generate.apiKey });
   }
   return streamGoogle({ ...opts, apiKey: runtime.generate.apiKey });
 }
@@ -428,10 +535,14 @@ export async function completeOnce(opts: {
   if (runtime.generate.provider === "openrouter") {
     return generateOpenRouter({ ...opts, apiKey: runtime.generate.apiKey });
   }
+  if (runtime.generate.provider === "xai") {
+    return generateXai({ ...opts, apiKey: runtime.generate.apiKey });
+  }
   return generateGoogle({ ...opts, apiKey: runtime.generate.apiKey });
 }
 
 export function generationModelLabel(provider: KeyProvider | null) {
   if (provider === "openrouter") return GENERATION_MODEL_OPENROUTER;
+  if (provider === "xai") return GENERATION_MODEL_XAI;
   return GENERATION_MODEL;
 }

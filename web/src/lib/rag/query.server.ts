@@ -107,6 +107,17 @@ function markCited(
   return candidates.map((c) => ({ ...c, cited: citedIds.has(c.chunkId) }));
 }
 
+function extractiveAnswer(chunks: RetrievedChunk[]): string {
+  return chunks
+    .slice(0, 3)
+    .map((chunk, i) => {
+      const cleaned = chunk.text.replace(/^#{1,6}\s+/gm, "").replace(/\n{3,}/g, "\n\n").trim();
+      const clip = cleaned.length > 480 ? `${cleaned.slice(0, 480).trim()}…` : cleaned;
+      return `${clip} [Source ${i + 1}]`;
+    })
+    .join("\n\n");
+}
+
 function guideDone(
   answer: string,
   intent: string,
@@ -317,12 +328,51 @@ export async function runQueryStream(
   }
 
   if (!runtime.generate) {
+    const answer = extractiveAnswer(retrieved.chunks);
+    emit({ type: "token", text: answer });
+    const citations = citationsFrom(answer, retrieved.chunks);
+    const candidates = markCited(retrieved.candidates, citations);
+    const latencies = {
+      embed: embedMs,
+      dense: retrieved.denseMs,
+      keyword: retrieved.keywordMs,
+      rerank: retrieved.rerankMs,
+      assemble: retrieved.assembleMs,
+      generate: 0,
+    };
+    await recordTrace({
+      question,
+      retrievalMode: retrieved.actualMode,
+      answer,
+      refused: false,
+      model: "extractive",
+      embeddingModel: embeddingModel ?? "none",
+      layerLatencies: latencies,
+      citationCount: citations.length,
+      totalLatencyMs: performance.now() - started,
+    });
     emit({
-      type: "error",
-      message:
-        retrieved.dense.skippedReason
-          ? `${retrieved.dense.skippedReason} Add a server-side Gemini or OpenRouter key to generate answers.`
-          : "Retrieved sources are ready. Add a server-side Gemini or OpenRouter key in Settings to generate.",
+      type: "done",
+      answer,
+      refused: false,
+      citations,
+      latencies,
+      model: "extractive",
+      embeddingModel,
+      intent,
+      coverage: "grounded",
+      candidates,
+      contextTokens: retrieved.contextTokens,
+      cacheHit: false,
+      dense: retrieved.dense,
+      evidence: evidenceKind,
+      storage,
+      scoreSemantics: retrieved.trace.scoreSemantics,
+      actualMode: retrieved.actualMode,
+      stages: retrieved.stages,
+      corpusId: retrieved.corpusId,
+      corpusScope: retrieved.corpusScope,
+      evidenceGate: retrieved.evidenceGate,
     });
     return;
   }

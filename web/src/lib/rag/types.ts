@@ -1,5 +1,6 @@
 export const GENERATION_MODEL = "gemini-3.7-flash";
 export const GENERATION_MODEL_OPENROUTER = "google/gemini-3.7-flash";
+export const GENERATION_MODEL_XAI = "grok-4.5";
 export const EMBEDDING_MODEL = "gemini-embedding-2";
 export const EMBEDDING_MODEL_OPENROUTER = "google/gemini-embedding-2";
 export const EMBEDDING_DIMENSIONS = 768;
@@ -28,7 +29,7 @@ export const CONTEXT_SCORE_CLIFF = CONTEXT_RELATIVE_FLOOR;
 export type RetrievalMode = "hybrid" | "dense" | "keyword";
 export type SourceType = "seed" | "markdown" | "github" | "url";
 export type QueryIntent = "greeting" | "capability" | "document";
-export type KeyProvider = "google" | "openrouter";
+export type KeyProvider = "google" | "openrouter" | "xai";
 export type ConsoleView = "reading" | "lab";
 export type CoverageKind = "grounded" | "general" | "refused" | "guide";
 export type ChunkKind = "prose" | "code";

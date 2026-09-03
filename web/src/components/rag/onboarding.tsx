@@ -108,7 +108,7 @@ export function DemoCatalog({
       </div>
       {!hasKey && (
         <p className="mt-3 text-xs leading-relaxed text-subtle">
-          Add an OpenRouter key in Settings first. Demos hit the live index — they are not recordings.
+          Demos hit the live index without an LLM key — answers are extractive citations from packed chunks. Add OpenRouter in Settings for Gemini 3.7 Flash.
         </p>
       )}
     </div>

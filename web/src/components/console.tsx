@@ -454,10 +454,11 @@ export function Console({ initial }: { initial: Snapshot }) {
 
   const healthLabel = useMemo(() => {
     if (indexing) return "Indexing…";
-    if (!hasKey) return "Key needed";
+    if (snapshot.generationVia === "xai") return "Ready";
+    if (!hasKey) return "Extractive";
     if (staleCount) return `${staleCount} stale`;
     return "Ready";
-  }, [hasKey, indexing, staleCount]);
+  }, [hasKey, indexing, snapshot.generationVia, staleCount]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
@@ -468,14 +469,14 @@ export function Console({ initial }: { initial: Snapshot }) {
           </span>
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
-            <p className="hidden text-xs text-muted sm:block">gemini-embedding-2 · Gemini 3.7 Flash</p>
+            <p className="hidden text-xs text-muted sm:block">hybrid retrieval · cited answers</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <span
             className={cn(
               "hidden rounded-full border px-3 py-1 text-xs font-medium tabular-nums sm:inline-flex",
-              !hasKey ? "border-bad/40 text-bad" : indexing ? "border-warn/40 text-warn" : "border-border text-muted",
+              !hasKey && snapshot.generationVia !== "xai" ? "border-warn/40 text-warn" : indexing ? "border-warn/40 text-warn" : "border-border text-muted",
             )}
           >
             {healthLabel}
@@ -502,7 +503,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         <div className="border-b border-border bg-raised px-4 py-3 md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-fg">
-              Add an OpenRouter key in Settings so Gemini 3.7 Flash can answer. It stays on the server (and an httpOnly cookie on this device) — never in page JavaScript or git.
+              The lab answers from packed runbooks now. Add an OpenRouter or Gemini key in Settings for Gemini 3.7 Flash — optional, server-only, never in page JavaScript.
             </p>
             <Button size="sm" onClick={() => setSettingsOpen(true)}>
               Add API key
@@ -667,9 +668,14 @@ export function Console({ initial }: { initial: Snapshot }) {
               Embed {snapshot.embeddingVia === "google" ? "Google AI" : snapshot.embeddingVia === "openrouter" ? "OpenRouter → Gemini" : "unset"}
             </span>
             <span className="rounded-full border border-border px-3 py-1 text-muted">
-              Answer {snapshot.generationVia === "openrouter" ? "OpenRouter → 3.7 Flash" : snapshot.generationVia === "google" ? "Google AI → 3.7 Flash" : "unset"}
+              Answer {snapshot.generationVia === "openrouter" ? "OpenRouter → 3.7 Flash" : snapshot.generationVia === "google" ? "Google AI → 3.7 Flash" : snapshot.generationVia === "xai" ? "Grok 4.5" : "extractive (no LLM key)"}
             </span>
           </div>
+          {snapshot.xaiFromEnv && (
+            <p className="mt-3 text-xs leading-relaxed text-good">
+              Grok 4.5 is configured on the server for cited answers when no Gemini/OpenRouter key is set. Embeddings still need Gemini or OpenRouter for dense retrieval.
+            </p>
+          )}
 
           <label className="mt-5 block text-sm text-muted">OpenRouter key</label>
           {snapshot.openRouterFromEnv ? (

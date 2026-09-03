@@ -177,6 +177,10 @@ function envOpenRouter() {
   return process.env.OPENROUTER_API_KEY?.trim() || undefined;
 }
 
+function envXai() {
+  return process.env.XAI_API_KEY?.trim() || undefined;
+}
+
 export function getLabKeys() {
   applyCookieKeys(cookiesFromRequestContext());
   const mem = memory();
@@ -190,20 +194,27 @@ export function keyStatus() {
   applyCookieKeys(cookiesFromRequestContext());
   const envG = Boolean(envGemini());
   const envO = Boolean(envOpenRouter());
+  const envX = Boolean(envXai());
   const gemini = Boolean(getLabKeys().gemini);
   const openrouter = Boolean(getLabKeys().openrouter);
   return {
     hasGeminiKey: gemini,
     hasOpenRouterKey: openrouter,
-    hasServerKey: gemini || openrouter,
+    hasXaiKey: envX,
+    hasServerKey: gemini || openrouter || envX,
     geminiFromEnv: envG,
     openRouterFromEnv: envO,
+    xaiFromEnv: envX,
     embeddingVia: (gemini ? "google" : openrouter ? "openrouter" : null) as
       | KeyProvider
       | null,
-    generationVia: (openrouter ? "openrouter" : gemini ? "google" : null) as
-      | KeyProvider
-      | null,
+    generationVia: (openrouter
+      ? "openrouter"
+      : gemini
+        ? "google"
+        : envX
+          ? "xai"
+          : null) as KeyProvider | null,
   };
 }
 
@@ -254,6 +265,8 @@ export function resolveRuntime(): {
     ? { provider: "openrouter" as const, apiKey: keys.openrouter }
     : keys.gemini
       ? { provider: "google" as const, apiKey: keys.gemini }
-      : null;
+      : envXai()
+        ? { provider: "xai" as const, apiKey: envXai()! }
+        : null;
   return { embed, generate };
 }

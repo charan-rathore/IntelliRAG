@@ -10,6 +10,17 @@ GitHub **repository** URLs enumerate the git tree (text/code files, with size an
 - Live: [intellirag-web.vercel.app](https://intellirag-web.vercel.app)
 - Python platform: sibling [`rag-platform/`](../rag-platform/) in the same repo
 
+
+## Live deploy
+
+The split `intellirag-web` GitHub repo is gone. Production must build from this folder (`web/`) in [`charan-rathore/IntelliRAG`](https://github.com/charan-rathore/IntelliRAG).
+
+- Live: [intellirag-web.vercel.app](https://intellirag-web.vercel.app)
+- Vercel **Root Directory** = `web`
+- Auth off (`VITE_AUTH_ENABLED=false`)
+- Without `OPENROUTER_API_KEY` / `GEMINI_API_KEY`, answers still return: `XAI_API_KEY` (Grok 4.5) if present, otherwise extractive citations from packed chunks
+- Without `DATABASE_URL` on Vercel, dense retrieval is disabled; BM25 over the seed corpus still runs
+
 ## Models
 
 | Job | Model | Why |
