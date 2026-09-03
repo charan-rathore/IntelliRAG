@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { classifyIntent } from "./intents.ts";
 import { classifyEvidence, INSUFFICIENT_ANSWER } from "./evidence.ts";
-import { getStorageStatus } from "./storage.ts";
+import { getStorageStatus, isServerlessRuntime } from "./storage.ts";
 import type { RetrievedChunk } from "./types.ts";
 
 function chunk(partial: Partial<RetrievedChunk> & { slug: string; title: string; text: string }): RetrievedChunk {
@@ -102,6 +102,27 @@ describe("storage status", () => {
       else process.env.VERCEL = prevV;
       if (prevD === undefined) delete process.env.DATABASE_URL;
       else process.env.DATABASE_URL = prevD;
+    }
+  });
+
+  it("treats /var/task as serverless even when VERCEL env is missing", () => {
+    const prevV = process.env.VERCEL;
+    const prevE = process.env.VERCEL_ENV;
+    const prevU = process.env.VERCEL_URL;
+    delete process.env.VERCEL;
+    delete process.env.VERCEL_ENV;
+    delete process.env.VERCEL_URL;
+    try {
+      assert.equal(isServerlessRuntime("/var/task"), true);
+      assert.equal(isServerlessRuntime("/var/task/_ssr"), true);
+      assert.equal(isServerlessRuntime("/workspace"), false);
+    } finally {
+      if (prevV === undefined) delete process.env.VERCEL;
+      else process.env.VERCEL = prevV;
+      if (prevE === undefined) delete process.env.VERCEL_ENV;
+      else process.env.VERCEL_ENV = prevE;
+      if (prevU === undefined) delete process.env.VERCEL_URL;
+      else process.env.VERCEL_URL = prevU;
     }
   });
 });

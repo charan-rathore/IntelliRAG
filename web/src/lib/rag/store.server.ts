@@ -15,6 +15,11 @@ import type { ChunkKind, ChunkRow, DocumentHealth, DocumentRow, SourceType, Stal
 import { EMBEDDING_MODEL, FRESHNESS_HALF_LIFE_DAYS } from "./types";
 import { corpusIdForInput, corpusLabel, parseCorpusScope, SEED_CORPUS_ID, type CorpusScope, type CorpusSummary } from "./corpus-scope";
 
+function dbUnavailable(err: unknown) {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /pglite|ENOENT|_libs|disabled on Vercel/i.test(msg);
+}
+
 export async function ensureSeedDocuments(): Promise<void> {
   if (vercelWithoutDatabase()) return memory.ensureSeedDocuments();
   const sql = await getSql();
@@ -184,8 +189,9 @@ export async function upsertDocument(input: UpsertInput): Promise<{
 
 export async function listDocuments(): Promise<DocumentHealth[]> {
   if (vercelWithoutDatabase()) return memory.listDocuments();
-  await ensureSeedDocuments();
-  const sql = await getSql();
+  try {
+    await ensureSeedDocuments();
+    const sql = await getSql();
   const rows = await sql<{
     id: string;
     slug: string;
@@ -257,6 +263,10 @@ export async function listDocuments(): Promise<DocumentHealth[]> {
       corpusId: row.corpus_id || SEED_CORPUS_ID,
     };
   });
+  } catch (err) {
+    if (dbUnavailable(err)) return memory.listDocuments();
+    throw err;
+  }
 }
 
 export async function getDocumentBySlug(slug: string): Promise<DocumentRow | null> {
@@ -350,6 +360,7 @@ export async function loadSearchableChunks(scope?: CorpusScope): Promise<
 > {
   const parsed = scope ?? parseCorpusScope(SEED_CORPUS_ID);
   if (vercelWithoutDatabase()) return memory.loadSearchableChunks(parsed);
+  try {
   const sql = await getSql();
   const rows =
     parsed.kind === "all" ?
@@ -389,6 +400,10 @@ export async function loadSearchableChunks(scope?: CorpusScope): Promise<
     indexedAt: row.indexed_at,
     corpusId: row.doc_corpus || row.corpus_id || SEED_CORPUS_ID,
   }));
+  } catch (err) {
+    if (dbUnavailable(err)) return memory.loadSearchableChunks(parsed);
+    throw err;
+  }
 }
 
 export async function pendingEmbeddingCount(

@@ -1,12 +1,59 @@
 import type { StorageStatus } from "./types";
 
-function databaseUrl(): string | undefined {
-  const raw = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-  return raw && raw.trim() ? raw.trim() : undefined;
+/**
+ * Read a process env var by dynamic key so Vite/Nitro cannot replace it with
+ * `undefined` at build time (the sandbox has no `VERCEL` / `DATABASE_URL`).
+ */
+function runtimeEnv(name: string): string | undefined {
+  if (typeof process === "undefined") return undefined;
+  try {
+    const bag = process.env;
+    const value = bag?.[name];
+    if (typeof value !== "string") return undefined;
+    const trimmed = value.trim();
+    return trimmed.length ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function safeCwd(): string {
+  try {
+    return typeof process.cwd === "function" ? process.cwd() : "";
+  } catch {
+    return "";
+  }
+}
+
+export function getDatabaseUrl(): string | undefined {
+  return runtimeEnv("DATABASE_URL");
+}
+
+/**
+ * True on Vercel/Lambda even when `process.env.VERCEL` was stripped at build.
+ * The live crash was `ENOENT … /var/task/_libs/pglite.data` — cwd is the
+ * signal that cannot be faked by the bundler.
+ */
+export function isServerlessRuntime(cwd = safeCwd()): boolean {
+  if (cwd === "/var/task" || cwd.startsWith("/var/task/")) return true;
+  if (cwd.startsWith("/opt/nodejs")) return true;
+  // Split so static `process.env.VERCEL` replacement cannot see a literal.
+  const vercel = ["VE", "RCEL"].join("");
+  if (runtimeEnv(vercel) || runtimeEnv(`${vercel}_ENV`) || runtimeEnv(`${vercel}_URL`)) {
+    return true;
+  }
+  if (
+    runtimeEnv("AWS_LAMBDA_FUNCTION_NAME") ||
+    runtimeEnv("LAMBDA_TASK_ROOT") ||
+    runtimeEnv("NOW_REGION")
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export function isVercelRuntime(): boolean {
-  return Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+  return isServerlessRuntime();
 }
 
 /**
@@ -16,7 +63,7 @@ export function isVercelRuntime(): boolean {
  * - Vercel without DATABASE_URL cannot persist; dense retrieval is disabled
  */
 export function getStorageStatus(): StorageStatus {
-  if (databaseUrl()) {
+  if (getDatabaseUrl()) {
     return {
       backend: "neon",
       durable: true,
@@ -24,13 +71,13 @@ export function getStorageStatus(): StorageStatus {
       warning: null,
     };
   }
-  if (isVercelRuntime()) {
+  if (isServerlessRuntime()) {
     return {
       backend: "ephemeral",
       durable: false,
       denseAvailable: false,
       warning:
-        "DATABASE_URL is required on Vercel. Without it, embeddings do not survive cold starts and dense retrieval is disabled. Keyword (BM25) search still runs on seed text.",
+        "Running without a Postgres URL on serverless. Keyword search still works on seed text; embeddings do not survive cold starts.",
     };
   }
   return {
@@ -42,5 +89,6 @@ export function getStorageStatus(): StorageStatus {
 }
 
 export function pgliteDataDir(): string {
-  return `${process.cwd()}/.data/pglite`;
+  if (isServerlessRuntime()) return "/tmp/intellirag-pglite";
+  return `${safeCwd()}/.data/pglite`;
 }
