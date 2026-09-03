@@ -10,6 +10,8 @@ Vercel **Root Directory must be `web/`**. A root `vercel.json` also builds `web/
 
 Without `OPENROUTER_API_KEY` / `GEMINI_API_KEY`, the live site still answers: `XAI_API_KEY` (Grok 4.5) if present, otherwise extractive citations from packed chunks. Dense retrieval still needs `DATABASE_URL` (Neon).
 
+Serverless hosts (Vercel) never open PGLite. Missing wasm at `/var/task/_libs/pglite.data` used to blank the page; production without Neon now uses the in-memory seed corpus instead.
+
 ```bash
 cd web && npm install && npm run dev   # 127.0.0.1:8080
 ```
