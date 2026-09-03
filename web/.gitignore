@@ -17,3 +17,6 @@ tmp
 .grok
 .project_id
 .node_modules.lock
+AGENTS.md
+AGENTS.project.md
+scripts/wait-and-eval.sh
