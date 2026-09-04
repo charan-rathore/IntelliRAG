@@ -182,13 +182,11 @@ export function WelcomeOnboarding({
   view,
   hasKey,
   onAsk,
-  onNeedKey,
   onTour,
 }: {
   view: ConsoleView;
   hasKey: boolean;
   onAsk: (q: string) => void;
-  onNeedKey: () => void;
   onTour: () => void;
 }) {
   return (
@@ -218,7 +216,7 @@ export function WelcomeOnboarding({
         )}
       </div>
 
-      <DemoCatalog hasKey={hasKey} onAsk={hasKey ? onAsk : () => onNeedKey()} />
+      <DemoCatalog hasKey={hasKey} onAsk={onAsk} />
 
       <div>
         <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-muted">How a question is answered</p>
@@ -237,7 +235,7 @@ export function WelcomeOnboarding({
               <button
                 key={q}
                 type="button"
-                onClick={() => (hasKey ? onAsk(q) : onNeedKey())}
+                onClick={() => onAsk(q)}
                 className="min-h-11 rounded-md border border-border bg-surface px-4 py-3 text-left text-sm text-fg transition-colors hover:bg-raised"
               >
                 {q}

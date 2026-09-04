@@ -476,7 +476,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           <span
             className={cn(
               "hidden rounded-full border px-3 py-1 text-xs font-medium tabular-nums sm:inline-flex",
-              !hasKey && snapshot.generationVia !== "xai" ? "border-warn/40 text-warn" : indexing ? "border-warn/40 text-warn" : "border-border text-muted",
+              indexing ? "border-warn/40 text-warn" : "border-border text-muted",
             )}
           >
             {healthLabel}
@@ -503,7 +503,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         <div className="border-b border-border bg-raised px-4 py-3 md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-fg">
-              The lab answers from packed runbooks now. Add an OpenRouter or Gemini key in Settings for Gemini 3.7 Flash — optional, server-only, never in page JavaScript.
+              The lab is live without an LLM key — demos return cited extracts from packed runbooks. Add OpenRouter or Gemini in Settings only if you want Gemini 3.7 Flash.
             </p>
             <Button size="sm" onClick={() => setSettingsOpen(true)}>
               Add API key
@@ -544,7 +544,6 @@ export function Console({ initial }: { initial: Snapshot }) {
                 view={view}
                 hasKey={hasKey}
                 onAsk={runDemo}
-                onNeedKey={() => setSettingsOpen(true)}
                 onTour={() => setTourOpen(true)}
               />
             ) : (

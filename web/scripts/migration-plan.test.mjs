@@ -58,7 +58,11 @@ test("non-.sql entries are dropped (readdir also yields the auth/ directory)", (
 
 test("the auth schema ships outside the globbed directory", () => {
   const migrationsDir = join(projectRoot(), "migrations");
-  assert.deepEqual(pendingMigrations(readdirSync(migrationsDir), []), []);
+  const names = readdirSync(migrationsDir);
+  // Auth-off apps keep 0001_auth.sql under migrations/auth/ so import.meta.glob
+  // ("/migrations/*.sql") never applies it. App schema files (0002_…) belong here
+  // when the product uses a database.
+  assert.equal(names.includes("0001_auth.sql"), false);
   assert.ok(readdirSync(join(migrationsDir, "auth")).includes("0001_auth.sql"));
 });
 

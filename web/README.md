@@ -1,32 +1,35 @@
 # IntelliRAG Live
 
-Browser RAG console over a small ops corpus. Hybrid retrieval (`gemini-embedding-2` cosine + BM25 + RRF + calibrated IDF/title rerank) then Gemini 3.7 Flash writes a grounded answer with citations.
+Browser RAG console over a small ops corpus. Hybrid retrieval (`gemini-embedding-2` cosine + BM25 + RRF + calibrated IDF/title rerank) then a **cited answer** — Gemini 3.7 Flash when a key is present, otherwise extractive snippets from packed chunks.
+
+**Live:** [https://intellirag-web.vercel.app](https://intellirag-web.vercel.app)
 
 There is **no learned cross-encoder** and **MMR is not in the retrieval path**. Context packing uses a calibrated score floor (0.24) plus a relative drop versus rank-1 — that is not “similarity must be ≥ 0.55”.
 
 GitHub **repository** URLs enumerate the git tree (text/code files, with size and vendor filters). A blob URL still indexes that one file.
 
-- Source: [`charan-rathore/IntelliRAG`](https://github.com/charan-rathore/IntelliRAG) — this folder (`web/`)
-- Live: [intellirag-web.vercel.app](https://intellirag-web.vercel.app)
-- Python platform: sibling [`rag-platform/`](../rag-platform/) in the same repo
+- Source: [`charan-rathore/intellirag-web`](https://github.com/charan-rathore/intellirag-web) (this app) and [`charan-rathore/IntelliRAG`](https://github.com/charan-rathore/IntelliRAG) `web/`
+- Python platform: sibling [`rag-platform/`](https://github.com/charan-rathore/IntelliRAG/tree/main/rag-platform)
 
+## What the live lab does
 
-## Live deploy
+Open the site. You do **not** need an API key to try it.
 
-The split `intellirag-web` GitHub repo is gone. Production must build from this folder (`web/`) in [`charan-rathore/IntelliRAG`](https://github.com/charan-rathore/IntelliRAG).
+- **Ask** a runbook question, or click a demo card (Redis stampede, k8s incident, weather refuse).
+- **Watch** hybrid retrieval: dense (when embeddings exist) + BM25, fused with RRF, then a calibrated rerank. Lab view shows Used vs Inspect only.
+- **Read** a cited answer, or an honest **Not in the indexed corpus.**
+- **Settings** is optional: OpenRouter or Gemini for Flash answers and dense embeddings. Keys stay on the server (httpOnly cookie), never in page JavaScript.
 
-- Live: [intellirag-web.vercel.app](https://intellirag-web.vercel.app)
-- Vercel **Root Directory** = `web`
-- Auth off (`VITE_AUTH_ENABLED=false`)
-- Without `OPENROUTER_API_KEY` / `GEMINI_API_KEY`, answers still return: `XAI_API_KEY` (Grok 4.5) if present, otherwise extractive citations from packed chunks
-- Without `DATABASE_URL` on Vercel, dense retrieval is disabled; BM25 over the seed corpus still runs
+Without a generation key, answers are **extractive citations** from packed chunks. With `XAI_API_KEY` on the server, Grok 4.5 writes the answer. With OpenRouter/Gemini, Flash writes it.
+
+On Vercel without `DATABASE_URL`, PGLite is never opened (that used to crash with `ENOENT /var/task/_libs/pglite.data`). Keyword search over the seed corpus still runs.
 
 ## Models
 
 | Job | Model | Why |
 |---|---|---|
 | Index + query vectors | `gemini-embedding-2` (768-d, Google prefixes) | Same vector space or retrieval is noise |
-| Answers | `gemini-3.7-flash` via OpenRouter (`google/gemini-3.7-flash`) | Generation is a different job than embedding |
+| Answers | `gemini-3.7-flash` via OpenRouter, else Grok 4.5, else extractive | Generation is a different job than embedding |
 
 ## Retrieval and grounding
 
@@ -37,22 +40,43 @@ The split `intellirag-web` GitHub repo is gone. Production must build from this 
 
 Ranking constants in `src/lib/rag/ranking.ts` are frozen against unseen-paraphrase results. Do not retune them to chase that set.
 
-## Bars crossed (local, hybrid)
+## Tests
 
-Last measured on file-backed PGLite at `.data/pglite` with OpenRouter embeddings. This is **not** a Neon / Vercel preview proof.
+### Unit (always run)
+
+```bash
+npx tsx --test src/lib/rag/*.test.ts
+npm run typecheck
+```
+
+| Suite | Result |
+|---|---|
+| RAG unit (`intents`, `evidence`, `ranking`, `corpus-scope`, `github`, `persistence`, `self-query`) | **41/41 pass** |
+| Auth schema stays under `migrations/auth/` (not globbed) | **pass** |
+
+`npm test` also runs platform chrome tests (PWA injector / write-atomic). The RAG lab does not depend on those for retrieval correctness.
+
+### Hybrid acceptance (needs a running lab + embeddings)
+
+Last measured on file-backed PGLite with OpenRouter embeddings. This is **not** a Neon / Vercel preview proof. Dense is off on Vercel without `DATABASE_URL`.
+
+```bash
+npm run dev
+node scripts/acceptance-hybrid.mjs          # embed + A–N + unseen + pgvector
+node scripts/acceptance-hybrid.mjs an       # A–N only
+node scripts/acceptance-hybrid.mjs unseen
+```
 
 | Check | Result |
 |---|---|
-| Seed A–N (`corpus=seed-lab`) | **14/14** |
+| Seed A–N (`corpus=seed-lab`) | **14/14** (local hybrid + embeddings) |
 | 10 frozen unseen paraphrases (U1–U10) | **10/10** — do not retune ranking from these |
 | pgvector tree ingest | 46 files → corpus `github:pgvector/pgvector@e48241b`; 5 questions packed **10 distinct non-README** files |
 | After ingest, seed-scope K / L / N | **PASS** — no `pgvector-*` leak; N refuses |
 | Local cold start (PGLite) | **PASS** |
-| Neon / Vercel preview cold start | **not proven** — `DATABASE_URL` was never wired on this build |
+| Neon / Vercel preview cold start | **not proven** without `DATABASE_URL` |
 
 Still true after isolation: rerank can still beat a correct dense hit (case E; HNSW insert). L/M can still pack extra **seed** docs — ranking, not isolation.
-
-Harness: `npm run dev` then `node scripts/acceptance-hybrid.mjs` (phases: `embed`, `cold-health`, `an`, `unseen`, `pgvector`).
 
 ### A–N (seed-lab)
 
@@ -91,24 +115,22 @@ Gold set: 10 IntelliRAG samples + 2 adversarial probes. Judge = Gemini 3.7 Flash
 | e2e latency p95 | — | **5.57 s** | — |
 | adversarial pass | 1.00 | **1.00** | 0.70 |
 
-Verdict: **pass**. Baseline was `nomic-embed-text` + `llama3.2` with `judge_model=lexical`, `use_ragas=false`. This run uses real embeddings + Flash. Precision sits at 0.25 because the live corpus also has distractor runbooks; the gold document is always rank 1 (MRR 1.0). Generation dominates p95 (~1.8–5.6 s e2e); dense / BM25 / rerank are sub-millisecond to low-hundreds of ms for embed.
-
-`POST /api/eval` re-runs this suite. `skipCache` is required so graph cache cannot hide retrieval bugs.
+Verdict: **pass**. `POST /api/eval` re-runs this suite. `skipCache` is required so graph cache cannot hide retrieval bugs.
 
 ## Keys (never in the browser)
 
 Server env only — **not** `VITE_`, not git, not `localStorage`:
 
-- `OPENROUTER_API_KEY` (or `GEMINI_API_KEY`)
-- `DATABASE_URL` — **required on Vercel** for durable embeddings (Neon). Without it, dense retrieval is disabled.
+- `OPENROUTER_API_KEY` (or `GEMINI_API_KEY`) — optional; Flash answers + dense embeddings
+- `XAI_API_KEY` — optional; Grok 4.5 answers when Gemini/OpenRouter are unset
+- `DATABASE_URL` — **required on Vercel** for durable embeddings (Neon). Without it, dense retrieval is disabled; keyword search still works.
 - `GITHUB_TOKEN` — optional, raises GitHub API rate limits for repo ingestion
 
 ## Local
 
 ```bash
-cd web
 npm install
 npm run dev
 ```
 
-Local embeddings persist in file-backed PGLite at `.data/pglite` so a restart keeps vectors. Production must set `DATABASE_URL`.
+Local embeddings persist in file-backed PGLite at `.data/pglite` so a restart keeps vectors. Production must set `DATABASE_URL` for dense retrieval.

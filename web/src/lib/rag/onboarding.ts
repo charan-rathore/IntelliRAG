@@ -46,7 +46,7 @@ export const PIPELINE_STEPS = [
   { id: "embed", label: "Embed", detail: "Same 768-d as the index." },
   { id: "hybrid", label: "Hybrid", detail: "Dense + BM25 + RRF." },
   { id: "pack", label: "Pack", detail: "Calibrated gate, not a fixed top-3." },
-  { id: "answer", label: "Cite or refuse", detail: "Flash uses packed sources." },
+  { id: "answer", label: "Cite or refuse", detail: "Flash, Grok, or extractive citations." },
 ] as const;
 
 export const TRUST_MARKS = [
