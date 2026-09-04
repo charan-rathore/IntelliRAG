@@ -1,8 +1,10 @@
 # IntelliRAG Live
 
-Browser RAG console over a small ops corpus. Hybrid retrieval (`gemini-embedding-2` cosine + BM25 + RRF + calibrated IDF/title rerank) then a **cited answer** — Gemini 3.7 Flash when a key is present, otherwise extractive snippets from packed chunks.
+Browser RAG console over a small ops corpus. Retrieval is **hybrid when embeddings exist** (`gemini-embedding-2` cosine + BM25 + RRF + calibrated IDF/title rerank) and **keyword (BM25 + the same rerank) on Vercel without `DATABASE_URL`**. Answers are cited — Gemini 3.7 Flash when a key is present, otherwise extractive snippets from packed chunks.
 
 **Live:** [https://intellirag-web.vercel.app](https://intellirag-web.vercel.app)
+
+You do **not** need an API key to try it. Demo cards fire real queries. The header chip is **Ready** (or **Extractive** if no generation key) — not “Key needed”, and not “17 stale” when missing vectors are expected on serverless.
 
 There is **no learned cross-encoder** and **MMR is not in the retrieval path**. Context packing uses a calibrated score floor (0.24) plus a relative drop versus rank-1 — that is not “similarity must be ≥ 0.55”.
 
@@ -13,16 +15,16 @@ GitHub **repository** URLs enumerate the git tree (text/code files, with size an
 
 ## What the live lab does
 
-Open the site. You do **not** need an API key to try it.
+Open [intellirag-web.vercel.app](https://intellirag-web.vercel.app).
 
-- **Ask** a runbook question, or click a demo card (Redis stampede, k8s incident, weather refuse).
-- **Watch** hybrid retrieval: dense (when embeddings exist) + BM25, fused with RRF, then a calibrated rerank. Lab view shows Used vs Inspect only.
+- **Ask** a runbook question, or click a demo card (Redis stampede, k8s incident, weather refuse). Demos do not bounce you to Settings.
+- **Watch** retrieval in Lab: Used vs Inspect only. Dense cosine runs only when stored vectors exist.
 - **Read** a cited answer, or an honest **Not in the indexed corpus.**
 - **Settings** is optional: OpenRouter or Gemini for Flash answers and dense embeddings. Keys stay on the server (httpOnly cookie), never in page JavaScript.
 
-Without a generation key, answers are **extractive citations** from packed chunks. With `XAI_API_KEY` on the server, Grok 4.5 writes the answer. With OpenRouter/Gemini, Flash writes it.
+Without a generation key, answers are **extractive citations** from packed chunks. The public live host currently has an OpenRouter key, so Flash writes the answer. With `XAI_API_KEY` on the server and no Gemini/OpenRouter, Grok 4.5 writes it.
 
-On Vercel without `DATABASE_URL`, PGLite is never opened (that used to crash with `ENOENT /var/task/_libs/pglite.data`). Keyword search over the seed corpus still runs.
+On Vercel without `DATABASE_URL`, PGLite is never opened (that used to crash with `ENOENT /var/task/_libs/pglite.data`). Keyword search over the seed corpus still runs. The UI treats that as a live keyword index, not a failed hybrid one.
 
 ## Models
 
@@ -52,25 +54,40 @@ npm run typecheck
 | Suite | Result |
 |---|---|
 | RAG unit (`intents`, `evidence`, `ranking`, `corpus-scope`, `github`, `persistence`, `self-query`) | **41/41 pass** |
-| Auth schema stays under `migrations/auth/` (not globbed) | **pass** |
+| Auth schema stays under `migrations/auth/` (not globbed) | **pass** (7/7 migration-plan) |
 
 `npm test` also runs platform chrome tests (PWA injector / write-atomic). The RAG lab does not depend on those for retrieval correctness.
 
-### Hybrid acceptance (needs a running lab + embeddings)
+### Live host (keyword — no `DATABASE_URL`)
+
+Measured against [https://intellirag-web.vercel.app](https://intellirag-web.vercel.app). Mode is `keyword` because dense is fail-closed without durable vectors. The strict harness’s `actualMode === hybrid` gate is therefore skipped; retrieval, packing, evidence, and refusal bars still apply.
+
+```bash
+ACCEPTANCE_BASE=https://intellirag-web.vercel.app node scripts/acceptance-hybrid.mjs an-live
+ACCEPTANCE_BASE=https://intellirag-web.vercel.app node scripts/acceptance-hybrid.mjs unseen-live
+```
+
+| Check | Result |
+|---|---|
+| Seed A–N retrieval / refuse / evidence bars | **14/14** (keyword) |
+| 10 frozen unseen paraphrases (U1–U10) | **9/10** — U5 (`git-ops`) misses; do not retune ranking |
+| Header / demos | Demos query without a key; chip is Ready/Extractive, not “Key needed” / “N stale” |
+
+### Hybrid acceptance (local, needs embeddings)
 
 Last measured on file-backed PGLite with OpenRouter embeddings. This is **not** a Neon / Vercel preview proof. Dense is off on Vercel without `DATABASE_URL`.
 
 ```bash
 npm run dev
 node scripts/acceptance-hybrid.mjs          # embed + A–N + unseen + pgvector
-node scripts/acceptance-hybrid.mjs an       # A–N only
+node scripts/acceptance-hybrid.mjs an       # A–N only (requires hybrid)
 node scripts/acceptance-hybrid.mjs unseen
 ```
 
 | Check | Result |
 |---|---|
 | Seed A–N (`corpus=seed-lab`) | **14/14** (local hybrid + embeddings) |
-| 10 frozen unseen paraphrases (U1–U10) | **10/10** — do not retune ranking from these |
+| 10 frozen unseen paraphrases (U1–U10) | **10/10** local hybrid — do not retune ranking from these |
 | pgvector tree ingest | 46 files → corpus `github:pgvector/pgvector@e48241b`; 5 questions packed **10 distinct non-README** files |
 | After ingest, seed-scope K / L / N | **PASS** — no `pgvector-*` leak; N refuses |
 | Local cold start (PGLite) | **PASS** |

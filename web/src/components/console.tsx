@@ -98,6 +98,17 @@ const STALE_LABEL: Record<StaleReason, string> = {
   ephemeral_storage: "Ephemeral (no DATABASE_URL)",
 };
 
+const EXPECTED_WITHOUT_DENSE: StaleReason[] = [
+  "ephemeral_storage",
+  "missing_embeddings",
+  "never_indexed",
+];
+
+function visibleStaleReasons(reasons: StaleReason[], denseAvailable: boolean): StaleReason[] {
+  if (denseAvailable) return reasons;
+  return reasons.filter((r) => !EXPECTED_WITHOUT_DENSE.includes(r));
+}
+
 function formatMs(ms?: number) {
   if (ms == null || Number.isNaN(ms)) return "—";
   if (ms < 1000) return `${Math.round(ms)} ms`;
@@ -156,7 +167,10 @@ export function Console({ initial }: { initial: Snapshot }) {
   const indexLoop = useRef(false);
 
   const hasKey = snapshot.hasServerKey;
-  const staleCount = snapshot.documents.filter((d) => d.staleReasons.length).length;
+  const denseAvailable = snapshot.storage?.denseAvailable !== false;
+  const staleCount = snapshot.documents.filter(
+    (d) => visibleStaleReasons(d.staleReasons, denseAvailable).length > 0,
+  ).length;
   const asked = messages.filter((m) => m.role === "user").map((m) => m.text);
   const followUps = EXAMPLE_QUESTIONS.filter((q) => !asked.includes(q)).slice(0, 3);
 
@@ -454,11 +468,12 @@ export function Console({ initial }: { initial: Snapshot }) {
 
   const healthLabel = useMemo(() => {
     if (indexing) return "Indexing…";
+    if (!denseAvailable) return hasKey ? "Ready" : "Extractive";
     if (snapshot.generationVia === "xai") return "Ready";
     if (!hasKey) return "Extractive";
     if (staleCount) return `${staleCount} stale`;
     return "Ready";
-  }, [hasKey, indexing, snapshot.generationVia, staleCount]);
+  }, [denseAvailable, hasKey, indexing, snapshot.generationVia, staleCount]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
@@ -469,7 +484,9 @@ export function Console({ initial }: { initial: Snapshot }) {
           </span>
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
-            <p className="hidden text-xs text-muted sm:block">hybrid retrieval · cited answers</p>
+            <p className="hidden text-xs text-muted sm:block">
+              {denseAvailable ? "hybrid retrieval · cited answers" : "keyword retrieval · cited answers"}
+            </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -941,7 +958,9 @@ function CorpusPanel(props: {
         <p className="mt-1 text-xs text-subtle">
           {props.indexing
             ? `Embedding ${props.pending} remaining chunks`
-            : `${props.snapshot.documents.length} documents`}
+            : `${props.snapshot.documents.length} documents${
+                props.snapshot.storage?.denseAvailable === false ? " · keyword index" : ""
+              }`}
         </p>
         <label className="mt-3 block text-xs text-muted">
           Active corpus
@@ -965,14 +984,19 @@ function CorpusPanel(props: {
           Lab questions search the seed corpus unless you switch to an imported repo. All-corpora is never the default.
         </p>
         {props.snapshot.storage?.warning && (
-          <p className="mt-2 text-xs leading-relaxed text-warn">{props.snapshot.storage.warning}</p>
+          <p className="mt-2 text-xs leading-relaxed text-subtle">{props.snapshot.storage.warning}</p>
         )}
       </div>
       <ul className="space-y-2">
         {props.snapshot.documents
           .filter((doc) => props.corpus === ALL_CORPORA || doc.corpusId === props.corpus)
           .map((doc) => (
-          <DocRow key={doc.id} doc={doc} onRemove={props.onRemove} />
+          <DocRow
+            key={doc.id}
+            doc={doc}
+            denseAvailable={props.snapshot.storage?.denseAvailable !== false}
+            onRemove={props.onRemove}
+          />
         ))}
       </ul>
       <div className="rounded-lg border border-border bg-surface p-3">
@@ -1022,7 +1046,16 @@ function CorpusPanel(props: {
   );
 }
 
-function DocRow({ doc, onRemove }: { doc: DocumentHealth; onRemove: (id: string) => void }) {
+function DocRow({
+  doc,
+  denseAvailable,
+  onRemove,
+}: {
+  doc: DocumentHealth;
+  denseAvailable: boolean;
+  onRemove: (id: string) => void;
+}) {
+  const stale = visibleStaleReasons(doc.staleReasons, denseAvailable);
   return (
     <li className="rounded-md border border-border bg-surface p-3">
       <div className="flex items-start justify-between gap-2">
@@ -1045,12 +1078,14 @@ function DocRow({ doc, onRemove }: { doc: DocumentHealth; onRemove: (id: string)
         )}
       </div>
       <p className="mt-1 font-mono text-xs tabular-nums text-subtle">
-        v{doc.version} · {doc.embeddedCount}/{doc.chunkCount} embedded
+        {denseAvailable
+          ? `v${doc.version} · ${doc.embeddedCount}/${doc.chunkCount} embedded`
+          : `v${doc.version} · ${doc.chunkCount} chunks · keyword`}
         {doc.corpusId ? ` · ${doc.corpusId}` : ""}
       </p>
-      {doc.staleReasons.length > 0 && (
+      {stale.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {doc.staleReasons.map((r) => (
+          {stale.map((r) => (
             <span key={r} className="rounded-full bg-raised px-2 py-0.5 text-xs text-warn">
               {STALE_LABEL[r]}
             </span>

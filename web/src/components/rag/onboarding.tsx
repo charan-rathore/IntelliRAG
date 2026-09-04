@@ -195,7 +195,7 @@ export function WelcomeOnboarding({
         <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Knowledge console</p>
         <h1 className="mt-3 font-display text-4xl tracking-[-0.03em] text-fg md:text-5xl">IntelliRAG</h1>
         <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
-          Ask a runbook. Watch hybrid retrieval pick three chunks. Get a cited answer — or an honest refusal.
+          Ask a runbook. Watch retrieval pick the cited chunks. Get an answer — or an honest refusal.
         </p>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-subtle">
           Built for an SRE who needs the command, and a RAG engineer who needs to see why a chunk survived.

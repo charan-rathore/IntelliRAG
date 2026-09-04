@@ -162,12 +162,16 @@ function summarize(result) {
   };
 }
 
-function judgeAN(spec, result) {
+function judgeAN(spec, result, { requireHybrid = true } = {}) {
   const fails = [];
   const rerank1 = result.stages?.rerank?.[0]?.slug;
   const packed = (result.chunks ?? []).map((c) => c.slug);
   if (result.error) fails.push(`error: ${result.error}`);
-  if (result.actualMode !== "hybrid") fails.push(`mode=${result.actualMode} (wanted hybrid)`);
+  if (requireHybrid) {
+    if (result.actualMode !== "hybrid") fails.push(`mode=${result.actualMode} (wanted hybrid)`);
+  } else if (result.actualMode !== "hybrid" && result.actualMode !== "keyword") {
+    fails.push(`mode=${result.actualMode} (wanted hybrid or keyword)`);
+  }
   if (result.corpusId && result.corpusId !== "seed-lab") {
     fails.push(`corpus=${result.corpusId} (wanted seed-lab)`);
   }
@@ -224,6 +228,7 @@ async function snapshotHealth(label) {
 
 async function main() {
   const phase = process.argv[2] ?? "all";
+  const liveKeyword = phase === "an-live" || phase === "unseen-live";
   if (phase === "health" || phase === "all" || phase === "embed") {
     await snapshotHealth("before-embed");
   }
@@ -246,12 +251,12 @@ async function main() {
       console.log("PASS cold-start embeddings still present");
     }
   }
-  if (phase === "an" || phase === "all") {
-    console.log("\n========== A–N hybrid ==========");
+  if (phase === "an" || phase === "an-live" || phase === "all") {
+    console.log(liveKeyword ? "\n========== A–N keyword (live) ==========" : "\n========== A–N hybrid ==========");
     let fail = 0;
     for (const spec of CASES_AN) {
       const result = await query(spec.q);
-      const fails = judgeAN(spec, result);
+      const fails = judgeAN(spec, result, { requireHybrid: !liveKeyword });
       const sum = summarize(result);
       console.log(`\n--- ${spec.id} ---`);
       console.log(`Q: ${spec.q}`);
@@ -274,7 +279,7 @@ async function main() {
     console.log(`\nA–N: ${14 - fail}/14 pass`);
     if (fail) process.exitCode = 3;
   }
-  if (phase === "unseen" || phase === "all") {
+  if (phase === "unseen" || phase === "unseen-live" || phase === "all") {
     console.log("\n========== 10 unseen paraphrases ==========");
     let hit = 0;
     for (const spec of UNSEEN) {

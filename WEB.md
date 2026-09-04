@@ -1,19 +1,28 @@
 # Live web console
 
-The dark-theme browser lab lives in this repository under [`web/`](web/). The split `intellirag-web` GitHub repo is gone — this folder is the source of truth.
+The dark-theme browser lab lives in [`web/`](web/) and is mirrored at [`charan-rathore/intellirag-web`](https://github.com/charan-rathore/intellirag-web).
 
 - Folder: [`web/`](web/)
 - Live: https://intellirag-web.vercel.app/
 - Python platform in `rag-platform/` is unchanged. No secrets in git.
 
-Vercel **Root Directory must be `web/`**. A root `vercel.json` also builds `web/` if the project is connected at the repo root.
+You do **not** need an API key to try it. Demo cards fire real queries. On Vercel without `DATABASE_URL` the lab is a **keyword index** (Ready / Extractive) — not “Key needed” and not “17 stale”. Dense hybrid needs Neon.
 
-Without `OPENROUTER_API_KEY` / `GEMINI_API_KEY`, the live site still answers: `XAI_API_KEY` (Grok 4.5) if present, otherwise extractive citations from packed chunks. Dense retrieval still needs `DATABASE_URL` (Neon).
+Vercel **Root Directory must be `web/`** if this monorepo is connected. The split `intellirag-web` repo is Root Directory `.`.
 
-Serverless hosts (Vercel) never open PGLite. Missing wasm at `/var/task/_libs/pglite.data` used to blank the page; production without Neon now uses the in-memory seed corpus instead.
+Without `OPENROUTER_API_KEY` / `GEMINI_API_KEY`, answers still work: `XAI_API_KEY` (Grok 4.5) if present, otherwise extractive citations from packed chunks.
+
+Serverless hosts never open PGLite. Missing wasm at `/var/task/_libs/pglite.data` used to blank the page; production without Neon now uses the in-memory seed corpus instead.
+
+Measured on the live host (keyword, no `DATABASE_URL`): A–N retrieval/refusal **14/14**, unseen paraphrases **9/10** (U5 miss; ranking is frozen). Unit tests in `web/`: **41/41**. Local hybrid with embeddings: A–N **14/14**, unseen **10/10**.
 
 ```bash
-cd web && npm install && npm run dev   # 127.0.0.1:8080
+cd web && npm install && npm run dev
 ```
 
-Acceptance harness (from `web/` with the server running): `node scripts/acceptance-hybrid.mjs`.
+Acceptance (from `web/`):
+
+```bash
+node scripts/acceptance-hybrid.mjs an            # local hybrid
+ACCEPTANCE_BASE=https://intellirag-web.vercel.app node scripts/acceptance-hybrid.mjs an-live
+```
