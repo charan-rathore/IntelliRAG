@@ -163,6 +163,11 @@ export async function runQueryStream(
     corpusScope.kind === "all" ? documents : documents.filter((d) => d.corpusId === corpusScope.corpusId);
   const storage = getStorageStatus();
 
+  if (corpusScope.kind === "corpus" && corpusScope.corpusId !== SEED_CORPUS_ID && !scopedDocuments.length) {
+    emit({ type: "error", message: "Your selected source is no longer available. Refresh the source list and import it again. This is a storage problem, not evidence that your document lacks the answer. Persistent Postgres is required to keep imports across server restarts." });
+    return;
+  }
+
   if (intent === "greeting") {
     emit(
       guideDone(

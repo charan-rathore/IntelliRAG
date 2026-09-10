@@ -31,7 +31,6 @@ import {
 import { EXAMPLE_QUESTIONS } from "@/lib/rag/corpus";
 import { ALL_CORPORA, SEED_CORPUS_ID, corpusLabel } from "@/lib/rag/corpus-scope";
 import type { GraphOutcome } from "@/lib/rag/graphify/schema";
-import { loadTourSeen } from "@/lib/rag/tour";
 import {
   forgetLegacyClientKeys,
   loadCoachDismissed,
@@ -225,9 +224,7 @@ export function Console({ initial }: { initial: Snapshot }) {
     setTopK(loadTopK());
     setView(loadViewMode());
     setCoachOpen(!loadCoachDismissed());
-    if (!loadTourSeen()) {
-      window.setTimeout(() => setTourOpen(true), 500);
-    }
+    // The tour is opt-in: an automatic overlay can steal focus during ingestion.
     if (initial.hasServerKey && initial.storage?.denseAvailable !== false) {
       void runIndexLoop();
     }
@@ -970,6 +967,9 @@ function CorpusPanel(props: {
             className="mt-1 h-10 w-full rounded-md border border-border bg-raised px-2 text-sm text-fg outline-none"
           >
             <option value={SEED_CORPUS_ID}>{corpusLabel(SEED_CORPUS_ID)}</option>
+            {props.corpus !== SEED_CORPUS_ID && props.corpus !== ALL_CORPORA && !(props.snapshot.corpora ?? []).some(c => c.id === props.corpus) && (
+              <option value={props.corpus}>Source unavailable · import again</option>
+            )}
             {(props.snapshot.corpora ?? [])
               .filter((c) => c.id !== SEED_CORPUS_ID)
               .map((c) => (

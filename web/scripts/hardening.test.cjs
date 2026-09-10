@@ -94,3 +94,19 @@ test('lexical graph excludes connector words while retaining shared technical te
  for(const word of ['api','go','tls'])assert.ok(terms.includes(word));
  const ids=new Set(graph.nodes.map(n=>n.id));assert.ok(graph.links.every(e=>ids.has(e.source)&&ids.has(e.target)));
 });
+
+test('missing selected corpus fails before cache, retrieval or generation',async()=>{
+ const previousLoad=Module._load;
+ Module._load=function(id,parent,...rest){
+  if(parent?.filename?.endsWith('rag/query.server.ts')){
+   if(id==='./store.server')return {listDocuments:async()=>[{corpusId:'seed-lab'}]};
+   if(['./gemini.server','./retrieve.server','./graphify/persist.server'].includes(id))return new Proxy({}, {get:()=>()=>{throw new Error('missing source must not reach models or cache');}});
+  }
+  return previousLoad.call(this,id,parent,...rest);
+ };
+ try{
+  const {runQueryStream}=require('../src/lib/rag/query.server.ts');const events=[];
+  await runQueryStream({question:'What retry budget does the removed issue specify?',corpus:'url:github.com/example/removed'},e=>events.push(e));
+  assert.equal(events.length,1);assert.equal(events[0].type,'error');assert.match(events[0].message,/selected source is no longer available/);
+ }finally{Module._load=previousLoad;}
+});
