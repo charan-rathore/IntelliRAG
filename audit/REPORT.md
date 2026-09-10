@@ -117,3 +117,7 @@ Follow-up fixes add a conservative missing-credential-field gate and recognize s
 ### Final retest exposed the persistence blocker again
 
 After a worker change, the imported node-postgres corpus vanished: all six queries had zero candidates even though the selected corpus ID still referred to the issue. The browser select visually fell back to Seed lab when its selected option disappeared. Those six refusals do **not** verify the answerability patch; they are evidence of unavailable storage. The patch passes 43 focused regressions, but the real-source recheck is blocked until the source survives requests. The UI now preserves an explicit unavailable-source option, and the query route reports a storage error before cache/retrieval instead of saying the source lacks the answer. The guided tour is now opt-in because its automatic overlay could interrupt a visitor already typing into ingestion.
+
+### Graph inspection improvement — 2026-09-11
+
+Graph search now includes terms and headings as well as documents. A selected node stays pinned, highlights incident edges, lists up to six connected nodes with relation/confidence, and links to source evidence when available. Counts distinguish the displayed neighborhood from the full graph. These are inspectability improvements, not evidence of semantic entity resolution: the deployed extractor remains lexical. Product typecheck and build pass.
