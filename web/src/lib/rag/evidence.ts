@@ -40,7 +40,7 @@ export function queryChunkSupport(query: string, packed: RetrievedChunk[]) {
 }
 
 function looksLikeBypassInstruction(query: string): boolean {
-  return /ignore (the )?(indexed )?corpus|answer from memory|from your (own )?knowledge|pretend (a )?source/i.test(
+  return /ignore (the )?(indexed )?(corpus|sources?|documents?|runbook)|answer from memory|from your (own )?knowledge|pretend (a )?source/i.test(
     query,
   );
 }
@@ -106,6 +106,17 @@ export function classifyEvidence(opts: {
     packedTopDense,
     packedTopLexical,
   };
+
+  // Topic overlap cannot supply a requested credential absent from the passages.
+  // This does not assert that the entire source was exhaustively searched.
+  const requestedCredentials = opts.query.match(/\b(?:passwords?|credentials?|api[ _-]?keys?|database_url|secrets?)\b/gi) ?? [];
+  const missingCredentials = requestedCredentials.filter(term => {
+    const normalized = term.toLowerCase().replace(/[ _-]/g, "").replace(/s$/, "");
+    return !packedText.toLowerCase().replace(/[ _-]/g, "").includes(normalized);
+  });
+  if (/\b(what|which|give|show|tell|reveal)\b/i.test(opts.query) && missingCredentials.length) {
+    return gate("insufficient", "The requested credential field is not present in the retrieved passages; topic overlap does not establish its value.", { ...stats, clearedForInsufficient: true });
+  }
 
   if (ABSENCE.test(opts.query.trim())) {
     const missing = probeTermsNotInText(opts.query, `${top.title}\n${packedText}`);

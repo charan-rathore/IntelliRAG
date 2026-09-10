@@ -100,6 +100,15 @@ Added production `/api/health` with explicit setup/index/database states, applie
 
 Evaluation reports now persist in `evaluation_runs` with run ID, dataset hash and index hash. Database report write failures propagate. The custom judge is still not official RAGAS, and no real model result has been fabricated. Embedding/generation requests have deadlines; malformed dimensions, non-finite and zero vectors are rejected. Atomic ingestion rollback was verified against real embedded Postgres. This does not establish Neon connectivity or production durability.
 
-Documentation now points to the current public hostname and canonical repository, with correct root-level Vercel packaging. Product-specific GitHub CI runs build, typecheck, 41 RAG regressions, security/graph hardening checks and the SQL rollback test. The unrelated inherited template aggregate test limitation remains disclosed.
+Documentation now points to the current public hostname and canonical repository, with correct root-level Vercel packaging. Product-specific GitHub CI runs build, typecheck, the RAG regressions, security/graph hardening checks and the SQL rollback test. The unrelated inherited template aggregate test limitation remains disclosed.
 
 Live verification exposed another graph-quality issue: short connector words (`is`, `to`, `as`, etc.) became shared-term hubs after abbreviations were enabled. The extractor now filters those words while retaining API/TLS/Go; a regression checks the distinction. An extractor-version fingerprint forces stored graphs to rebuild after this algorithm change. This reduces lexical noise but is not semantic relation validation. Illustrative onboarding scores are now explicitly labeled as unexecuted examples.
+
+
+## Additional real upstream issue study
+
+On the public Vercel deployment, entered `https://github.com/brianc/node-postgres/issues/3745` in the URL field and clicked Fetch & index. The importer stored **one issue document with four chunks**, including discussion comments, and automatically selected its own corpus. The graph displayed **358 nodes / 737 edges** after import on the filtered extractor. Frozen issue body: `node-postgres-3745-source.json`; raw six-query results: `intellirag-production-node-postgres.json`.
+
+Three factual questions retrieved the correct cited passage: POC pool `max: 2`, query `id = 7`, and a `WeakMap` for stable statement names without hashing. Extractive mode copied a long passage instead of concise answers. The false `id = 70` premise and injected `max = 200` request returned the real code but did not directly correct the user. The missing production-password question incorrectly labeled unrelated production discussion as grounded. **This was a failed answerability test, not a successful answer.**
+
+Follow-up fixes add a conservative missing-credential-field gate and recognize source/document bypass instructions. Two regressions cover these cases, and the cache policy fingerprint changes so previous unsafe classifications cannot be reused. Credential synonyms, placeholder values, general numeric contradiction detection and concise synthesis still require broader evaluation. Model-based generation and judged answer quality remain blocked by provider/database setup.
