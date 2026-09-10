@@ -4,7 +4,9 @@ An experimental RAG systems lab built from first principles.
 
 I wanted to know where retrieval-augmented generation actually breaks - not how to wrap another API. This repo implements the full pipeline so each layer can be measured: ingestion, chunking, embedding, indexing, hybrid retrieval, reranking, context assembly, citation-aware generation, evaluation, and observability.
 
-**Status:** Phases 1-12 complete. Query API and CI quality gates operational. Benchmarks on a small deterministic corpus are labeled honestly (mock embeddings/LLM in CI; real Ollama optional).
+**Live web status (September 2026):** [Public Vercel console](https://intellirag-live-own-track.vercel.app/) is running from this canonical repository. It currently supports keyword retrieval, cited extracts, issue ingestion and a lexical graph. Persistent semantic/hybrid production acceptance remains dependent on Postgres and provider configuration. See [the production setup and acceptance runbook](WEB.md) and [the measured audit with open findings](audit/REPORT.md).
+
+**Python platform:** the phase history and benchmark sections below describe `rag-platform/`, a separate implementation in this monorepo. Its deterministic/mock CI results are not measurements of the public web deployment.
 
 **Repository:** [github.com/charan-rathore/IntelliRAG](https://github.com/charan-rathore/IntelliRAG)
 

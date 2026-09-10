@@ -19,7 +19,9 @@
     "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts && npx tsx --test src/lib/rag/*.test.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:hardening": "node --test scripts/hardening.test.cjs"
+    "test:hardening": "node --test scripts/hardening.test.cjs",
+    "test:persistence": "node --test scripts/persistence.test.cjs",
+    "acceptance:production": "node scripts/production-acceptance.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

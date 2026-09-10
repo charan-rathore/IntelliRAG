@@ -26,7 +26,7 @@ export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async ()
     audit: PLATFORM_AUDIT,
     generationModel: GENERATION_MODEL,
     embeddingModel: EMBEDDING_MODEL,
-    lastEval: loadLastEvalSummary(),
+    lastEval: await loadLastEvalSummary(),
     storage: getStorageStatus(),
     graph: {
       nodeCount: 0,

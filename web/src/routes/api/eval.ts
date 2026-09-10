@@ -7,7 +7,7 @@ export const Route = createFileRoute("/api/eval")({
     handlers: {
       GET: async ({ request }) => {
         hydrateKeysFromRequest(request);
-        const report = loadLastEval();
+        const report = await loadLastEval();
         if (!report) return Response.json({ verdict: "none" });
         return Response.json(report);
       },

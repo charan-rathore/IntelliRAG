@@ -64,9 +64,13 @@ function formattedText(item: EmbedRequest) {
 }
 
 function assertDimension(values: number[]) {
-  if (values.length !== EMBEDDING_DIMENSIONS) {
+  if (
+    values.length !== EMBEDDING_DIMENSIONS ||
+    values.some((v) => !Number.isFinite(v)) ||
+    !values.some((v) => v !== 0)
+  ) {
     throw new GeminiError(
-      `Embedding size ${values.length} does not match the index (${EMBEDDING_DIMENSIONS}). Re-index with ${EMBEDDING_MODEL}.`,
+      `Invalid embedding: expected ${EMBEDDING_DIMENSIONS} finite values with a non-zero norm; received length ${values.length}. Re-index with ${EMBEDDING_MODEL}.`,
     );
   }
   return l2Normalize(values);
@@ -81,6 +85,7 @@ async function embedOneGoogle(apiKey: string, item: EmbedRequest): Promise<numbe
       content: { parts: [{ text: formattedText(item) }] },
       outputDimensionality: EMBEDDING_DIMENSIONS,
     }),
+    signal: AbortSignal.timeout(20000),
   });
   if (!res.ok) throw new GeminiError(await readError(res), res.status);
   const body = (await res.json()) as { embedding?: { values?: number[] } };
@@ -97,6 +102,7 @@ async function embedBatchGoogle(apiKey: string, items: EmbedRequest[]): Promise<
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ requests }),
+    signal: AbortSignal.timeout(20000),
   });
   if (!res.ok) {
     if (items.length <= 8) {
@@ -132,6 +138,7 @@ async function embedBatchOpenRouter(apiKey: string, items: EmbedRequest[]): Prom
         encoding_format: "float",
         ...(pinProvider ? { provider: OPENROUTER_EMBED_PROVIDER } : {}),
       }),
+      signal: AbortSignal.timeout(20000),
     });
     return res;
   };
@@ -205,7 +212,9 @@ async function generateGoogle(opts: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(generationBody(opts.system, opts.user, withThinking)),
-      signal: opts.signal,
+      signal: opts.signal
+        ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+        : AbortSignal.timeout(45000),
     });
     if (!res.ok) throw new GeminiError(await readError(res), res.status);
     const body = (await res.json()) as {
@@ -249,7 +258,9 @@ async function generateOpenRouter(opts: {
           ? { provider: { order: ["google-ai-studio", "google-vertex"], allow_fallbacks: false } }
           : {}),
       }),
-      signal: opts.signal,
+      signal: opts.signal
+        ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+        : AbortSignal.timeout(45000),
     });
   let res = await send(true);
   if (!res.ok && (res.status === 400 || res.status === 404)) res = await send(false);
@@ -274,7 +285,9 @@ async function streamGoogle(opts: {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(generationBody(opts.system, opts.user, withThinking)),
-        signal: opts.signal,
+        signal: opts.signal
+          ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+          : AbortSignal.timeout(45000),
       },
     );
     if (!res.ok) throw new GeminiError(await readError(res), res.status);
@@ -302,9 +315,7 @@ async function streamGoogle(opts: {
             candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
           };
           const piece =
-            json.candidates?.[0]?.content?.parts
-              ?.map((p) => p.text ?? "")
-              .join("") ?? "";
+            json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
           if (piece) {
             full += piece;
             opts.onToken(piece);
@@ -351,7 +362,9 @@ async function streamOpenRouter(opts: {
       method: "POST",
       headers: openRouterHeaders(opts.apiKey),
       body: bodyFor(pinProvider),
-      signal: opts.signal,
+      signal: opts.signal
+        ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+        : AbortSignal.timeout(45000),
     });
 
   let res = await send(true);
@@ -362,7 +375,9 @@ async function streamOpenRouter(opts: {
       apiKey: opts.apiKey,
       system: opts.system,
       user: opts.user,
-      signal: opts.signal,
+      signal: opts.signal
+        ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+        : AbortSignal.timeout(45000),
     });
     if (text) opts.onToken(text);
     return text;
@@ -389,7 +404,8 @@ async function streamOpenRouter(opts: {
         const json = JSON.parse(line) as {
           choices?: Array<{ delta?: { content?: string | null }; message?: { content?: string } }>;
         };
-        const piece = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
+        const piece =
+          json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
         if (piece) {
           full += piece;
           opts.onToken(piece);
@@ -424,7 +440,9 @@ async function generateXai(opts: {
         { role: "user", content: opts.user },
       ],
     }),
-    signal: opts.signal,
+    signal: opts.signal
+      ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+      : AbortSignal.timeout(45000),
   });
   if (!res.ok) throw new GeminiError(await readError(res), res.status);
   const body = (await res.json()) as {
@@ -456,7 +474,9 @@ async function streamXai(opts: {
         { role: "user", content: opts.user },
       ],
     }),
-    signal: opts.signal,
+    signal: opts.signal
+      ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+      : AbortSignal.timeout(45000),
   });
   if (!res.ok) throw new GeminiError(await readError(res), res.status);
   if (!res.body) {
@@ -464,7 +484,9 @@ async function streamXai(opts: {
       apiKey: opts.apiKey,
       system: opts.system,
       user: opts.user,
-      signal: opts.signal,
+      signal: opts.signal
+        ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
+        : AbortSignal.timeout(45000),
     });
     if (text) opts.onToken(text);
     return text;
@@ -491,7 +513,8 @@ async function streamXai(opts: {
         const json = JSON.parse(line) as {
           choices?: Array<{ delta?: { content?: string | null }; message?: { content?: string } }>;
         };
-        const piece = json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
+        const piece =
+          json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
         if (piece) {
           full += piece;
           opts.onToken(piece);

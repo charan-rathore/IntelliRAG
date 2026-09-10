@@ -1,0 +1,28 @@
+{
+  "url": "https://intellirag-live-own-track.vercel.app/",
+  "commit": "0ef8f69279bfd3603f67716f597515b1b9c17b44",
+  "deployment": "dpl_3EeYpJm3DrcMo3Q59aDHG17TihiP",
+  "state": "READY",
+  "canonicalRepo": "charan-rathore/IntelliRAG",
+  "ragTests": 41,
+  "hardeningTests": 8,
+  "fullInheritedSuite": "FAIL: missing template fixtures and branding/env assumptions",
+  "databaseConfigured": false,
+  "realModelEvaluation": "not run: no model/embedding provider and no persistent production DB",
+  "productionIssueImport": {
+    "documents": 1,
+    "chunks": 1,
+    "corpus": "url:github.com/charan-rathore/IntelliRAG/issues/2"
+  },
+  "productionGraph": {
+    "nodes": 332,
+    "edges": 757,
+    "cacheEntries": 4
+  },
+  "repeatQuestion": {
+    "cacheHit": true,
+    "model": "graphify-cache",
+    "citations": 1,
+    "corpus": "url:github.com/charan-rathore/IntelliRAG/issues/2"
+  }
+}

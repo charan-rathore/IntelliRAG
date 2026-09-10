@@ -4,6 +4,8 @@
  * and is never the sole gate. skipCache is required so graph cache cannot hide
  * retrieval bugs.
  */
+import { createHash } from "node:crypto";
+import { getSql, vercelWithoutDatabase } from "@/lib/db";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { GOLDEN_SAMPLES, ADVERSARIAL_SAMPLES, CLAIMED_BASELINE, QUALITY_GATE } from "./eval-data";
 import { completeOnce } from "./gemini.server";
@@ -11,7 +13,7 @@ import { embedPendingBatch } from "./ingest.server";
 import { resolveRuntime } from "./keys.server";
 import { runQueryStream, type QueryEvent } from "./query.server";
 import { getStorageStatus } from "./storage";
-import { pendingEmbeddingCount } from "./store.server";
+import { pendingEmbeddingCount, listDocuments } from "./store.server";
 import { EMBEDDING_MODEL } from "./types";
 import type { Citation, LayerLatencies, RetrievalCandidate, RetrievedChunk } from "./types";
 
@@ -56,6 +58,10 @@ export type EvalSample = {
 };
 
 export type EvalReport = {
+  runId: string;
+  createdAt: string;
+  datasetHash: string;
+  indexHash: string;
   verdict: "pass" | "fail";
   failures: string[];
   beatsBaseline: string[];
@@ -82,7 +88,11 @@ export type EvalSummary = {
   generationVia: string;
 };
 
-function writeReport(report: EvalReport) {
+async function writeReport(report: EvalReport) {
+  if (!vercelWithoutDatabase()) {
+    const sql = await getSql();
+    await sql`insert into evaluation_runs (id, dataset_hash, index_hash, verdict, payload) values (${report.runId}, ${report.datasetHash}, ${report.indexHash}, ${report.verdict}, ${JSON.stringify(report)})`;
+  }
   const json = JSON.stringify(report, null, 2);
   for (const path of [REPORT_PATH, TMP_REPORT_PATH]) {
     try {
@@ -94,7 +104,18 @@ function writeReport(report: EvalReport) {
   }
 }
 
-export function loadLastEval(): EvalReport | null {
+export async function loadLastEval(): Promise<EvalReport | null> {
+  if (!vercelWithoutDatabase()) {
+    try {
+      const sql = await getSql();
+      const rows = await sql<{
+        payload: string;
+      }>`select payload from evaluation_runs order by created_at desc limit 1`;
+      return rows[0] ? (JSON.parse(rows[0].payload) as EvalReport) : null;
+    } catch {
+      return null;
+    }
+  }
   for (const path of [REPORT_PATH, TMP_REPORT_PATH]) {
     try {
       return JSON.parse(readFileSync(path, "utf8")) as EvalReport;
@@ -105,8 +126,8 @@ export function loadLastEval(): EvalReport | null {
   return null;
 }
 
-export function loadLastEvalSummary(): EvalSummary | null {
-  const report = loadLastEval();
+export async function loadLastEvalSummary(): Promise<EvalSummary | null> {
+  const report = await loadLastEval();
   if (!report) return null;
   return {
     verdict: report.verdict,
@@ -250,7 +271,8 @@ Numbers only, 0 to 1.`,
     answer_correctness?: number;
   };
   const clamp = (n: unknown) => {
-    if (typeof n !== "number" || !Number.isFinite(n) || n < 0 || n > 1) throw new Error("Judge returned an invalid score");
+    if (typeof n !== "number" || !Number.isFinite(n) || n < 0 || n > 1)
+      throw new Error("Judge returned an invalid score");
     return n;
   };
   return {
@@ -263,7 +285,8 @@ Numbers only, 0 to 1.`,
 export async function runRagasEval(): Promise<EvalReport> {
   const started = Date.now();
   const runtime = resolveRuntime();
-  if (!getStorageStatus().durable) throw new Error("A durable DATABASE_URL is required before running the embedding evaluation.");
+  if (!getStorageStatus().durable)
+    throw new Error("A durable DATABASE_URL is required before running the embedding evaluation.");
   if (!runtime.embed || !runtime.generate) {
     throw new Error("Server key missing. Save an OpenRouter or Gemini key in Settings first.");
   }
@@ -285,7 +308,9 @@ export async function runRagasEval(): Promise<EvalReport> {
     const context = result.chunks.map((c) => c.text).join("\n");
     const ranked = result.candidates.length ? result.candidates : result.chunks;
     const relevantRanks = ranked
-      .map((c, i) => (c.slug === gold.documentId || gold.extraDocuments?.includes(c.slug) ? i + 1 : 0))
+      .map((c, i) =>
+        c.slug === gold.documentId || gold.extraDocuments?.includes(c.slug) ? i + 1 : 0,
+      )
       .filter((n) => n > 0);
     const retrievalRecall = relevantRanks.length ? 1 : 0;
     const retrievalPrecision = result.chunks.length
@@ -294,7 +319,9 @@ export async function runRagasEval(): Promise<EvalReport> {
         ).length / result.chunks.length
       : 0;
     const retrievalMrr = relevantRanks.length ? 1 / relevantRanks[0]! : 0;
-    const rank1Hit = ranked[0]?.slug === gold.documentId || Boolean(gold.extraDocuments?.includes(ranked[0]?.slug ?? ""));
+    const rank1Hit =
+      ranked[0]?.slug === gold.documentId ||
+      Boolean(gold.extraDocuments?.includes(ranked[0]?.slug ?? ""));
     const forbiddenHit = (gold.forbiddenInContext ?? []).some((slug) =>
       result.chunks.some((c) => c.slug === slug),
     );
@@ -302,9 +329,7 @@ export async function runRagasEval(): Promise<EvalReport> {
     const contextRecall = gold.referenceContext.length
       ? phraseHits.length / gold.referenceContext.length
       : 0;
-    const contextPrecision = forbiddenHit
-      ? 0
-      : ragasContextPrecision(result.chunks, gold);
+    const contextPrecision = forbiddenHit ? 0 : ragasContextPrecision(result.chunks, gold);
     const citedHay = result.citations
       .map((c) => result.chunks.find((ch) => ch.chunkId === c.chunkId)?.text ?? "")
       .join("\n");
@@ -322,8 +347,9 @@ export async function runRagasEval(): Promise<EvalReport> {
           ? 1
           : 0;
     const citationPrecision = result.citations.length
-      ? result.citations.filter((c) => result.chunks.some((ch) => ch.chunkId === c.chunkId || ch.title === c.title))
-          .length / result.citations.length
+      ? result.citations.filter((c) =>
+          result.chunks.some((ch) => ch.chunkId === c.chunkId || ch.title === c.title),
+        ).length / result.citations.length
       : result.refused || /not in the indexed corpus/i.test(result.answer)
         ? 1
         : result.answer
@@ -407,7 +433,9 @@ export async function runRagasEval(): Promise<EvalReport> {
       : 1,
   };
 
-  const failures: string[] = samples.filter(s => s.error).map(s => `${s.sampleId}: query or judge failed`);
+  const failures: string[] = samples
+    .filter((s) => s.error)
+    .map((s) => `${s.sampleId}: query or judge failed`);
   const beatsBaseline: string[] = [];
   (Object.keys(QUALITY_GATE) as Array<keyof typeof QUALITY_GATE>).forEach((key) => {
     const value = metrics[key];
@@ -424,7 +452,17 @@ export async function runRagasEval(): Promise<EvalReport> {
     }
   });
 
+  const documents = await listDocuments();
+  const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
   const report: EvalReport = {
+    runId: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    datasetHash: hash({ gold: GOLDEN_SAMPLES, adversarial: ADVERSARIAL_SAMPLES }),
+    indexHash: hash(
+      documents
+        .map((d) => [d.slug, d.version, d.chunkCount, d.embeddingModel])
+        .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    ),
     verdict: failures.length ? "fail" : "pass",
     failures,
     beatsBaseline,
@@ -438,6 +476,6 @@ export async function runRagasEval(): Promise<EvalReport> {
     samples,
     adversarial,
   };
-  writeReport(report);
+  await writeReport(report);
   return report;
 }
