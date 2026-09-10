@@ -1,7 +1,11 @@
 import type { SeedDocument } from "../corpus";
 import type { GraphJson, GraphLink, GraphNode } from "./schema";
 
+export const GRAPH_EXTRACTOR_VERSION = "lexical-v3";
+
 const STOP = new Set([
+  "an", "as", "at", "be", "by", "do", "if", "in", "is", "it", "of", "on", "or", "so", "to", "we",
+  "does", "did", "been", "had", "they", "them", "their", "these", "those", "there", "which",
   "the", "and", "for", "with", "from", "that", "this", "are", "was", "were",
   "have", "has", "not", "you", "your", "into", "when", "then", "than", "its",
   "use", "used", "using", "can", "should", "must", "will", "each", "also",

@@ -475,7 +475,7 @@ export const PLATFORM_AUDIT = [
     original:
       "Generation defaulted to llama3.2 on localhost:11434. When Ollama was unreachable the console silently answered with a MockLLM — answers looked live but were not grounded.",
     liveFix:
-      "Queries run on Gemini 3.7 Flash (via Gemini API or OpenRouter). No key → no fake answers; the console asks for a server-side key instead of hallucinating.",
+      "With a configured provider, queries can generate answers from retrieved evidence. Without a provider key, the console returns cited extracts or refuses unsupported questions; no model generation is claimed.",
   },
   {
     id: "embed-mismatch",
@@ -484,7 +484,7 @@ export const PLATFORM_AUDIT = [
     original:
       "Query service defaulted RAG_USE_OLLAMA_EMBED=false (TF-IDF) while docs recommended nomic-embed-text. README even warned: do not flip the flag unless you re-index. Index and query lived in different vector spaces.",
     liveFix:
-      "gemini-embedding-2 writes every chunk and every query. 3.7 Flash never embeds — it only writes the answer. Chunks store embedding_model; a mismatch is flagged as stale and re-embedded. Silent fallback to gemini-embedding-001 is gone.",
+      "With persistent storage and an embedding provider configured, gemini-embedding-2 embeds indexed chunks and search queries. Generation uses a separate model. Chunks store embedding_model; a mismatch is flagged as stale and re-embedded. Silent fallback to gemini-embedding-001 is gone.",
   },
   {
     id: "celery-gap",
@@ -529,6 +529,6 @@ export const PLATFORM_AUDIT = [
     original:
       "CI quality gates used mock embeddings and a mock LLM. Precision looked low (0.20) and faithfulness sat at 0.50 — not a measure of real RAG.",
     liveFix:
-      "Live answers use gemini-embedding-2 for both index and query, then Gemini 3.7 Flash over the retrieved text. Layer latencies and citation coverage are recorded on every query.",
+      "The trace reports whether query embedding and model generation actually ran. Keyword/extractive runs are not hybrid or LLM evaluation results. Real-provider evaluation requires a configured persistent index and provider.",
   },
 ];

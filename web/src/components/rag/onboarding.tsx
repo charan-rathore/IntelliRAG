@@ -99,7 +99,7 @@ export function DemoCatalog({
     <div>
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Three ways to see it work</p>
       <p className="mt-1 text-xs leading-relaxed text-subtle">
-        Each card fires a real query. Grounded packs runbooks. Refused proves the lab will not hallucinate a forecast.
+        Each card fires a real query. Grounded packs runbooks. The off-corpus example checks whether unsupported questions are refused.
       </p>
       <div className="mt-3 grid gap-2 md:grid-cols-3">
         {DEMO_RUNS.map((demo) => (
@@ -121,7 +121,7 @@ export function SampleTrace() {
     <div data-tour="tour-sample" className="rounded-lg border border-border bg-surface px-4 py-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Sample trace</p>
-        <p className="text-xs text-subtle">Not a live run — scores are typical for this question</p>
+        <p className="text-xs text-subtle">Illustrative scores · no retrieval or model ran here</p>
       </div>
       <p className="mt-2 text-sm text-fg">{SAMPLE_TRACE_QUESTION}</p>
       <SourceInspector candidates={SAMPLE_CANDIDATES} packed={packed} contextTokens={240} />

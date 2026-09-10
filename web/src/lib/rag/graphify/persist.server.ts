@@ -7,7 +7,7 @@ import { dirname } from "node:path";
 import { listDocuments, getDocumentBySlug } from "../store.server";
 import { SEED_DOCUMENTS } from "../corpus";
 import { getSql, vercelWithoutDatabase } from "@/lib/db";
-import { extractCorpus, questionHash } from "./extract";
+import { extractCorpus, questionHash, GRAPH_EXTRACTOR_VERSION } from "./extract";
 import { lookupCache, preferredSlugs, queryGraph } from "./query";
 import { reflect } from "./reflect";
 import type { CacheEntry, GraphOutcome, GraphState, MemoryDoc } from "./schema";
@@ -92,7 +92,7 @@ export async function ensureGraph(): Promise<GraphState> {
   }
   const state = g.__intelliragGraph;
   const documents = await listDocuments();
-  const fingerprint = JSON.stringify(documents.map(d => [d.slug, d.version]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  const fingerprint = GRAPH_EXTRACTOR_VERSION + JSON.stringify(documents.map(d => [d.slug, d.version]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
   if (state.corpusFingerprint !== fingerprint) {
     const rows = await Promise.all(documents.map(d => getDocumentBySlug(d.slug)));
     const docs = rows.filter((d): d is NonNullable<typeof d> => d !== null);

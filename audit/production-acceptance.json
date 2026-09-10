@@ -1,0 +1,37 @@
+{
+  "runId": "6aad8aa2-7d61-4724-a942-e5c5636a2e59",
+  "createdAt": "2026-09-10T13:22:24.197Z",
+  "base": "https://intellirag-live-own-track.vercel.app",
+  "datasetHash": "9dafe6d11d37720bf1bfa537c336f8e6cfaac52c08e327955d8db133c09ba4a4",
+  "status": "blocked",
+  "health": {
+    "instanceId": "a9a11143-f2dc-466a-84d1-b21d90f08ef2",
+    "checkedAt": "2026-09-10T13:22:24.893Z",
+    "storage": {
+      "backend": "ephemeral",
+      "durable": false,
+      "denseAvailable": false,
+      "warning": "Running without a Postgres URL on serverless. Keyword search still works on seed text; embeddings do not survive cold starts."
+    },
+    "embeddingModel": "gemini-embedding-2",
+    "dimensions": 768,
+    "hasGeminiKey": false,
+    "hasOpenRouterKey": false,
+    "hasXaiKey": false,
+    "hasServerKey": false,
+    "geminiFromEnv": false,
+    "openRouterFromEnv": false,
+    "xaiFromEnv": false,
+    "embeddingVia": null,
+    "generationVia": null,
+    "status": "setup-required",
+    "databaseReachable": false,
+    "reason": "Configure persistent Postgres before indexing and production acceptance tests."
+  },
+  "samples": [],
+  "failures": [
+    "A reachable persistent database and complete current-model embeddings are required.",
+    "A real generation/embedding provider must be configured."
+  ],
+  "coldStart": "not proven: compare a second run after redeploy using a different instanceId"
+}

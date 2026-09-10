@@ -85,3 +85,12 @@ test('graph lifecycle adds imports, invalidates edited evidence, scopes feedback
   const ids=new Set(deleted.nodes.map(n=>n.id));assert.ok(deleted.links.every(e=>ids.has(e.source)&&ids.has(e.target)));
  }finally{Module._load=previousLoad;delete global.__intelliragGraph;}
 });
+
+
+test('lexical graph excludes connector words while retaining shared technical terms',()=>{
+ const graph=extractCorpus([{slug:'a',title:'A',body:'It is in the API. Go uses TLS.'},{slug:'b',title:'B',body:'It is in the API. Go uses TLS.'}]);
+ const terms=graph.nodes.filter(n=>n.kind==='term').map(n=>n.label);
+ for(const word of ['it','is','in','the'])assert.ok(!terms.includes(word));
+ for(const word of ['api','go','tls'])assert.ok(terms.includes(word));
+ const ids=new Set(graph.nodes.map(n=>n.id));assert.ok(graph.links.every(e=>ids.has(e.source)&&ids.has(e.target)));
+});
