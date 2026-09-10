@@ -1,4 +1,5 @@
 export type GithubTarget =
+  | { kind: "issue"; owner: string; repo: string; number: number }
   | { kind: "blob"; owner: string; repo: string; ref: string; path: string }
   | { kind: "tree"; owner: string; repo: string; ref: string | null; path: string }
   | { kind: "repo"; owner: string; repo: string; ref: string | null };
@@ -80,11 +81,13 @@ export function parseGithubUrl(url: string): GithubTarget | null {
   const repo = m[2]!.replace(/\.git$/i, "");
   const rest = m[3] ?? "";
   if (!rest) return { kind: "repo", owner, repo, ref: null };
+  const issue = rest.match(/^(?:issues|pull)\/(\d+)$/);
+  if (issue) return { kind: "issue", owner, repo, number: Number(issue[1]) };
   const blob = rest.match(/^blob\/([^/]+)\/(.+)$/);
   if (blob) return { kind: "blob", owner, repo, ref: blob[1]!, path: blob[2]! };
   const tree = rest.match(/^tree\/([^/]+)(?:\/(.*))?$/);
   if (tree) return { kind: "tree", owner, repo, ref: tree[1]!, path: tree[2] ?? "" };
-  return { kind: "repo", owner, repo, ref: null };
+  throw new Error("Unsupported GitHub URL. Use a repository, file, tree, issue, or pull request URL.");
 }
 
 export function githubRawUrl(owner: string, repo: string, ref: string, path: string) {

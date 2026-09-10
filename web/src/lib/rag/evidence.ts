@@ -163,7 +163,7 @@ export const INSUFFICIENT_ANSWER =
   "Not in the indexed corpus. I only answer from indexed sources in grounded mode, and retrieval did not find supporting evidence.";
 
 export function negativeAnswer(title: string, probe: string) {
-  return `The indexed ${title} does not mention or recommend ${probe}. I am not filling that gap from model memory.`;
+  return `I could not find explicit support for “${probe}” in the retrieved passages from ${title}. This does not establish that it is absent from the entire source. [Source 1]`;
 }
 
 export const GROUNDED_SYSTEM = `You are IntelliRAG in grounded mode. You may use ONLY the numbered sources below.

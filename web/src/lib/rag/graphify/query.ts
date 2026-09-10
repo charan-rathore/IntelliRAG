@@ -1,5 +1,4 @@
 import type { CacheEntry, GraphJson, GraphNode, GraphState } from "./schema";
-import { CACHE_JACCARD } from "./schema";
 import { queryTokens } from "./extract";
 
 function idfVocab(graph: GraphJson): Map<string, number> {
@@ -23,15 +22,6 @@ function scoreNode(node: GraphNode, terms: string[], idf: Map<string, number>): 
   return s;
 }
 
-function neighbors(graph: GraphJson, id: string): string[] {
-  const out: string[] = [];
-  for (const e of graph.links) {
-    if (e.source === id) out.push(e.target);
-    else if (e.target === id) out.push(e.source);
-  }
-  return out;
-}
-
 /** Graphify query: IDF-weighted label match, then BFS depth 3. */
 export function queryGraph(graph: GraphJson, question: string, budget = 24) {
   const terms = queryTokens(question);
@@ -40,15 +30,24 @@ export function queryGraph(graph: GraphJson, question: string, budget = 24) {
     .map((n) => ({ n, s: scoreNode(n, terms, idf) }))
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s);
-  const start = scored.slice(0, 3).map((x) => x.n);
+  budget = Math.max(0, Math.floor(budget));
+  const start = scored.slice(0, Math.min(3, budget)).map((x) => x.n);
   const startIds = new Set(start.map((n) => n.id));
   const seen = new Set(startIds);
   const order = [...start.map((n) => n.id)];
+  const adjacency = new Map<string, string[]>();
+  for (const e of graph.links) {
+    if (!adjacency.has(e.source)) adjacency.set(e.source, []);
+    if (!adjacency.has(e.target)) adjacency.set(e.target, []);
+    adjacency.get(e.source)!.push(e.target);
+    adjacency.get(e.target)!.push(e.source);
+  }
   let frontier = [...startIds];
-  for (let depth = 0; depth < 3; depth++) {
+  for (let depth = 0; depth < 3 && order.length < budget; depth++) {
     const next: string[] = [];
     for (const id of frontier) {
-      for (const nb of neighbors(graph, id)) {
+      for (const nb of adjacency.get(id) ?? []) {
+        if (order.length >= budget) break;
         if (seen.has(nb)) continue;
         seen.add(nb);
         order.push(nb);
@@ -67,29 +66,11 @@ export function queryGraph(graph: GraphJson, question: string, budget = 24) {
   return { start, nodes, links, slugs, terms };
 }
 
-function jaccard(a: string[], b: string[]): number {
-  const A = new Set(a);
-  const B = new Set(b);
-  let inter = 0;
-  for (const t of A) if (B.has(t)) inter++;
-  const union = A.size + B.size - inter;
-  return union === 0 ? 0 : inter / union;
-}
-
-export function lookupCache(state: GraphState, question: string, corpusId?: string): CacheEntry | null {
-  const terms = queryTokens(question);
-  if (!terms.length || !state.cache.length) return null;
-  const scoped = state.cache.filter((c) => (c.corpusId ?? "seed-lab") === (corpusId ?? "seed-lab"));
-  const exact = scoped.find((c) => queryTokens(c.question).join(" ") === terms.join(" "));
-  if (exact && exact.outcome !== "dead_end" && exact.answer) return exact;
-  let best: { entry: CacheEntry; score: number } | null = null;
-  for (const entry of scoped) {
-    if (entry.outcome !== "useful" || !entry.answer) continue;
-    const score = jaccard(terms, queryTokens(entry.question));
-    if (score < CACHE_JACCARD) continue;
-    if (!best || score > best.score) best = { entry, score };
-  }
-  return best?.entry ?? null;
+/** Cache identity preserves numbers, negation, punctuation and ordering. No fuzzy answer reuse. */
+export function lookupCache(state: GraphState, question: string, corpusId = "seed-lab"): CacheEntry | null {
+  const normalize = (text: string) => text.normalize("NFKC").trim().replace(/\s+/g, " ");
+  const exact = state.cache.find(c => (c.corpusId ?? "seed-lab") === corpusId && normalize(c.question) === normalize(question));
+  return exact?.answer && exact.outcome !== "dead_end" && exact.outcome !== "corrected" ? exact : null;
 }
 
 export function preferredSlugs(state: GraphState, question: string): string[] {
@@ -104,10 +85,6 @@ export function preferredSlugs(state: GraphState, question: string): string[] {
     if (node.kind === "document" && node.slug && (preferred.has(node.id) || q.slugs.includes(node.slug))) {
       if (!slugs.includes(node.slug)) slugs.push(node.slug);
     }
-  }
-  for (const id of preferred) {
-    const node = state.graph.nodes.find((n) => n.id === id);
-    if (node?.slug && !slugs.includes(node.slug)) slugs.push(node.slug);
   }
   return slugs.slice(0, 6);
 }

@@ -458,7 +458,7 @@ export function Console({ initial }: { initial: Snapshot }) {
 
   const sendFeedback = async (id: string, q: string, outcome: GraphOutcome, correction?: string) => {
     try {
-      const graph = await submitGraphFeedback({ data: { question: q, outcome, correction } });
+      const graph = await submitGraphFeedback({ data: { question: q, outcome, correction, corpusId: messages.find(m => m.id === id)?.corpusId ?? "seed-lab" } });
       setMessages((all) => all.map((m) => (m.id === id ? { ...m, feedback: outcome } : m)));
       setSnapshot((s) => ({ ...s, graph }));
     } catch {
@@ -1158,9 +1158,9 @@ function AuditPanel({
         </p>
       )}
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">RAGAS eval</p>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">RAG evaluation</p>
         <p className="mt-1 text-xs leading-relaxed text-subtle">
-          10 gold questions + 2 adversarial probes. Judges with Gemini 3.7 Flash against the original IntelliRAG baseline.
+          20 gold questions + 5 adversarial probes. Custom RAGAS-style rubric with deterministic retrieval checks; judge failures fail the run.
         </p>
         <Button
           className="mt-3 w-full"
@@ -1168,7 +1168,7 @@ function AuditPanel({
           disabled={evalBusy || !canEval}
           onClick={onRunEval}
         >
-          {evalBusy ? "Running eval…" : "Run RAGAS eval"}
+          {evalBusy ? "Running eval…" : "Run RAG evaluation"}
         </Button>
         {evalError && <p className="mt-2 text-xs text-bad">{evalError}</p>}
         {evalReport && (

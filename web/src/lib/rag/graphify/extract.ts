@@ -9,14 +9,14 @@ const STOP = new Set([
 ]);
 
 function slugPart(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
+  return s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 48);
 }
 
 function tokens(text: string): string[] {
   return text
     .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length >= 4 && !STOP.has(t));
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((t) => t.length >= 2 && !STOP.has(t));
 }
 
 function headings(body: string): Array<{ text: string; line: number; depth: number }> {
@@ -62,7 +62,7 @@ export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | 
     });
 
     for (const h of headings(doc.body)) {
-      const hid = `heading:${doc.slug}:${slugPart(h.text)}`;
+      const hid = `heading:${doc.slug}:${h.line}:${slugPart(h.text)}`;
       addNode({
         id: hid,
         label: h.text,

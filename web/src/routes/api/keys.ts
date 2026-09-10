@@ -7,7 +7,7 @@ import {
 } from "@/lib/rag/keys.server";
 
 function jsonWithKeyCookies(body: unknown, status = 200) {
-  const headers = new Headers({ "content-type": "application/json" });
+  const headers = new Headers({ "content-type": "application/json", "Cache-Control": "no-store" });
   for (const line of labKeySetCookieHeaders()) headers.append("Set-Cookie", line);
   return new Response(JSON.stringify(body), { status, headers });
 }
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/api/keys")({
     handlers: {
       GET: async ({ request }) => {
         hydrateKeysFromRequest(request);
-        return jsonWithKeyCookies(keyStatus());
+        return Response.json(keyStatus(), { headers: { "Cache-Control": "no-store" } });
       },
       POST: async ({ request }) => {
         hydrateKeysFromRequest(request);

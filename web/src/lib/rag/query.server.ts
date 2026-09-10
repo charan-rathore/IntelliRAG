@@ -112,7 +112,7 @@ function extractiveAnswer(chunks: RetrievedChunk[]): string {
     .slice(0, 3)
     .map((chunk, i) => {
       const cleaned = chunk.text.replace(/^#{1,6}\s+/gm, "").replace(/\n{3,}/g, "\n\n").trim();
-      const clip = cleaned.length > 480 ? `${cleaned.slice(0, 480).trim()}…` : cleaned;
+      const clip = cleaned.length > 1800 ? `${cleaned.slice(0, 1800).trim()}…` : cleaned;
       return `${clip} [Source ${i + 1}]`;
     })
     .join("\n\n");
@@ -204,15 +204,17 @@ export async function runQueryStream(
       storage,
     });
     emit({ type: "token", text: graphLook.hit.answer });
-    await bumpCacheHit(graphLook.hit.questionHash);
+    await bumpCacheHit(graphLook.hit.questionHash, corpusKey);
     emit({
       type: "done",
       answer: graphLook.hit.answer,
-      refused: false,
+      refused: graphLook.hit.coverage === "refused",
       citations: (graphLook.hit.citations as Citation[]) ?? [],
       latencies: { graph: graphMs },
       model: "graphify-cache",
-      embeddingModel: EMBEDDING_MODEL,
+      corpusId: corpusKey,
+      corpusScope: corpusScope.kind,
+      embeddingModel: null,
       intent,
       coverage: (graphLook.hit.coverage as CoverageKind) || "grounded",
       candidates,
@@ -327,56 +329,6 @@ export async function runQueryStream(
     return;
   }
 
-  if (!runtime.generate) {
-    const answer = extractiveAnswer(retrieved.chunks);
-    emit({ type: "token", text: answer });
-    const citations = citationsFrom(answer, retrieved.chunks);
-    const candidates = markCited(retrieved.candidates, citations);
-    const latencies = {
-      embed: embedMs,
-      dense: retrieved.denseMs,
-      keyword: retrieved.keywordMs,
-      rerank: retrieved.rerankMs,
-      assemble: retrieved.assembleMs,
-      generate: 0,
-    };
-    await recordTrace({
-      question,
-      retrievalMode: retrieved.actualMode,
-      answer,
-      refused: false,
-      model: "extractive",
-      embeddingModel: embeddingModel ?? "none",
-      layerLatencies: latencies,
-      citationCount: citations.length,
-      totalLatencyMs: performance.now() - started,
-    });
-    emit({
-      type: "done",
-      answer,
-      refused: false,
-      citations,
-      latencies,
-      model: "extractive",
-      embeddingModel,
-      intent,
-      coverage: "grounded",
-      candidates,
-      contextTokens: retrieved.contextTokens,
-      cacheHit: false,
-      dense: retrieved.dense,
-      evidence: evidenceKind,
-      storage,
-      scoreSemantics: retrieved.trace.scoreSemantics,
-      actualMode: retrieved.actualMode,
-      stages: retrieved.stages,
-      corpusId: retrieved.corpusId,
-      corpusScope: retrieved.corpusScope,
-      evidenceGate: retrieved.evidenceGate,
-    });
-    return;
-  }
-
   if (evidenceKind === "negative_not_found") {
     const answer = negativeAnswer(retrieved.chunks[0]!.title, retrieved.probe || "that");
     emit({ type: "token", text: answer });
@@ -416,6 +368,62 @@ export async function runQueryStream(
       cacheHit: false,
       dense: retrieved.dense,
       evidence: "negative_not_found",
+      storage,
+      scoreSemantics: retrieved.trace.scoreSemantics,
+      actualMode: retrieved.actualMode,
+      stages: retrieved.stages,
+      corpusId: retrieved.corpusId,
+      corpusScope: retrieved.corpusScope,
+      evidenceGate: retrieved.evidenceGate,
+    });
+    return;
+  }
+
+  if (!runtime.generate) {
+    const answer = extractiveAnswer(retrieved.chunks);
+    emit({ type: "token", text: answer });
+    const citations = citationsFrom(answer, retrieved.chunks);
+    const candidates = markCited(retrieved.candidates, citations);
+    const latencies = {
+      embed: embedMs,
+      dense: retrieved.denseMs,
+      keyword: retrieved.keywordMs,
+      rerank: retrieved.rerankMs,
+      assemble: retrieved.assembleMs,
+      generate: 0,
+    };
+    await recordTrace({
+      question,
+      retrievalMode: retrieved.actualMode,
+      answer,
+      refused: false,
+      model: "extractive",
+      embeddingModel: embeddingModel ?? "none",
+      layerLatencies: latencies,
+      citationCount: citations.length,
+      totalLatencyMs: performance.now() - started,
+    });
+    if (!input.skipCache) {
+      const sourceSlugs = [...new Set(retrieved.chunks.map(c => c.slug))];
+      await saveQueryResult({ question, answer, sourceNodes: sourceSlugs.map(s => `doc:${s}`), sourceSlugs,
+        coverage: "grounded", citations, candidates, chunks: retrieved.chunks,
+        contextTokens: retrieved.contextTokens, corpusId: corpusKey });
+    }
+    emit({
+      type: "done",
+      answer,
+      refused: false,
+      citations,
+      latencies,
+      model: "extractive",
+      embeddingModel,
+      intent,
+      coverage: "grounded",
+      candidates,
+      contextTokens: retrieved.contextTokens,
+      cacheHit: false,
+      dense: retrieved.dense,
+      evidence: evidenceKind,
       storage,
       scoreSemantics: retrieved.trace.scoreSemantics,
       actualMode: retrieved.actualMode,
@@ -471,7 +479,7 @@ export async function runQueryStream(
   });
   const sourceSlugs = [...new Set(retrieved.chunks.map((c) => c.slug))];
   const sourceNodes = sourceSlugs.map((s) => `doc:${s}`);
-  await saveQueryResult({
+  if (!input.skipCache) await saveQueryResult({
     question,
     answer,
     sourceNodes,

@@ -10,8 +10,8 @@ import { completeOnce } from "./gemini.server";
 import { embedPendingBatch } from "./ingest.server";
 import { resolveRuntime } from "./keys.server";
 import { runQueryStream, type QueryEvent } from "./query.server";
+import { getStorageStatus } from "./storage";
 import { pendingEmbeddingCount } from "./store.server";
-import { tokenize } from "./text";
 import { EMBEDDING_MODEL } from "./types";
 import type { Citation, LayerLatencies, RetrievalCandidate, RetrievedChunk } from "./types";
 
@@ -179,18 +179,6 @@ function ragasContextPrecision(chunks: RetrievedChunk[], gold: (typeof GOLDEN_SA
   return acc / relevant;
 }
 
-function tokenF1(a: string, b: string) {
-  const ta = new Set(tokenize(a));
-  const tb = new Set(tokenize(b));
-  if (!ta.size || !tb.size) return 0;
-  let inter = 0;
-  for (const t of ta) if (tb.has(t)) inter += 1;
-  const p = inter / ta.size;
-  const r = inter / tb.size;
-  if (p + r === 0) return 0;
-  return (2 * p * r) / (p + r);
-}
-
 function mean(values: number[]) {
   if (!values.length) return 0;
   return values.reduce((s, v) => s + v, 0) / values.length;
@@ -262,9 +250,8 @@ Numbers only, 0 to 1.`,
     answer_correctness?: number;
   };
   const clamp = (n: unknown) => {
-    const v = typeof n === "number" ? n : Number(n);
-    if (!Number.isFinite(v)) return 0;
-    return Math.min(1, Math.max(0, v));
+    if (typeof n !== "number" || !Number.isFinite(n) || n < 0 || n > 1) throw new Error("Judge returned an invalid score");
+    return n;
   };
   return {
     faithfulness: clamp(parsed.faithfulness),
@@ -276,6 +263,7 @@ Numbers only, 0 to 1.`,
 export async function runRagasEval(): Promise<EvalReport> {
   const started = Date.now();
   const runtime = resolveRuntime();
+  if (!getStorageStatus().durable) throw new Error("A durable DATABASE_URL is required before running the embedding evaluation.");
   if (!runtime.embed || !runtime.generate) {
     throw new Error("Server key missing. Save an OpenRouter or Gemini key in Settings first.");
   }
@@ -341,13 +329,9 @@ export async function runRagasEval(): Promise<EvalReport> {
         : result.answer
           ? 0
           : 1;
-    const lexicalCorrectness = tokenF1(result.answer, gold.groundTruth);
 
-    let judged: Judge = {
-      faithfulness: contextRecall,
-      answerRelevancy: tokenF1(result.answer, gold.question),
-      answerCorrectness: lexicalCorrectness,
-    };
+    let judgeError: string | null = null;
+    let judged: Judge = { faithfulness: 0, answerRelevancy: 0, answerCorrectness: 0 };
     if (result.answer && !result.error) {
       try {
         judged = await judgeSample({
@@ -356,8 +340,8 @@ export async function runRagasEval(): Promise<EvalReport> {
           context: context.slice(0, 6000),
           answer: result.answer,
         });
-      } catch {
-        // keep lexical fallback
+      } catch (err) {
+        judgeError = err instanceof Error ? err.message : "Judge unavailable";
       }
     }
 
@@ -366,7 +350,7 @@ export async function runRagasEval(): Promise<EvalReport> {
       question: gold.question,
       documentId: gold.documentId,
       answer: result.answer,
-      error: result.error ?? null,
+      error: result.error ?? judgeError,
       retrieved: ranked.map((c) => c.slug),
       retrieval_mrr: retrievalMrr,
       retrieval_recall: retrievalRecall,
@@ -423,7 +407,7 @@ export async function runRagasEval(): Promise<EvalReport> {
       : 1,
   };
 
-  const failures: string[] = [];
+  const failures: string[] = samples.filter(s => s.error).map(s => `${s.sampleId}: query or judge failed`);
   const beatsBaseline: string[] = [];
   (Object.keys(QUALITY_GATE) as Array<keyof typeof QUALITY_GATE>).forEach((key) => {
     const value = metrics[key];

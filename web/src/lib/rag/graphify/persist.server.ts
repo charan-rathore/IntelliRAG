@@ -4,6 +4,7 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { listDocuments, getDocumentBySlug } from "../store.server";
 import { SEED_DOCUMENTS } from "../corpus";
 import { getSql, vercelWithoutDatabase } from "@/lib/db";
 import { extractCorpus, questionHash } from "./extract";
@@ -89,12 +90,27 @@ export async function ensureGraph(): Promise<GraphState> {
       g.__intelliragGraph.graph = extractCorpus(SEED_DOCUMENTS);
     }
   }
-  return g.__intelliragGraph;
+  const state = g.__intelliragGraph;
+  const documents = await listDocuments();
+  const fingerprint = JSON.stringify(documents.map(d => [d.slug, d.version]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  if (state.corpusFingerprint !== fingerprint) {
+    const rows = await Promise.all(documents.map(d => getDocumentBySlug(d.slug)));
+    const docs = rows.filter((d): d is NonNullable<typeof d> => d !== null);
+    state.graph = extractCorpus(docs);
+    // A changed source invalidates cached answers and their embedded citation snapshots.
+    state.cache = [];
+    // Feedback also refers to a source revision; discard it until memory stores versions.
+    state.memory = [];
+    state.learning = reflect(state);
+    state.corpusFingerprint = fingerprint;
+    await persist(state);
+  }
+  return state;
 }
 
-function persist(state: GraphState) {
+async function persist(state: GraphState) {
   saveDisk(state);
-  void saveSql(state);
+  await saveSql(state);
 }
 
 export async function graphSnapshot() {
@@ -137,7 +153,7 @@ export async function saveQueryResult(input: {
   const state = await ensureGraph();
   const hash = questionHash(input.question);
   const now = new Date().toISOString();
-  const qid = `query:${hash}`;
+  const qid = `query:${input.corpusId ?? "seed-lab"}:${hash}`;
   if (!state.graph.nodes.some((n) => n.id === qid)) {
     state.graph.nodes.push({
       id: qid,
@@ -164,6 +180,7 @@ export async function saveQueryResult(input: {
     }
   }
   const memory: MemoryDoc = {
+    corpusId: input.corpusId ?? "seed-lab",
     id: crypto.randomUUID(),
     type: "query",
     date: now,
@@ -177,6 +194,10 @@ export async function saveQueryResult(input: {
   };
   state.memory.unshift(memory);
   state.memory = state.memory.slice(0, 200);
+  const retainedQueries = new Set(state.memory.map(m => `query:${m.corpusId ?? "seed-lab"}:${m.questionHash}`));
+  state.graph.nodes = state.graph.nodes.filter(n => n.kind !== "query" || retainedQueries.has(n.id));
+  const retainedIds = new Set(state.graph.nodes.map(n => n.id));
+  state.graph.links = state.graph.links.filter(e => retainedIds.has(e.source) && retainedIds.has(e.target));
 
   const existing = state.cache.find(
     (c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"),
@@ -205,7 +226,7 @@ export async function saveQueryResult(input: {
     ),
   ].slice(0, 80);
   state.learning = reflect(state);
-  persist(state);
+  await persist(state);
   return { memoryId: memory.id, hash };
 }
 
@@ -213,33 +234,35 @@ export async function recordOutcome(input: {
   question: string;
   outcome: GraphOutcome;
   correction?: string;
+  corpusId?: string;
 }) {
   const state = await ensureGraph();
   const hash = questionHash(input.question);
-  const latest = state.memory.find((m) => m.questionHash === hash);
+  const latest = state.memory.find((m) => m.questionHash === hash && (m.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"));
   if (latest) {
     latest.outcome = input.outcome;
     latest.correction = input.correction ?? null;
   }
-  const cache = state.cache.find((c) => c.questionHash === hash);
+  const cache = state.cache.find((c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"));
   if (cache) {
     cache.outcome = input.outcome;
     cache.updatedAt = new Date().toISOString();
     if (input.outcome === "dead_end") cache.answer = "";
-    if (input.outcome === "corrected" && input.correction) cache.answer = input.correction;
+    // Corrections are feedback, never new source evidence.
+    if (input.outcome === "corrected") cache.answer = "";
   }
   state.learning = reflect(state);
-  persist(state);
+  await persist(state);
   return graphSnapshot();
 }
 
-export async function bumpCacheHit(hash: string) {
+export async function bumpCacheHit(hash: string, corpusId = "seed-lab") {
   const state = await ensureGraph();
-  const cache = state.cache.find((c) => c.questionHash === hash);
+  const cache = state.cache.find((c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === corpusId);
   if (cache) {
     cache.hitCount += 1;
     cache.updatedAt = new Date().toISOString();
-    persist(state);
+    await persist(state);
   }
 }
 

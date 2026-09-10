@@ -140,10 +140,32 @@ async function ingestGithubRepo(target: {
   };
 }
 
+async function ingestGithubIssue(owner: string, repo: string, number: number) {
+  const token = githubToken();
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json", "User-Agent": "IntelliRAG" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const base = `https://api.github.com/repos/${owner}/${repo}/issues/${number}`;
+  const response = await fetch(base, { headers, signal: AbortSignal.timeout(15_000) });
+  if (!response.ok) throw new Error(`GitHub issue fetch failed (${response.status})`);
+  const issue = await response.json() as { title: string; body: string | null; html_url: string; state: string; comments: number };
+  let comments: Array<{ body: string; html_url: string }> = [];
+  if (issue.comments) {
+    const res = await fetch(`${base}/comments?per_page=100`, { headers, signal: AbortSignal.timeout(15_000) });
+    if (!res.ok) throw new Error(`GitHub issue comments fetch failed (${res.status})`);
+    comments = await res.json();
+  }
+  const title = `${owner}/${repo} #${number}: ${issue.title}`;
+  const body = [`# ${title}`, `State: ${issue.state}`, issue.body ?? "", ...comments.map((c, i) => `## Comment ${i + 1}\nSource: ${c.html_url}\n\n${c.body}`)].join("\n\n");
+  if (body.length > MAX_BODY || issue.comments > comments.length) throw new Error("Issue exceeds the supported import size; import a smaller document instead of silently truncating it.");
+  const result = await ingestText({ title, body, sourceType: "url", sourceUri: issue.html_url, slugHint: `${owner}-${repo}-issue-${number}` });
+  return { ingested: result.skipped ? 0 : 1, skipped: result.skipped ? 1 : 0, titles: [result.slug], corpusId: urlCorpusId(issue.html_url) };
+}
+
 export async function ingestFromUrl(url: string) {
   const trimmed = url.trim();
   if (!/^https?:\/\//i.test(trimmed)) throw new Error("Provide an http(s) URL");
   const gh = parseGithubUrl(trimmed);
+  if (gh?.kind === "issue") return ingestGithubIssue(gh.owner, gh.repo, gh.number);
   if (gh?.kind === "blob") {
     const body = await fetchText(githubRawUrl(gh.owner, gh.repo, gh.ref, gh.path));
     const code = isCodePath(gh.path);
@@ -197,7 +219,7 @@ export async function fetchRemoteDocument(url: string): Promise<{
 }> {
   const trimmed = url.trim();
   const gh = parseGithubUrl(trimmed);
-  if (gh?.kind === "repo" || gh?.kind === "tree") {
+  if (gh?.kind === "repo" || gh?.kind === "tree" || gh?.kind === "issue") {
     throw new Error("Repository URLs ingest via ingestFromUrl (tree enumeration), not a single README.");
   }
   const raw =

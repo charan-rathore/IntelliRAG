@@ -1,0 +1,126 @@
+{
+  "seed": {
+    "nodes": 304,
+    "edges": 688,
+    "bytes": 116064,
+    "dangling": 0
+  },
+  "negationCacheCollision": false,
+  "numericCacheCollision": false,
+  "shortTechnicalTokens": [
+    "sql",
+    "tls",
+    "ttl",
+    "api",
+    "go"
+  ],
+  "nonEnglishTokens": [
+    "ما",
+    "هي",
+    "قاعدة",
+    "البيانات"
+  ],
+  "repeatedHeadings": {
+    "nodes": [
+      {
+        "id": "doc:a",
+        "label": "A",
+        "source_file": "a.md",
+        "source_location": "L1",
+        "file_type": "markdown",
+        "kind": "document",
+        "community": 0,
+        "slug": "a"
+      },
+      {
+        "id": "heading:a:1:same",
+        "label": "Same",
+        "source_file": "a.md",
+        "source_location": "L1",
+        "file_type": "markdown",
+        "kind": "heading",
+        "community": 0,
+        "slug": "a"
+      },
+      {
+        "id": "heading:a:3:same",
+        "label": "Same",
+        "source_file": "a.md",
+        "source_location": "L3",
+        "file_type": "markdown",
+        "kind": "heading",
+        "community": 0,
+        "slug": "a"
+      },
+      {
+        "id": "heading:a:5:中文",
+        "label": "中文",
+        "source_file": "a.md",
+        "source_location": "L5",
+        "file_type": "markdown",
+        "kind": "heading",
+        "community": 0,
+        "slug": "a"
+      },
+      {
+        "id": "heading:a:7:日本語",
+        "label": "日本語",
+        "source_file": "a.md",
+        "source_location": "L7",
+        "file_type": "markdown",
+        "kind": "heading",
+        "community": 0,
+        "slug": "a"
+      }
+    ],
+    "links": [
+      {
+        "source": "doc:a",
+        "target": "heading:a:1:same",
+        "relation": "contains",
+        "confidence": "EXTRACTED"
+      },
+      {
+        "source": "doc:a",
+        "target": "heading:a:3:same",
+        "relation": "contains",
+        "confidence": "EXTRACTED"
+      },
+      {
+        "source": "doc:a",
+        "target": "heading:a:5:中文",
+        "relation": "contains",
+        "confidence": "EXTRACTED"
+      },
+      {
+        "source": "doc:a",
+        "target": "heading:a:7:日本語",
+        "relation": "contains",
+        "confidence": "EXTRACTED"
+      }
+    ]
+  },
+  "preferredForUnrelated": [],
+  "redisNeighborhood": [
+    "redis-cache",
+    "http-caching"
+  ],
+  "scale100": {
+    "nodes": 210,
+    "edges": 1100,
+    "queryMs": 6.611041999999998,
+    "returned": 24
+  },
+  "scale1000": {
+    "nodes": 2010,
+    "edges": 11000,
+    "queryMs": 59.93095799999992,
+    "returned": 24
+  },
+  "scale5000": {
+    "nodes": 10010,
+    "edges": 55000,
+    "queryMs": 192.53166699999974,
+    "returned": 24
+  }
+}

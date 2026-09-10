@@ -34,6 +34,7 @@ export type GraphJson = {
 };
 
 export type MemoryDoc = {
+  corpusId?: string;
   id: string;
   type: "query";
   date: string;
@@ -83,6 +84,7 @@ export type LearningSidecar = {
 };
 
 export type GraphState = {
+  corpusFingerprint?: string;
   graph: GraphJson;
   memory: MemoryDoc[];
   cache: CacheEntry[];

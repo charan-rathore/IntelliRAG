@@ -124,6 +124,7 @@ export const submitGraphFeedback = createServerFn({ method: "POST" })
       question: z.string().min(1).max(4000),
       outcome: z.enum(["useful", "dead_end", "corrected"]),
       correction: z.string().max(8000).optional(),
+      corpusId: z.string().max(500).optional(),
     }),
   )
   .handler(async ({ data }) => {
@@ -131,5 +132,6 @@ export const submitGraphFeedback = createServerFn({ method: "POST" })
       question: data.question,
       outcome: data.outcome,
       correction: data.correction,
+      corpusId: data.corpusId,
     });
   });
