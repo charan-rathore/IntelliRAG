@@ -1,5 +1,6 @@
 import type { CacheEntry, GraphJson, GraphNode, GraphState } from "./schema";
 import { queryTokens } from "./extract";
+import { scopeGraph } from "./edits";
 
 function idfVocab(graph: GraphJson): Map<string, number> {
   const df = new Map<string, number>();
@@ -67,14 +68,14 @@ export function queryGraph(graph: GraphJson, question: string, budget = 24) {
 }
 
 /** Cache identity preserves numbers, negation, punctuation and ordering. No fuzzy answer reuse. */
-export function lookupCache(state: GraphState, question: string, corpusId = "seed-lab"): CacheEntry | null {
+export function lookupCache(state: GraphState, question: string, corpusId = "seed-lab", policy = ""): CacheEntry | null {
   const normalize = (text: string) => text.normalize("NFKC").trim().replace(/\s+/g, " ");
-  const exact = state.cache.find(c => (c.corpusId ?? "seed-lab") === corpusId && normalize(c.question) === normalize(question));
+  const exact = state.cache.find(c => (c.corpusId ?? "seed-lab") === corpusId && (c.policy ?? "") === policy && normalize(c.question) === normalize(question));
   return exact?.answer && exact.outcome !== "dead_end" && exact.outcome !== "corrected" ? exact : null;
 }
 
-export function preferredSlugs(state: GraphState, question: string): string[] {
-  const q = queryGraph(state.graph, question);
+export function preferredSlugs(state: GraphState, question: string, corpusId = "all"): string[] {
+  const q = queryGraph(scopeGraph(state.graph, corpusId), question);
   const preferred = new Set(
     (state.learning?.nodes ?? [])
       .filter((n) => n.verdict === "preferred")

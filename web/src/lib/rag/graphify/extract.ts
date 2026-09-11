@@ -1,7 +1,7 @@
 import type { SeedDocument } from "../corpus";
 import type { GraphJson, GraphLink, GraphNode } from "./schema";
 
-export const GRAPH_EXTRACTOR_VERSION = "lexical-v3";
+export const GRAPH_EXTRACTOR_VERSION = "lexical-v4";
 
 const STOP = new Set([
   "an", "as", "at", "be", "by", "do", "if", "in", "is", "it", "of", "on", "or", "so", "to", "we",
@@ -39,7 +39,7 @@ function headings(body: string): Array<{ text: string; line: number; depth: numb
  * shared terms (INFERRED uses) across documents. Same confidence tags as
  * graphify extractors/markdown.py + build().
  */
-export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | "body">>): GraphJson {
+export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | "body"> & { source_uri?: string | null; corpus_id?: string }>): GraphJson {
   const nodes: GraphNode[] = [];
   const links: GraphLink[] = [];
   const seen = new Set<string>();
@@ -57,7 +57,9 @@ export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | 
     addNode({
       id: fileId,
       label: doc.title,
-      source_file: `${doc.slug}.md`,
+      source_file: doc.source_uri?.includes("/blob/") ? decodeURIComponent(doc.source_uri.split("/blob/")[1].split("/").slice(1).join("/")) : `${doc.slug}.md`,
+      sourceUri: doc.source_uri ?? undefined,
+      corpusId: doc.corpus_id ?? "seed-lab",
       source_location: "L1",
       file_type: "markdown",
       kind: "document",
@@ -70,7 +72,9 @@ export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | 
       addNode({
         id: hid,
         label: h.text,
-        source_file: `${doc.slug}.md`,
+        source_file: doc.source_uri?.includes("/blob/") ? decodeURIComponent(doc.source_uri.split("/blob/")[1].split("/").slice(1).join("/")) : `${doc.slug}.md`,
+      sourceUri: doc.source_uri ?? undefined,
+      corpusId: doc.corpus_id ?? "seed-lab",
         source_location: `L${h.line}`,
         file_type: "markdown",
         kind: "heading",

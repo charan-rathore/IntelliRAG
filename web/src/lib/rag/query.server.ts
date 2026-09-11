@@ -4,6 +4,8 @@
  * evidence classification — not a weather/joke/recipe regex. Insufficient
  * evidence yields the deterministic string “Not in the indexed corpus.”
  */
+import { createHash } from "node:crypto";
+import { EMPTY_EDITS, type GraphEdits, type GraphTrace } from "./graphify/edits";
 import { EXAMPLE_QUESTIONS } from "./corpus";
 import { INSUFFICIENT_ANSWER, negativeAnswer } from "./evidence";
 import { embedQuery, GeminiError, generationModelLabel, streamGenerate } from "./gemini.server";
@@ -32,6 +34,7 @@ import { EMBEDDING_MODEL } from "./types";
 import { snippet } from "./text";
 
 export type QueryEvent =
+  | ({ type: "graph" } & GraphTrace)
   | { type: "stage"; name: string }
   | {
       type: "sources";
@@ -144,6 +147,7 @@ export async function runQueryStream(
     retrievalMode?: RetrievalMode;
     topK?: number;
     skipCache?: boolean;
+    graphEdits?: GraphEdits;
     corpus?: string | null;
   },
   emit: (event: QueryEvent) => void,
@@ -194,7 +198,16 @@ export async function runQueryStream(
     return;
   }
 
-  const graphLook = input.skipCache ? { hit: null, preferred: [] as string[] } : await findCachedAnswer(question, corpusKey);
+  const runtime = resolveRuntime();
+  const edits = input.graphEdits ?? EMPTY_EDITS;
+  // Source revisions are checked by ensureGraph. Settings and credentials isolate answer variants.
+  const policy = createHash("sha256").update(JSON.stringify({ version: 3, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
+    model: runtime.generate ? generationModelLabel(runtime.generate.provider) : "extractive", runtime, edits })).digest("hex");
+  const graphStart = performance.now();
+  emit({ type: "stage", name: "graph-lookup" });
+  const graphLook = await findCachedAnswer(question, corpusKey, { policy, edits, skipCache: input.skipCache });
+  emit({ type: "graph", nodes: graphLook.subgraph.nodes, links: graphLook.subgraph.links, slugs: graphLook.preferred,
+    cache: input.skipCache ? "bypass" : graphLook.hit ? "hit" : "miss", durationMs: performance.now() - graphStart });
   if (graphLook.hit?.answer) {
     const graphMs = performance.now() - started;
     emit({ type: "stage", name: "graph-cache" });
@@ -209,7 +222,7 @@ export async function runQueryStream(
       storage,
     });
     emit({ type: "token", text: graphLook.hit.answer });
-    await bumpCacheHit(graphLook.hit.questionHash, corpusKey);
+    await bumpCacheHit(graphLook.hit.questionHash, corpusKey, policy);
     emit({
       type: "done",
       answer: graphLook.hit.answer,
@@ -231,7 +244,6 @@ export async function runQueryStream(
     return;
   }
 
-  const runtime = resolveRuntime();
   emit({ type: "stage", name: "retrieving" });
 
   const embedStart = performance.now();
@@ -410,7 +422,7 @@ export async function runQueryStream(
     });
     if (!input.skipCache) {
       const sourceSlugs = [...new Set(retrieved.chunks.map(c => c.slug))];
-      await saveQueryResult({ question, answer, sourceNodes: sourceSlugs.map(s => `doc:${s}`), sourceSlugs,
+      await saveQueryResult({ question, policy, answer, sourceNodes: sourceSlugs.map(s => `doc:${s}`), sourceSlugs,
         coverage: "grounded", citations, candidates, chunks: retrieved.chunks,
         contextTokens: retrieved.contextTokens, corpusId: corpusKey });
     }
@@ -486,6 +498,7 @@ export async function runQueryStream(
   const sourceNodes = sourceSlugs.map((s) => `doc:${s}`);
   if (!input.skipCache) await saveQueryResult({
     question,
+    policy,
     answer,
     sourceNodes,
     sourceSlugs,

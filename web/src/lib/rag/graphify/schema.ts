@@ -1,6 +1,6 @@
 /** Graphify-compatible graph.json types (node-link, confidence-tagged edges). */
 
-export type GraphConfidence = "EXTRACTED" | "INFERRED" | "AMBIGUOUS";
+export type GraphConfidence = "EXTRACTED" | "INFERRED" | "AMBIGUOUS" | "USER_EDITED";
 
 export type GraphOutcome = "useful" | "dead_end" | "corrected";
 
@@ -15,6 +15,8 @@ export type GraphNode = {
   kind: GraphNodeKind;
   community: number;
   slug?: string;
+  corpusId?: string;
+  sourceUri?: string;
 };
 
 export type GraphLink = {
@@ -48,6 +50,7 @@ export type MemoryDoc = {
 };
 
 export type CacheEntry = {
+  policy?: string;
   questionHash: string;
   question: string;
   answer: string;

@@ -1,20 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { hydrateKeysFromRequest } from "@/lib/rag/keys.server";
 import { runQueryStream, type QueryEvent } from "@/lib/rag/query.server";
-import type { RetrievalMode } from "@/lib/rag/types";
+import { z } from "zod";
+import { graphEditsSchema } from "@/lib/rag/graphify/edits";
 
 export const Route = createFileRoute("/api/query")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         hydrateKeysFromRequest(request);
-        const body = (await request.json()) as {
-          question?: string;
-          retrievalMode?: RetrievalMode;
-          topK?: number;
-          skipCache?: boolean;
-          corpus?: string | null;
-        };
+        const parsed = z.object({
+          question: z.string().trim().min(1).max(4000),
+          retrievalMode: z.enum(["hybrid", "keyword", "dense"]).optional(),
+          topK: z.number().int().min(1).max(20).optional(),
+          skipCache: z.boolean().optional(),
+          corpus: z.string().max(600).nullable().optional(),
+          graphEdits: graphEditsSchema.optional(),
+        }).safeParse(await request.json().catch(() => null));
+        if (!parsed.success) return Response.json({ error: "Invalid query or graph edits" }, { status: 400 });
+        const body = parsed.data;
         const encoder = new TextEncoder();
         const stream = new ReadableStream({
           async start(controller) {
@@ -31,6 +35,7 @@ export const Route = createFileRoute("/api/query")({
                   topK: body.topK,
                   skipCache: body.skipCache,
                   corpus: body.corpus,
+                  graphEdits: body.graphEdits,
                 },
                 send,
                 request.signal,

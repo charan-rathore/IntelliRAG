@@ -9,6 +9,7 @@ import { SEED_DOCUMENTS } from "../corpus";
 import { getSql, vercelWithoutDatabase } from "@/lib/db";
 import { extractCorpus, questionHash, GRAPH_EXTRACTOR_VERSION } from "./extract";
 import { lookupCache, preferredSlugs, queryGraph } from "./query";
+import { applyGraphEdits, scopeGraph, EMPTY_EDITS, type GraphEdits } from "./edits";
 import { reflect } from "./reflect";
 import type { CacheEntry, GraphOutcome, GraphState, MemoryDoc } from "./schema";
 
@@ -129,16 +130,18 @@ export async function graphSnapshot() {
   };
 }
 
-export async function findCachedAnswer(question: string, corpusId = "seed-lab") {
+export async function findCachedAnswer(question: string, corpusId = "seed-lab", options: { policy?: string; edits?: GraphEdits; skipCache?: boolean } = {}) {
   const state = await ensureGraph();
-  const hit = lookupCache(state, question, corpusId);
-  const preferred = preferredSlugs(state, question);
-  const subgraph = queryGraph(state.graph, question);
+  const graph = applyGraphEdits(scopeGraph(state.graph, corpusId), options.edits ?? EMPTY_EDITS);
+  const hit = options.skipCache ? null : lookupCache(state, question, corpusId, options.policy);
+  const preferred = preferredSlugs({ ...state, graph }, question);
+  const subgraph = queryGraph(graph, question);
   return { hit, preferred, subgraph };
 }
 
 export async function saveQueryResult(input: {
   question: string;
+  policy?: string;
   answer: string;
   sourceNodes: string[];
   sourceSlugs: string[];
@@ -162,6 +165,7 @@ export async function saveQueryResult(input: {
       source_location: now,
       file_type: "query",
       kind: "query",
+      corpusId: input.corpusId ?? "seed-lab",
       community: 99,
     });
   }
@@ -200,9 +204,10 @@ export async function saveQueryResult(input: {
   state.graph.links = state.graph.links.filter(e => retainedIds.has(e.source) && retainedIds.has(e.target));
 
   const existing = state.cache.find(
-    (c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"),
+    (c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab") && (c.policy ?? "") === (input.policy ?? ""),
   );
   const entry: CacheEntry = {
+    policy: input.policy,
     questionHash: hash,
     question: input.question,
     answer: input.answer,
@@ -222,7 +227,7 @@ export async function saveQueryResult(input: {
   state.cache = [
     entry,
     ...state.cache.filter(
-      (c) => !(c.questionHash === hash && (c.corpusId ?? "seed-lab") === entry.corpusId),
+      (c) => !(c.questionHash === hash && (c.corpusId ?? "seed-lab") === entry.corpusId && (c.policy ?? "") === (entry.policy ?? "")),
     ),
   ].slice(0, 80);
   state.learning = reflect(state);
@@ -243,22 +248,19 @@ export async function recordOutcome(input: {
     latest.outcome = input.outcome;
     latest.correction = input.correction ?? null;
   }
-  const cache = state.cache.find((c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"));
-  if (cache) {
+  for (const cache of state.cache.filter(c => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"))) {
     cache.outcome = input.outcome;
     cache.updatedAt = new Date().toISOString();
-    if (input.outcome === "dead_end") cache.answer = "";
-    // Corrections are feedback, never new source evidence.
-    if (input.outcome === "corrected") cache.answer = "";
+    if (input.outcome === "dead_end" || input.outcome === "corrected") cache.answer = "";
   }
   state.learning = reflect(state);
   await persist(state);
   return graphSnapshot();
 }
 
-export async function bumpCacheHit(hash: string, corpusId = "seed-lab") {
+export async function bumpCacheHit(hash: string, corpusId = "seed-lab", policy = "") {
   const state = await ensureGraph();
-  const cache = state.cache.find((c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === corpusId);
+  const cache = state.cache.find((c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === corpusId && (c.policy ?? "") === policy);
   if (cache) {
     cache.hitCount += 1;
     cache.updatedAt = new Date().toISOString();
