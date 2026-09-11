@@ -6,14 +6,14 @@ import { applyGraphEdits, scopeGraph, graphEditsSchema } from "./graphify/edits"
 import type { CacheEntry, GraphState } from "./graphify/schema";
 
 const graph = extractCorpus([
-  { slug: "alpha", title: "Orion queue", body: "## Retries\nOrion queue uses backoff and retries.", corpus_id: "a", source_uri: "https://github.com/acme/orion/blob/main/src/queue.ts" },
+  { slug: "alpha", title: "Orion queue", body: "## Retries\nOrion queue uses backoff and retries.", corpus_id: "a", source_uri: "https://github.com/acme/orion/blob/main/src/queue.md" },
   { slug: "beta", title: "Atlas worker", body: "## Delivery\nAtlas worker uses queue delivery.", corpus_id: "b" },
 ]);
 test("graph scope cannot traverse a shared term into another corpus", () => {
   const scoped = scopeGraph(graph, "a");
   assert.deepEqual(queryGraph(scoped, "queue").slugs, ["alpha"]);
   assert.ok(scoped.links.every(e => scoped.nodes.some(n => n.id === e.source) && scoped.nodes.some(n => n.id === e.target)));
-  assert.equal(scoped.nodes.find(n => n.id === "doc:alpha")?.source_file, "src/queue.ts");
+  assert.equal(scoped.nodes.find(n => n.id === "doc:alpha")?.source_file, "src/queue.md");
   assert.equal(scoped.nodes.find(n => n.kind === "heading")?.source_location, "L1");
 });
 test("manual edges and labels affect traversal without mutating source provenance", () => {
@@ -40,4 +40,15 @@ test("graph edits reject oversized payloads and discard missing endpoints", () =
   assert.equal(graphEditsSchema.safeParse({ labels: Array.from({ length: 101 }, () => ({ id: "a", label: "x" })) }).success, false);
   const edited = applyGraphEdits(graph, { labels: [], edges: [{ source: "doc:alpha", target: "missing", relation: "invented", disabled: false }] });
   assert.deepEqual(edited.links, graph.links);
+});
+
+
+test("code declarations and deep API headings retain exact source lines", () => {
+  const code = extractCorpus([{ slug: "code", title: "index.js", body: "// public API\nexport default function pLimit(concurrency) {\n return concurrency;\n}", source_uri: "https://github.com/a/b/blob/123/index.js" }]);
+  const symbol = code.nodes.find(n => n.kind === "symbol")!;
+  assert.equal(symbol.label, "pLimit"); assert.equal(symbol.source_location, "L2");
+  assert.equal(symbol.file_type, "js"); assert.equal(code.links[0].relation, "declares");
+  const markdown = extractCorpus([{ slug: "docs", title: "API", body: "# API\n#### retries\nDefault: 10\n```md\n## fake heading\n```" }]);
+  assert.ok(markdown.nodes.some(n => n.label === "retries" && n.source_location === "L2"));
+  assert.ok(!markdown.nodes.some(n => n.label === "fake heading"));
 });

@@ -80,6 +80,12 @@ describe("evidence gate", () => {
     }
   });
 
+  it("does not substitute another library for a named camelCase API", () => {
+    const packed = [fakeChunk({ slug: "p-limit", title: "p-limit", text: "export function pLimit(concurrency) { return concurrency; }" })];
+    assert.equal(classifyEvidence({ query: "What is the default retries value in pRetry?", packed, ranked: packed, signals: new Map() }).kind, "insufficient");
+    assert.equal(classifyEvidence({ query: "What argument does pLimit accept?", packed, ranked: packed, signals: new Map() }).kind, "positive");
+  });
+
   it("keeps Redlock as negative evidence", () => {
     const redis = SEED_DOCUMENTS.find((d) => d.slug === "redis-cache")!;
     const packed = [

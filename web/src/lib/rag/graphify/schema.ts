@@ -4,7 +4,7 @@ export type GraphConfidence = "EXTRACTED" | "INFERRED" | "AMBIGUOUS" | "USER_EDI
 
 export type GraphOutcome = "useful" | "dead_end" | "corrected";
 
-export type GraphNodeKind = "document" | "heading" | "term" | "query";
+export type GraphNodeKind = "document" | "heading" | "term" | "query" | "symbol";
 
 export type GraphNode = {
   id: string;

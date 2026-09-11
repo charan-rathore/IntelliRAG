@@ -93,7 +93,7 @@ export async function ensureGraph(): Promise<GraphState> {
   }
   const state = g.__intelliragGraph;
   const documents = await listDocuments();
-  const fingerprint = GRAPH_EXTRACTOR_VERSION + ":answerability-v3:" + JSON.stringify(documents.map(d => [d.slug, d.version]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  const fingerprint = GRAPH_EXTRACTOR_VERSION + ":answerability-v4:" + JSON.stringify(documents.map(d => [d.slug, d.version]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
   if (state.corpusFingerprint !== fingerprint) {
     const rows = await Promise.all(documents.map(d => getDocumentBySlug(d.slug)));
     const docs = rows.filter((d): d is NonNullable<typeof d> => d !== null);

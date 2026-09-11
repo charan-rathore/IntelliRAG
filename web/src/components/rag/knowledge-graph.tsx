@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 type Props = { nodes: GraphNode[]; links: GraphLink[]; learning?: LearningSidecar | null; nodeCount?: number; edgeCount?: number; cacheCount?: number; preferred?: number };
 const control = "min-h-11 rounded border border-border bg-bg px-3 text-xs text-fg";
-const colors: Record<GraphNode["kind"], string> = { document: "#b3a4ff", heading: "#64d8c0", term: "#e8bc75", query: "#79b9f5" };
+const colors: Record<GraphNode["kind"], string> = { document: "#b3a4ff", heading: "#64d8c0", term: "#e8bc75", query: "#79b9f5", symbol: "#f496b3" };
 
 export function KnowledgeGraph(props: Props) {
   const [selected, setSelected] = useState<string | null>(null);
@@ -66,7 +66,7 @@ export function KnowledgeGraph(props: Props) {
       <div><p className="text-xs uppercase tracking-[0.16em] text-primary">Knowledge graph</p><p className="mt-1 text-xs text-muted">{graph.nodes.length} nodes · {graph.links.length} connections</p></div>
       <button className={control} onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>{expanded ? "Close explorer" : "Expand graph ↗"}</button>
     </div>
-    <p className="mt-3 text-xs leading-relaxed text-muted">Follow a document into its headings and shared terms. Source structure is extracted; lexical connections are inferred. Your edits guide search and never replace source evidence.</p>
+    <p className="mt-3 text-xs leading-relaxed text-muted">Follow a document into its headings, declarations, and shared terms. Source structure is extracted; lexical connections are inferred. Your edits guide search and never replace source evidence.</p>
     <div className={cn("mt-3 grid gap-3", expanded && "sm:grid-cols-2")}>
       <label className="text-xs text-muted">Find a source or term<input value={search} onChange={e => { setSearch(e.target.value); setSelected(null); }} placeholder="Search Redis, SQL, or a source…" className={cn(control, "mt-1 w-full")} /></label>
       <label className="text-xs text-muted">Graph corpus<select value={scope} onChange={e => { setScope(e.target.value); setSelected(null); }} className={cn(control, "mt-1 w-full")}><option value="all">All indexed sources</option>{scopes.map(c => <option key={c} value={c}>{c === "seed-lab" ? "Built-in runbooks" : c}</option>)}</select></label>
