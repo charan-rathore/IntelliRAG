@@ -114,7 +114,7 @@ export function classifyEvidence(opts: {
     const normalized = term.toLowerCase().replace(/[ _-]/g, "").replace(/s$/, "");
     return !packedText.toLowerCase().replace(/[ _-]/g, "").includes(normalized);
   });
-  if (/\b(what|which|give|show|tell|reveal)\b/i.test(opts.query) && missingCredentials.length) {
+  if (missingCredentials.length) {
     return gate("insufficient", "The requested credential field is not present in the retrieved passages; topic overlap does not establish its value.", { ...stats, clearedForInsufficient: true });
   }
 
