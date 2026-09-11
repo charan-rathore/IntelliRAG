@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiEvalRouteImport } from './routes/api/eval'
+import { Route as ApiGraphRouteImport } from './routes/api/graph'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiKeysRouteImport } from './routes/api/keys'
 import { Route as ApiLabRouteImport } from './routes/api/lab'
@@ -25,6 +26,11 @@ const IndexRoute = IndexRouteImport.update({
 const ApiEvalRoute = ApiEvalRouteImport.update({
   id: '/api/eval',
   path: '/api/eval',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGraphRoute = ApiGraphRouteImport.update({
+  id: '/api/graph',
+  path: '/api/graph',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -56,6 +62,7 @@ const SourcesSlugRoute = SourcesSlugRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/eval': typeof ApiEvalRoute
+  '/api/graph': typeof ApiGraphRoute
   '/api/health': typeof ApiHealthRoute
   '/api/keys': typeof ApiKeysRoute
   '/api/lab': typeof ApiLabRoute
@@ -65,6 +72,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/eval': typeof ApiEvalRoute
+  '/api/graph': typeof ApiGraphRoute
   '/api/health': typeof ApiHealthRoute
   '/api/keys': typeof ApiKeysRoute
   '/api/lab': typeof ApiLabRoute
@@ -75,6 +83,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/eval': typeof ApiEvalRoute
+  '/api/graph': typeof ApiGraphRoute
   '/api/health': typeof ApiHealthRoute
   '/api/keys': typeof ApiKeysRoute
   '/api/lab': typeof ApiLabRoute
@@ -86,6 +95,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api/eval'
+    | '/api/graph'
     | '/api/health'
     | '/api/keys'
     | '/api/lab'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/eval'
+    | '/api/graph'
     | '/api/health'
     | '/api/keys'
     | '/api/lab'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/api/eval'
+    | '/api/graph'
     | '/api/health'
     | '/api/keys'
     | '/api/lab'
@@ -114,6 +126,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiEvalRoute: typeof ApiEvalRoute
+  ApiGraphRoute: typeof ApiGraphRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiKeysRoute: typeof ApiKeysRoute
   ApiLabRoute: typeof ApiLabRoute
@@ -135,6 +148,13 @@ declare module '@tanstack/react-router' {
       path: '/api/eval'
       fullPath: '/api/eval'
       preLoaderRoute: typeof ApiEvalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/graph': {
+      id: '/api/graph'
+      path: '/api/graph'
+      fullPath: '/api/graph'
+      preLoaderRoute: typeof ApiGraphRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -178,6 +198,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiEvalRoute: ApiEvalRoute,
+  ApiGraphRoute: ApiGraphRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiKeysRoute: ApiKeysRoute,
   ApiLabRoute: ApiLabRoute,

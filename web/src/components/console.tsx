@@ -13,6 +13,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { AnswerFeedback } from "@/components/rag/answer-feedback";
 import { CoverageChip } from "@/components/rag/coverage-chip";
+import { loadGraphEdits, type GraphTrace } from "@/lib/rag/graphify/edits";
 import { KnowledgeGraph } from "@/components/rag/knowledge-graph";
 import { LatencyWaterfall } from "@/components/rag/latency-waterfall";
 import { FirstRunCoach, RunPreview, WelcomeOnboarding } from "@/components/rag/onboarding";
@@ -77,6 +78,7 @@ type Message = {
   contextTokens?: number;
   cacheHit?: boolean;
   graphSlugs?: string[];
+  graphTrace?: GraphTrace;
   dense?: DenseDiagnostics;
   evidence?: EvidenceKind;
   storage?: StorageStatus;
@@ -323,6 +325,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           retrievalMode: mode,
           topK,
           corpus,
+          graphEdits: loadGraphEdits(),
         }),
       });
       if (!res.ok || !res.body) {
@@ -342,6 +345,8 @@ export function Console({ initial }: { initial: Snapshot }) {
           const data = raw as Record<string, unknown>;
           if (data.type === "stage") {
             patch((m) => ({ ...m, stage: String(data.name) }));
+          } else if (data.type === "graph") {
+            patch(m => ({ ...m, graphTrace: data as unknown as GraphTrace }));
           } else if (data.type === "sources") {
             patch((m) => ({
               ...m,
@@ -1143,6 +1148,12 @@ function AuditPanel({
           preferred={snapshot.graph.preferred}
         />
       )}
+      {last?.graphTrace && <details className="rounded-md border border-border bg-raised p-3 text-xs">
+        <summary className="min-h-11 cursor-pointer text-primary">Graph consulted · {last.graphTrace.cache === "hit" ? "cached answer · no model call" : `${last.graphTrace.slugs.length} source suggestions`} · {formatMs(last.graphTrace.durationMs)}</summary>
+        <p className="mt-2 text-muted">Cache: {last.graphTrace.cache}. Graph suggestions guide ranking; cited passages determine what the answer can claim.</p>
+        <ul className="mt-3 space-y-2">{last.graphTrace.nodes.map(n => <li key={n.id} className="break-words">{n.label} · {n.kind}{n.slug && <a className="ml-2 text-primary underline" href={`/sources/${encodeURIComponent(n.slug)}`}>source</a>}</li>)}</ul>
+        <p className="mt-3 text-muted">{last.graphTrace.links.length} connections traversed. {last.graphTrace.cache === "hit" ? "Embedding and generation skipped for this exact question and settings." : "No reusable answer found; source retrieval ran next."}</p>
+      </details>}
       <div data-tour="tour-feedback" className="rounded-md border border-border bg-raised p-3">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Teach the graph</p>
         <p className="mt-1 text-xs leading-relaxed text-subtle">
