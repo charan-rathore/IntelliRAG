@@ -66,20 +66,20 @@ export const RUN_STORY = [
 
 export const COACH_COPY: Record<CoverageKind, { title: string; body: string }> = {
   grounded: {
-    title: "That was a live retrieval, not a canned reply.",
-    body: "Grounded means Flash only used the packed sources. Open Lab to see Used vs Inspect only — retrieved chunks that missed the score cliff never reach the model.",
+    title: "This answer includes source evidence.",
+    body: "Open Lab to compare Used evidence with passages retrieved for inspection. The trace shows whether retrieval or generation ran, or whether an answer was reused from the graph cache.",
   },
   general: {
     title: "Not in the indexed corpus.",
-    body: "Flash answered from general knowledge and said so. A runbook question will pack sources and come back Grounded.",
+    body: "This answer is not supported by the indexed sources. Ask about a document in the selected corpus to check its evidence.",
   },
   refused: {
     title: "The lab refused instead of inventing an answer.",
     body: "Retrieval found no supporting evidence. The answer is Not in the indexed corpus — not a weather-keyword shortcut.",
   },
   guide: {
-    title: "That was console help, not a retrieved answer.",
-    body: "Ask a runbook question to watch hybrid retrieval pack three chunks and cite them.",
+    title: "That was help with the console.",
+    body: "Ask a question about the selected corpus to inspect retrieval, the evidence it selects, and any citations.",
   },
 };
 
