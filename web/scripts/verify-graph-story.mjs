@@ -1,0 +1,33 @@
+import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+const browser = '/Users/charanrathore/.npm/_npx/6de2aa2fded2970c/node_modules/agent-browser/bin/agent-browser-darwin-arm64';
+const session = process.env.BROWSER_SESSION || 'intelli-story';
+const url = process.env.INTELLIRAG_URL || 'http://localhost:8080';
+function run(...args) { const r = JSON.parse(execFileSync(browser, ['--session', session, '--json', ...args], { encoding:'utf8', timeout:45000 })); assert.equal(r.success,true,JSON.stringify(r));return r.data?.result ?? r.data; }
+const ev = script => run('eval',script);
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+async function button(text) { ev(`(()=>{const b=[...document.querySelectorAll('button,[role=tab]')].find(e=>e.textContent.trim()===${JSON.stringify(text)});if(!b)throw Error('Missing button');b.click()})()`);await wait(200); }
+run('set','viewport','1440','1000');run('open',url);await wait(700);
+await button('Lab');await button('Expand graph ↗');
+run('select','[data-tour="tour-graph"] select','seed-lab');
+run('fill','[data-tour="tour-graph"] input','Redis');await wait(250);
+ev(`document.querySelector('[data-tour="tour-graph"] g[aria-label$=", document"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))`);await wait(250);
+assert.ok(ev(`document.querySelector('[data-graph-story] blockquote').textContent`).includes('Redis'));
+assert.ok(ev(`document.querySelector('[data-graph-story]').innerText`).includes('How this clue fits'));
+assert.ok(ev(`document.querySelectorAll('[data-tour="tour-graph"] svg g[role="button"]').length`)<=7);
+const source = ev(`document.querySelector('[data-graph-story] blockquote').textContent`);
+ev(`document.querySelector('[data-tour="tour-graph"] g[aria-label$=", heading"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))`);await wait(250);
+assert.ok(ev(`document.querySelector('[data-graph-story]').innerText`).includes('heading was extracted'));
+assert.equal(ev(`document.querySelectorAll('nav[aria-label="Evidence trail"] button').length`),3);
+ev(`document.querySelectorAll('nav[aria-label="Evidence trail"] button')[1].click()`);await wait(200);
+assert.equal(ev(`document.querySelector('[data-graph-story] blockquote').textContent`),source);
+ev(`document.querySelector('[data-graph-evolution]').open=true`);
+assert.ok(ev(`document.querySelector('[data-graph-evolution]').innerText`).includes('distinct useful questions'));
+run('screenshot','/private/tmp/intelli-graph-story-desktop.png');
+run('set','viewport','390','844');if(ev('location.href')==='about:blank')run('open',url);
+await wait(300);assert.ok(ev('document.documentElement.scrollWidth<=innerWidth'));
+run('screenshot','/private/tmp/intelli-graph-story-mobile.png');
+const errors=run('errors').errors || [];assert.deepEqual(errors,[]);
+const result={url,sourceExcerpt:true,headingProvenance:true,breadcrumbBack:true,neighborhoodLimit:7,evolutionExplanation:true,mobileOverflow:false,errors};
+writeFileSync('/private/tmp/intelli-graph-story-results.json',JSON.stringify(result,null,2));console.log(result);

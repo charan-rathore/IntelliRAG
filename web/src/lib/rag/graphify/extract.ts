@@ -1,7 +1,7 @@
 import type { SeedDocument } from "../corpus";
 import type { GraphJson, GraphLink, GraphNode } from "./schema";
 
-export const GRAPH_EXTRACTOR_VERSION = "lexical-v5";
+export const GRAPH_EXTRACTOR_VERSION = "lexical-v6-cited-provenance";
 
 const STOP = new Set([
   "const", "let", "var", "return", "export", "import", "default", "function", "async", "await", "true", "false", "null", "undefined", "while", "else", "throw", "new", "input", "user", "once", "never", "one", "ignore",
@@ -64,6 +64,7 @@ export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | 
     addNode({
       id: fileId,
       label: doc.title,
+      excerpt: doc.body.slice(0, 400),
       source_file: file,
       sourceUri: doc.source_uri ?? undefined,
       corpusId: doc.corpus_id ?? "seed-lab",
@@ -79,6 +80,7 @@ export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | 
       addNode({
         id: hid,
         label: h.text,
+        excerpt: doc.body.split("\n").slice(h.line - 1, h.line + 5).join("\n").slice(0, 400),
         source_file: file,
       sourceUri: doc.source_uri ?? undefined,
       corpusId: doc.corpus_id ?? "seed-lab",
@@ -101,7 +103,7 @@ export function extractCorpus(docs: Array<Pick<SeedDocument, "slug" | "title" | 
         const match = /^(?:(?:export|default|pub|public|static|async)\s+)*(?:function\*?|class|interface|type|enum|def|fn|func|struct|trait)\s+([\w$]+)/.exec(line.trim());
         if (!match) return;
         const id = `symbol:${doc.slug}:${index + 1}:${match[1]}`;
-        addNode({ id, label: match[1], source_file: file, source_location: `L${index + 1}`, file_type: fileType, kind: "symbol", community, slug: doc.slug, sourceUri: doc.source_uri ?? undefined, corpusId: doc.corpus_id ?? "seed-lab" });
+        addNode({ id, label: match[1], excerpt: line.trim().slice(0, 400), source_file: file, source_location: `L${index + 1}`, file_type: fileType, kind: "symbol", community, slug: doc.slug, sourceUri: doc.source_uri ?? undefined, corpusId: doc.corpus_id ?? "seed-lab" });
         links.push({ source: fileId, target: id, relation: "declares", confidence: "EXTRACTED" });
       });
     }

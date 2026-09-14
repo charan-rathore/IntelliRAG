@@ -106,6 +106,7 @@ export async function ensureGraph(): Promise<GraphState> {
     state.corpusFingerprint = fingerprint;
     await persist(state);
   }
+  state.learning = reflect(state);
   return state;
 }
 

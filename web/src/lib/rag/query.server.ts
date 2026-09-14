@@ -6,6 +6,7 @@
  */
 import { createHash } from "node:crypto";
 import { EMPTY_EDITS, type GraphEdits, type GraphTrace } from "./graphify/edits";
+import { citedSourceSlugs } from "./graphify/story";
 import { EXAMPLE_QUESTIONS } from "./corpus";
 import { INSUFFICIENT_ANSWER, negativeAnswer } from "./evidence";
 import { embedQuery, GeminiError, generationModelLabel, streamGenerate } from "./gemini.server";
@@ -421,7 +422,7 @@ export async function runQueryStream(
       totalLatencyMs: performance.now() - started,
     });
     if (!input.skipCache) {
-      const sourceSlugs = [...new Set(retrieved.chunks.map(c => c.slug))];
+      const sourceSlugs = citedSourceSlugs(retrieved.chunks, citations);
       await saveQueryResult({ question, policy, answer, sourceNodes: sourceSlugs.map(s => `doc:${s}`), sourceSlugs,
         coverage: "grounded", citations, candidates, chunks: retrieved.chunks,
         contextTokens: retrieved.contextTokens, corpusId: corpusKey });
@@ -494,7 +495,7 @@ export async function runQueryStream(
     citationCount: citations.length,
     totalLatencyMs: performance.now() - started,
   });
-  const sourceSlugs = [...new Set(retrieved.chunks.map((c) => c.slug))];
+  const sourceSlugs = citedSourceSlugs(retrieved.chunks, citations);
   const sourceNodes = sourceSlugs.map((s) => `doc:${s}`);
   if (!input.skipCache) await saveQueryResult({
     question,

@@ -1,0 +1,10 @@
+{
+  "url": "http://localhost:8080",
+  "sourceExcerpt": true,
+  "headingProvenance": true,
+  "breadcrumbBack": true,
+  "neighborhoodLimit": 7,
+  "evolutionExplanation": true,
+  "mobileOverflow": false,
+  "errors": []
+}

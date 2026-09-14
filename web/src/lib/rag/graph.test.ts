@@ -73,3 +73,12 @@ test("contested sources lose their graph boost while staying available as eviden
   assert.ok(!preferredSlugs(state, 'Orion queue').includes('alpha'));
   assert.ok(queryGraph(state.graph, 'Orion queue').slugs.includes('alpha'));
 });
+
+test("answer provenance excludes inspected but uncited sources and includes verbatim excerpts", async () => {
+  const { citedSourceSlugs, explainConnection } = await import('./graphify/story');
+  const chunks = [{ chunkId: 'used-1', slug: 'alpha' }, { chunkId: 'unused', slug: 'beta' }, { chunkId: 'used-2', slug: 'alpha' }];
+  assert.deepEqual(citedSourceSlugs(chunks, [{ chunkId: 'used-1' }, { chunkId: 'used-2' }]), ['alpha']);
+  assert.deepEqual(citedSourceSlugs(chunks, []), []);
+  assert.equal(graph.nodes.find(n => n.kind === 'heading')?.excerpt, '## Retries\nOrion queue uses backoff and retries.');
+  assert.match(explainConnection({ source: 'x', target: 'y', relation: 'caused', confidence: 'USER_EDITED' }, graph.nodes[0], graph.nodes[1]), /does not establish a source fact/);
+});

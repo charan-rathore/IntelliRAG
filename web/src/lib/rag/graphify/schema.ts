@@ -17,6 +17,7 @@ export type GraphNode = {
   slug?: string;
   corpusId?: string;
   sourceUri?: string;
+  excerpt?: string;
 };
 
 export type GraphLink = {

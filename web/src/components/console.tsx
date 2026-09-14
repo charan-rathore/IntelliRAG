@@ -1146,6 +1146,7 @@ function AuditPanel({
           edgeCount={snapshot.graph.edgeCount}
           cacheCount={snapshot.graph.cacheCount}
           preferred={snapshot.graph.preferred}
+          durable={snapshot.storage.durable}
         />
       )}
       {last?.graphTrace && <details className="rounded-md border border-border bg-raised p-3 text-xs">
@@ -1157,7 +1158,7 @@ function AuditPanel({
       <div data-tour="tour-feedback" className="rounded-md border border-border bg-raised p-3">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Teach the graph</p>
         <p className="mt-1 text-xs leading-relaxed text-subtle">
-          After every answer, mark Useful, Dead end, or Correct. Graphify reflect promotes preferred sources.
+          Rate an answer Useful, Dead end, or Correct. Distinct useful questions can promote a source; corrections remove its graph boost. Inspect the history in “How the graph grows.”
         </p>
       </div>
       {view === "lab" && last?.latencies && <LatencyWaterfall latencies={last.latencies} />}
