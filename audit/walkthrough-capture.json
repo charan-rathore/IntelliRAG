@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-09-14T19:55:52.608Z",
+  "url": "https://intellirag-live-own-track.vercel.app/",
+  "sourceUrl": "https://github.com/brianc/node-postgres/issues/3745",
+  "duration": 57.4,
+  "bytes": 2783260,
+  "codec": "h264",
+  "dimensions": [
+    1440,
+    1000
+  ],
+  "checks": {
+    "scopedImport": true,
+    "supported": true,
+    "graphProvenance": true,
+    "refused": true,
+    "cacheReuse": true
+  },
+  "supportedCoverage": "grounded",
+  "citations": 1,
+  "refusedCoverage": "refused",
+  "repeatCacheHit": true,
+  "browserErrors": [],
+  "presentation": "Automated public browser recording. Captions and cursor added; responses and graph data are real. Keyword/cited-extract mode, no model generation."
+}

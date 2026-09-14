@@ -1,0 +1,55 @@
+{
+  "duration": 57.4,
+  "durationLabel": "00:57",
+  "chapters": [
+    {
+      "at": 0,
+      "step": "A SMALL EXPERIMENT / INTELLIRAG",
+      "title": "One issue. Two questions.",
+      "body": "Can we tell evidence from guesswork?\nImport a GitHub issue. Ask what it says, then something it cannot know.\nThis makes an answer easier to check before you trust it.",
+      "time": "00:00"
+    },
+    {
+      "at": 5.5,
+      "step": "01 / GIVE IT A SOURCE",
+      "title": "Start with one real issue.",
+      "body": "We’re importing a proposal for a SQL template function.\nThe question will search this issue, not every document in the lab.",
+      "time": "00:05"
+    },
+    {
+      "at": 14.1,
+      "step": "02 / ASK WHAT THE SOURCE SUPPORTS",
+      "title": "Find the reason in the source.",
+      "body": "The proposal describes a way to reuse SQL statements.\nAsk how it works, then check the cited passage.",
+      "time": "00:14"
+    },
+    {
+      "at": 24.5,
+      "step": "03 / FOLLOW THE CONNECTIONS",
+      "title": "See where the knowledge lives.",
+      "body": "Open the source node. Its location and labeled connections\nshow how the document is represented in the graph.",
+      "time": "00:24"
+    },
+    {
+      "at": 34,
+      "step": "04 / ASK WHAT THE SOURCE CANNOT KNOW",
+      "title": "Now test the boundary.",
+      "body": "What’s the weather in Tokyo?\nA SQL proposal has no evidence for that answer.",
+      "time": "00:33"
+    },
+    {
+      "at": 42.8,
+      "step": "05 / REUSE A CHECKED RESULT",
+      "title": "Ask the first question again.",
+      "body": "An exact question and matching settings can reuse the graph cache.\nThe evidence stays attached; retrieval and generation can be skipped.",
+      "time": "00:42"
+    },
+    {
+      "at": 52.3,
+      "step": "THE RESULT / TRY THE SAME EXPERIMENT",
+      "title": "A source. A citation. A boundary.",
+      "body": "One supported answer. One honest refusal. One reusable result.\nTry your own GitHub issue in the live lab.\nShown in keyword / cited-extract mode. Imports here are temporary.",
+      "time": "00:52"
+    }
+  ]
+}

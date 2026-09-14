@@ -1,0 +1,13 @@
+{
+  "url": "http://localhost:8080",
+  "metadata": {
+    "duration": 57.4,
+    "height": 1000,
+    "width": 1440
+  },
+  "playback": true,
+  "chapterSeek": true,
+  "mobileOverflow": false,
+  "touchTargets": true,
+  "errors": []
+}

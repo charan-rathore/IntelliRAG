@@ -1,0 +1,45 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:05.500
+One issue. Two questions.
+Can we tell evidence from guesswork?
+Import a GitHub issue. Ask what it says, then something it cannot know.
+This makes an answer easier to check before you trust it.
+
+2
+00:00:05.500 --> 00:00:14.099
+Start with one real issue.
+We’re importing a proposal for a SQL template function.
+The question will search this issue, not every document in the lab.
+
+3
+00:00:14.099 --> 00:00:24.500
+Find the reason in the source.
+The proposal describes a way to reuse SQL statements.
+Ask how it works, then check the cited passage.
+
+4
+00:00:24.500 --> 00:00:34.000
+See where the knowledge lives.
+Open the source node. Its location and labeled connections
+show how the document is represented in the graph.
+
+5
+00:00:34.000 --> 00:00:42.799
+Now test the boundary.
+What’s the weather in Tokyo?
+A SQL proposal has no evidence for that answer.
+
+6
+00:00:42.799 --> 00:00:52.299
+Ask the first question again.
+An exact question and matching settings can reuse the graph cache.
+The evidence stays attached; retrieval and generation can be skipped.
+
+7
+00:00:52.299 --> 00:00:57.399
+A source. A citation. A boundary.
+One supported answer. One honest refusal. One reusable result.
+Try your own GitHub issue in the live lab.
+Shown in keyword / cited-extract mode. Imports here are temporary.

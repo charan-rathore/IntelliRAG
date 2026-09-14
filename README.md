@@ -6,6 +6,10 @@ I wanted to know where retrieval-augmented generation actually breaks - not how 
 
 **Live web status (September 2026):** [Public Vercel console](https://intellirag-live-own-track.vercel.app/) is running from this canonical repository. It currently supports keyword retrieval, cited extracts, issue ingestion and a lexical graph. Persistent semantic/hybrid production acceptance remains dependent on Postgres and provider configuration. See [the production setup and acceptance runbook](WEB.md) and [the measured audit with open findings](audit/REPORT.md).
 
+[![Watch the 57-second source-to-answer experiment](web/public/demo/intellirag-walkthrough-poster.jpg)](https://intellirag-live-own-track.vercel.app/walkthrough)
+
+[Watch the real browser experiment](https://intellirag-live-own-track.vercel.app/walkthrough) — import an issue, inspect its citations and graph, test a refusal, and reuse a cached answer. Silent, with captions in the site’s own typography.
+
 **Python platform:** the phase history and benchmark sections below describe `rag-platform/`, a separate implementation in this monorepo. Its deterministic/mock CI results are not measurements of the public web deployment.
 
 **Repository:** [github.com/charan-rathore/IntelliRAG](https://github.com/charan-rathore/IntelliRAG)

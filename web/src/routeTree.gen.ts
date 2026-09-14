@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WalkthroughRouteImport } from './routes/walkthrough'
 import { Route as ApiEvalRouteImport } from './routes/api/eval'
 import { Route as ApiGraphRouteImport } from './routes/api/graph'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
@@ -21,6 +22,11 @@ import { Route as SourcesSlugRouteImport } from './routes/sources.$slug'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WalkthroughRoute = WalkthroughRouteImport.update({
+  id: '/walkthrough',
+  path: '/walkthrough',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiEvalRoute = ApiEvalRouteImport.update({
@@ -61,6 +67,7 @@ const SourcesSlugRoute = SourcesSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/walkthrough': typeof WalkthroughRoute
   '/api/eval': typeof ApiEvalRoute
   '/api/graph': typeof ApiGraphRoute
   '/api/health': typeof ApiHealthRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/walkthrough': typeof WalkthroughRoute
   '/api/eval': typeof ApiEvalRoute
   '/api/graph': typeof ApiGraphRoute
   '/api/health': typeof ApiHealthRoute
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/walkthrough': typeof WalkthroughRoute
   '/api/eval': typeof ApiEvalRoute
   '/api/graph': typeof ApiGraphRoute
   '/api/health': typeof ApiHealthRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/walkthrough'
     | '/api/eval'
     | '/api/graph'
     | '/api/health'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/walkthrough'
     | '/api/eval'
     | '/api/graph'
     | '/api/health'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/walkthrough'
     | '/api/eval'
     | '/api/graph'
     | '/api/health'
@@ -125,6 +137,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  WalkthroughRoute: typeof WalkthroughRoute
   ApiEvalRoute: typeof ApiEvalRoute
   ApiGraphRoute: typeof ApiGraphRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/walkthrough': {
+      id: '/walkthrough'
+      path: '/walkthrough'
+      fullPath: '/walkthrough'
+      preLoaderRoute: typeof WalkthroughRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/eval': {
@@ -197,6 +217,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  WalkthroughRoute: WalkthroughRoute,
   ApiEvalRoute: ApiEvalRoute,
   ApiGraphRoute: ApiGraphRoute,
   ApiHealthRoute: ApiHealthRoute,

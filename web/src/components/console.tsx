@@ -505,6 +505,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           </span>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" onClick={() => setCorpusOpen(true)}>Sources</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" onClick={() => setAuditOpen(true)}>Evidence</Button>
+          <a href="/walkthrough" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary sm:inline-flex">Watch demo</a>
           <span data-tour="tour-settings">
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
               <KeyRound className="size-4" />
@@ -625,6 +626,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           <Button variant="ghost" size="sm" onClick={() => setTourOpen(true)}>
             Tour
           </Button>
+          <a href="/walkthrough" className="inline-flex min-h-11 items-center rounded border border-border px-3 text-xs text-primary">Demo</a>
         </div>
       </footer>
 

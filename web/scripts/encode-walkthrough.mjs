@@ -1,0 +1,31 @@
+/** Encode only a verified capture; produce the video, poster, chapters and captions together. */
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import assert from 'node:assert/strict';
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+const report = JSON.parse(readFileSync(process.argv[2] || '/private/tmp/intellirag-demo/capture.json', 'utf8'));
+assert.ok(Object.values(report.checks).every(Boolean));
+assert.deepEqual(report.errors, []);
+const probe = path => JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration,size:stream=width,height,codec_name,pix_fmt', '-of', 'json', path], { encoding: 'utf8' }));
+const raw = probe(report.rawPath);
+assert.equal(raw.streams[0].width, 1440);
+assert.equal(raw.streams[0].height, 1000);
+const trim = Math.max(0, Number(raw.format.duration) - report.contentDuration);
+const media = resolve(root, 'public/demo'); mkdirSync(media, { recursive: true });
+const video = resolve(media, 'intellirag-walkthrough.mp4');
+execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', String(trim), '-i', report.rawPath, '-t', String(report.contentDuration), '-an', '-vf', 'fps=25,scale=1440:1000:flags=lanczos,setsar=1', '-c:v', 'libx264', '-preset', 'medium', '-crf', '23', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', video], { stdio: 'inherit' });
+execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-ss', '2', '-i', video, '-frames:v', '1', '-q:v', '2', resolve(media, 'intellirag-walkthrough-poster.jpg')], { stdio: 'inherit' });
+const encoded = probe(video);
+const duration = Number(encoded.format.duration);
+const stamp = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+const vttStamp = seconds => `00:${stamp(seconds)}.${String(Math.floor((seconds % 1) * 1000)).padStart(3, '0')}`;
+const chapters = report.chapters.map(chapter => ({ ...chapter, at: Math.max(0, Math.round(chapter.at * 10) / 10), time: stamp(chapter.at) }));
+writeFileSync(resolve(media, 'intellirag-walkthrough.vtt'), 'WEBVTT\n\n' + chapters.map((chapter, i) => `${i + 1}\n${vttStamp(chapter.at)} --> ${vttStamp(chapters[i + 1]?.at ?? duration)}\n${chapter.title}\n${chapter.body}\n`).join('\n'));
+mkdirSync(resolve(root, 'src/data'), { recursive: true });
+writeFileSync(resolve(root, 'src/data/walkthrough.json'), JSON.stringify({ duration, durationLabel: stamp(duration), chapters }, null, 2) + '\n');
+const audit = { recordedAt: new Date().toISOString(), url: report.url, sourceUrl: report.sourceUrl, duration, bytes: Number(encoded.format.size), codec: encoded.streams[0].codec_name, dimensions: [encoded.streams[0].width, encoded.streams[0].height], checks: report.checks, supportedCoverage: report.supported.done.coverage, citations: report.supported.done.citations.length, refusedCoverage: report.refused.done.coverage, repeatCacheHit: report.repeated.done.cacheHit, browserErrors: report.errors, presentation: 'Automated public browser recording. Captions and cursor added; responses and graph data are real. Keyword/cited-extract mode, no model generation.' };
+writeFileSync(resolve(root, '../audit/walkthrough-capture.json'), JSON.stringify(audit, null, 2) + '\n');
+console.log(JSON.stringify(audit, null, 2));
