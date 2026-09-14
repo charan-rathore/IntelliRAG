@@ -503,9 +503,8 @@ export function Console({ initial }: { initial: Snapshot }) {
           <span data-tour="tour-view">
             <ViewToggle value={view} onChange={setView} />
           </span>
-          <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setCorpusOpen(true)}>
-            Corpus
-          </Button>
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" onClick={() => setCorpusOpen(true)}>Sources</Button>
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" onClick={() => setAuditOpen(true)}>Evidence</Button>
           <span data-tour="tour-settings">
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
               <KeyRound className="size-4" />
@@ -522,7 +521,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         <div className="border-b border-border bg-raised px-4 py-3 md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-fg">
-              The lab is live without an LLM key — demos return cited extracts from packed runbooks. Add OpenRouter or Gemini in Settings only if you want Gemini 3.7 Flash.
+              Try cited answers without an API key. Bring a source or start with a runbook below.
             </p>
             <Button size="sm" onClick={() => setSettingsOpen(true)}>
               Add API key
@@ -531,36 +530,13 @@ export function Console({ initial }: { initial: Snapshot }) {
         </div>
       )}
 
-      <div className="mx-auto grid w-full max-w-[1400px] flex-1 grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_300px]">
-        <aside className="hidden border-r border-border lg:block" data-tour="tour-corpus">
-          <CorpusPanel
-            snapshot={snapshot}
-            corpus={corpus}
-            onCorpus={setCorpus}
-            ingestUrl={ingestUrl}
-            ingestBody={ingestBody}
-            ingestTitle={ingestTitle}
-            ingestBusy={ingestBusy}
-            ingestError={ingestError}
-            indexing={indexing}
-            pending={snapshot.pendingEmbeddings}
-            onUrl={setIngestUrl}
-            onBody={setIngestBody}
-            onTitle={setIngestTitle}
-            onIngestUrl={ingestRemote}
-            onIngestPaste={ingestPaste}
-            onRemove={async (id) => {
-              await removeDocument({ data: { id } });
-              await refresh();
-            }}
-          />
-        </aside>
-
+      <div className="mx-auto w-full max-w-5xl flex-1">
         <main className="flex min-h-0 flex-col">
           <div ref={threadRef} className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
             {messages.length === 0 ? (
               <WelcomeOnboarding
                 view={view}
+                onSources={() => setCorpusOpen(true)}
                 hasKey={hasKey}
                 onAsk={runDemo}
                 onTour={() => setTourOpen(true)}
@@ -605,19 +581,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           </div>
         </main>
 
-        <aside className="hidden border-l border-border lg:block">
-          <AuditPanel
-            snapshot={snapshot}
-            last={messages.filter((m) => m.role === "assistant").at(-1)}
-            evalReport={evalReport}
-            evalBusy={evalBusy}
-            evalError={evalError}
-            onRunEval={() => void runEval()}
-            canEval={hasKey}
-            view={view}
-            onTour={() => setTourOpen(true)}
-          />
-        </aside>
+
       </div>
 
       <footer className="sticky bottom-0 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-sm md:px-6">
@@ -651,12 +615,12 @@ export function Console({ initial }: { initial: Snapshot }) {
         <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-subtle">
           Enter to send · Shift+Enter for a new line · / focuses the composer
         </p>
-        <div className="mx-auto mt-2 flex max-w-3xl justify-center gap-2 lg:hidden">
+        <div className="mx-auto mt-2 flex max-w-3xl justify-center gap-2 sm:hidden">
           <Button variant="ghost" size="sm" onClick={() => setCorpusOpen(true)}>
-            Corpus
+            Sources
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setAuditOpen(true)}>
-            Trace
+            Evidence
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setTourOpen(true)}>
             Tour
@@ -795,8 +759,8 @@ export function Console({ initial }: { initial: Snapshot }) {
       )}
 
       {corpusOpen && (
-        <Modal title="Corpus" onClose={() => setCorpusOpen(false)}>
-          <CorpusPanel
+        <Modal title="Sources" onClose={() => setCorpusOpen(false)}>
+          <div data-tour="tour-corpus"><CorpusPanel
             snapshot={snapshot}
             corpus={corpus}
             onCorpus={setCorpus}
@@ -816,12 +780,12 @@ export function Console({ initial }: { initial: Snapshot }) {
               await removeDocument({ data: { id } });
               await refresh();
             }}
-          />
+          /></div>
         </Modal>
       )}
 
       {auditOpen && (
-        <Modal title="Trace" onClose={() => setAuditOpen(false)}>
+        <Modal title="Evidence" onClose={() => setAuditOpen(false)}>
           <AuditPanel
             snapshot={snapshot}
             last={messages.filter((m) => m.role === "assistant").at(-1)}
@@ -1253,10 +1217,10 @@ function Modal({
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-bg/70 p-0 sm:items-center sm:p-6">
       <button type="button" className="absolute inset-0" aria-label="Close" onClick={onClose} />
-      <div className="relative z-10 max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl">
+      <div role="dialog" aria-modal="true" aria-label={title} className={cn("relative z-10 max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl", title === "Evidence" ? "max-w-5xl" : "max-w-lg")}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl tracking-[-0.02em]">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close dialog">
+          <button type="button" onClick={onClose} className="inline-flex size-11 items-center justify-center" aria-label="Close dialog">
             <X className="size-5" />
           </button>
         </div>

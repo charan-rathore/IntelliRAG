@@ -9,7 +9,8 @@ const ev = script => run('eval',script);
 const wait = ms => new Promise(r=>setTimeout(r,ms));
 async function button(text) { ev(`(()=>{const b=[...document.querySelectorAll('button,[role=tab]')].find(e=>e.textContent.trim()===${JSON.stringify(text)});if(!b)throw Error('Missing button');b.click()})()`);await wait(200); }
 run('set','viewport','1440','1000');run('open',url);await wait(700);
-await button('Lab');await button('Expand graph ↗');
+assert.equal(ev("document.querySelectorAll('[data-tour=\"tour-graph\"]').length"),0);
+await button('Evidence');await button('Expand graph ↗');
 run('select','[data-tour="tour-graph"] select','seed-lab');
 run('fill','[data-tour="tour-graph"] input','Redis');await wait(250);
 ev(`document.querySelector('[data-tour="tour-graph"] g[aria-label$=", document"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))`);await wait(250);

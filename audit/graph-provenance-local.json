@@ -1,0 +1,41 @@
+{
+  "base": "http://localhost:8080",
+  "at": "2026-09-14T18:03:24.200Z",
+  "sources": [
+    {
+      "repo": "p-debounce",
+      "importMode": "README via blob URL; repository tree API returned 403",
+      "newToCorpus": true,
+      "corpus": "github:sindresorhus/p-debounce@main",
+      "citedSlugs": [
+        "p-debounce-readme-md"
+      ],
+      "graphTargets": [
+        "p-debounce-readme-md"
+      ],
+      "graphNodes": 136,
+      "sourceExcerpt": true,
+      "cacheReuse": true,
+      "unsupportedRefusal": true,
+      "pass": true
+    },
+    {
+      "repo": "p-throttle",
+      "importMode": "README via blob URL; repository tree API returned 403",
+      "newToCorpus": true,
+      "corpus": "github:sindresorhus/p-throttle@main",
+      "citedSlugs": [
+        "p-throttle-readme-md"
+      ],
+      "graphTargets": [
+        "p-throttle-readme-md"
+      ],
+      "graphNodes": 162,
+      "sourceExcerpt": true,
+      "cacheReuse": true,
+      "unsupportedRefusal": true,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

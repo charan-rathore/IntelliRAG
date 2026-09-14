@@ -12,13 +12,8 @@ import {
   TRUST_MARKS,
   type DemoRun,
 } from "@/lib/rag/onboarding";
-import { EXAMPLE_QUESTIONS } from "@/lib/rag/corpus";
 import type { ConsoleView, CoverageKind } from "@/lib/rag/types";
 import { cn } from "@/lib/utils";
-
-const SECONDARY_QUESTIONS = EXAMPLE_QUESTIONS.filter(
-  (q) => !DEMO_RUNS.some((d) => d.question === q),
-);
 
 export function PipelinePreview() {
   return (
@@ -178,72 +173,16 @@ export function FirstRunCoach({
   );
 }
 
-export function WelcomeOnboarding({
-  view,
-  hasKey,
-  onAsk,
-  onTour,
-}: {
-  view: ConsoleView;
-  hasKey: boolean;
-  onAsk: (q: string) => void;
-  onTour: () => void;
+export function WelcomeOnboarding({ onAsk, onSources, onTour }: {
+  view: ConsoleView; hasKey: boolean; onAsk: (q: string) => void; onSources: () => void; onTour: () => void;
 }) {
-  return (
-    <section className="mx-auto flex max-w-3xl flex-col gap-8 pt-4 pb-8">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Knowledge console</p>
-        <h1 className="mt-3 font-display text-4xl tracking-[-0.03em] text-fg md:text-5xl">IntelliRAG</h1>
-        <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
-          Ask a runbook. Watch retrieval pick the cited chunks. Get an answer — or an honest refusal.
-        </p>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-subtle">
-          Built for an SRE who needs the command, and a RAG engineer who needs to see why a chunk survived.
-        </p>
-        <div className="mt-5 flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-          <Button onClick={onTour} className="min-h-11">
-            <Play className="size-4" />
-            Watch the guided tour
-          </Button>
-          <p className="hidden text-xs leading-relaxed text-subtle sm:block sm:px-3">
-            Spotlights every control. Pause, skip, or let it play.
-          </p>
-        </div>
-        {view === "reading" && (
-          <p className="mt-3 text-xs text-subtle">
-            Reading hides the trace. Switch to Lab in the header to see dense / BM25 / hybrid scores.
-          </p>
-        )}
-      </div>
-
-      <DemoCatalog hasKey={hasKey} onAsk={onAsk} />
-
-      <div>
-        <p className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-muted">How a question is answered</p>
-        <PipelinePreview />
-      </div>
-
-      <SampleTrace />
-
-      <TrustStrip />
-
-      {SECONDARY_QUESTIONS.length > 0 && (
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">More from the corpus</p>
-          <div className="mt-3 grid gap-2">
-            {SECONDARY_QUESTIONS.map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => onAsk(q)}
-                className="min-h-11 rounded-md border border-border bg-surface px-4 py-3 text-left text-sm text-fg transition-colors hover:bg-raised"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
-  );
+  return <section className="mx-auto flex max-w-3xl flex-col gap-8 py-8 sm:py-14">
+    <div><p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">FROM SOURCE TO ANSWER</p>
+      <h1 className="mt-4 max-w-xl font-display text-4xl leading-tight tracking-[-0.03em] text-fg sm:text-6xl">Your docs.<br />Answers you can check.</h1>
+      <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">Import a GitHub repo, issue, or document. Ask a question. Follow the citation—or see where the evidence runs out.</p>
+      <div className="mt-6 flex flex-wrap gap-3"><Button onClick={onSources}>Bring a source <ArrowRight className="size-4" /></Button><Button variant="ghost" onClick={onTour}>Show me the controls</Button></div>
+    </div>
+    <div><p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">Or try a real question</p><div className="grid gap-3 sm:grid-cols-3">{DEMO_RUNS.map(demo => <button key={demo.id} onClick={() => onAsk(demo.question)} className="min-h-28 rounded-lg border border-border bg-surface p-4 text-left text-sm leading-relaxed transition-colors hover:border-primary"><span className="block text-xs text-muted">{demo.kind === 'refused' ? 'Test the boundary' : 'Find the evidence'}</span><span className="mt-2 block">{demo.question}</span><ArrowRight className="mt-3 size-4 text-primary" /></button>)}</div></div>
+    <p className="text-sm leading-relaxed text-muted">Sources manages your documents. Evidence opens the graph and retrieval details when you need them.</p>
+  </section>;
 }
