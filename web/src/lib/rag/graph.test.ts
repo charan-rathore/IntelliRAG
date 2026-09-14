@@ -52,3 +52,24 @@ test("code declarations and deep API headings retain exact source lines", () => 
   assert.ok(markdown.nodes.some(n => n.label === "retries" && n.source_location === "L2"));
   assert.ok(!markdown.nodes.some(n => n.label === "fake heading"));
 });
+
+test("repeated votes do not promote a source, and corrections revoke preference", async () => {
+  const { reflect } = await import('./graphify/reflect');
+  const now = Date.parse('2026-09-14T00:00:00Z');
+  const memory = (questionHash: string, outcome: 'useful' | 'corrected', date = '2026-09-13T00:00:00Z') => ({ id: questionHash, type: 'query' as const, corpusId: 'a', questionHash, question: questionHash, date, answer: 'Evidence', outcome, correction: null, source_nodes: ['doc:alpha'], source_slugs: ['alpha'] });
+  const state: GraphState = { graph, memory: [memory('same', 'useful'), memory('same', 'useful')], cache: [], learning: null };
+  assert.equal(reflect(state, now).nodes[0].verdict, 'tentative');
+  state.memory.push(memory('independent', 'useful'));
+  assert.equal(reflect(state, now).nodes[0].verdict, 'preferred');
+  state.memory.unshift(memory('same', 'corrected', '2026-09-14T00:00:00Z'));
+  const learned = reflect(state, now).nodes[0];
+  assert.equal(learned.verdict, 'contested');
+  assert.equal(learned.useful, 1); assert.equal(learned.corrected, 1);
+});
+
+test("contested sources lose their graph boost while staying available as evidence", async () => {
+  const { preferredSlugs } = await import('./graphify/query');
+  const state: GraphState = { graph, memory: [], cache: [], learning: { schema: 1, generatedAt: '', halfLifeDays: 30, minCorroboration: 2, nodes: [{ id: 'doc:alpha', label: 'Orion queue', verdict: 'contested', score: 1, useful: 2, dead_end: 0, corrected: 1 }] } };
+  assert.ok(!preferredSlugs(state, 'Orion queue').includes('alpha'));
+  assert.ok(queryGraph(state.graph, 'Orion queue').slugs.includes('alpha'));
+});

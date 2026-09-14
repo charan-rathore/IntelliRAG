@@ -76,14 +76,13 @@ export function lookupCache(state: GraphState, question: string, corpusId = "see
 
 export function preferredSlugs(state: GraphState, question: string, corpusId = "all"): string[] {
   const q = queryGraph(scopeGraph(state.graph, corpusId), question);
-  const preferred = new Set(
-    (state.learning?.nodes ?? [])
-      .filter((n) => n.verdict === "preferred")
-      .map((n) => n.id),
-  );
+  const verdicts = new Map((state.learning?.nodes ?? []).map(n => [n.id, n.verdict]));
   const slugs: string[] = [];
-  for (const node of q.nodes) {
-    if (node.kind === "document" && node.slug && (preferred.has(node.id) || q.slugs.includes(node.slug))) {
+  const ordered = [...q.nodes].sort((a, b) => Number(verdicts.get(b.id) === "preferred") - Number(verdicts.get(a.id) === "preferred"));
+  for (const node of ordered) {
+    const verdict = verdicts.get(node.id);
+    // Feedback changes the graph boost, not the underlying source evidence.
+    if (node.kind === "document" && node.slug && verdict !== "contested" && verdict !== "dead_end") {
       if (!slugs.includes(node.slug)) slugs.push(node.slug);
     }
   }

@@ -27,7 +27,14 @@ export function reflect(state: GraphState, now = Date.now()): LearningSidecar {
     let useful = 0;
     let dead = 0;
     let corrected = 0;
-    for (const d of docs) {
+    // Repeating the same question is not independent corroboration. The latest
+    // rated outcome for that question wins, including corrections and dead ends.
+    const distinct = new Map<string, MemoryDoc>();
+    for (const d of [...docs].sort((a, b) => b.date.localeCompare(a.date))) {
+      const key = `${d.corpusId ?? "seed-lab"}:${d.questionHash}`;
+      if (!distinct.has(key)) distinct.set(key, d);
+    }
+    for (const d of distinct.values()) {
       const age = Math.max(0, now - new Date(d.date).getTime());
       const decay = Math.pow(0.5, age / half);
       const outcome = d.outcome as GraphOutcome;
@@ -38,7 +45,8 @@ export function reflect(state: GraphState, now = Date.now()): LearningSidecar {
     }
     const rounded = Number(score.toFixed(9));
     let verdict: LearningNode["verdict"] = "tentative";
-    if (dead > 0 && useful === 0) verdict = "dead_end";
+    if (corrected > 0) verdict = "contested";
+    else if (dead > 0 && useful === 0) verdict = "dead_end";
     else if (useful > 0 && dead > 0) verdict = "contested";
     else if (useful >= GRAPHIFY_MIN_CORROBORATION && rounded > 0) verdict = "preferred";
     else if (useful > 0) verdict = "tentative";
