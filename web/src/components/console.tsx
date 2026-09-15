@@ -143,6 +143,8 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [keyError, setKeyError] = useState<string | null>(null);
   const [keyBusy, setKeyBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => { const media = matchMedia('(min-width: 1024px)'); const update = () => setDesktop(media.matches); update(); media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [mode, setMode] = useState<RetrievalMode>("hybrid");
@@ -477,9 +479,42 @@ export function Console({ initial }: { initial: Snapshot }) {
     return "Ready";
   }, [denseAvailable, hasKey, indexing, snapshot.generationVia, staleCount]);
 
+  const sourcePanel = (<div data-tour="tour-corpus"><CorpusPanel
+            snapshot={snapshot}
+            corpus={corpus}
+            onCorpus={setCorpus}
+            ingestUrl={ingestUrl}
+            ingestBody={ingestBody}
+            ingestTitle={ingestTitle}
+            ingestBusy={ingestBusy}
+            ingestError={ingestError}
+            indexing={indexing}
+            pending={snapshot.pendingEmbeddings}
+            onUrl={setIngestUrl}
+            onBody={setIngestBody}
+            onTitle={setIngestTitle}
+            onIngestUrl={ingestRemote}
+            onIngestPaste={ingestPaste}
+            onRemove={async (id) => {
+              await removeDocument({ data: { id } });
+              await refresh();
+            }}
+          /></div>);
+  const auditPanel = (<AuditPanel
+            snapshot={snapshot}
+            last={messages.filter((m) => m.role === "assistant").at(-1)}
+            evalReport={evalReport}
+            evalBusy={evalBusy}
+            evalError={evalError}
+            onRunEval={() => void runEval()}
+            canEval={hasKey}
+            view={view}
+            onTour={() => setTourOpen(true)}
+          />);
+
   return (
-    <div className="flex min-h-dvh flex-col bg-bg text-fg">
-      <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-border bg-bg/95 px-3 py-3 backdrop-blur-sm sm:gap-3 md:px-6">
+    <div className="flex h-dvh flex-col overflow-hidden bg-bg text-fg">
+      <header className="relative z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-bg/95 px-3 py-3 backdrop-blur-sm sm:gap-3 md:px-6">
         <div className="flex min-w-0 items-center gap-3" data-tour="tour-brand">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-raised">
             <Layers className="size-4 text-primary" />
@@ -503,8 +538,8 @@ export function Console({ initial }: { initial: Snapshot }) {
           <span data-tour="tour-view">
             <ViewToggle value={view} onChange={setView} />
           </span>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" onClick={() => setCorpusOpen(true)}>Sources</Button>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" onClick={() => setAuditOpen(true)}>Evidence</Button>
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
           <a href="/walkthrough" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary sm:inline-flex">Watch demo</a>
           <span data-tour="tour-settings">
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
@@ -531,9 +566,10 @@ export function Console({ initial }: { initial: Snapshot }) {
         </div>
       )}
 
-      <div className="mx-auto w-full max-w-5xl flex-1">
-        <main className="flex min-h-0 flex-col">
-          <div ref={threadRef} className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
+      <div className="mx-auto grid min-h-0 w-full max-w-[1600px] flex-1 grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
+        {corpusOpen && desktop && <aside aria-label="Source management" className="hidden w-[280px] overflow-y-auto border-r border-border lg:col-start-1 lg:row-start-1 lg:block">{sourcePanel}</aside>}
+        <main className="flex min-h-0 min-w-0 flex-col lg:col-start-2 lg:row-start-1">
+          <div ref={threadRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
             {messages.length === 0 ? (
               <WelcomeOnboarding
                 view={view}
@@ -579,13 +615,13 @@ export function Console({ initial }: { initial: Snapshot }) {
                 )}
               </div>
             )}
+          {snapshot.graph && <div className="mx-auto mt-5 max-w-5xl"><KnowledgeGraph nodes={snapshot.graph.nodes} links={snapshot.graph.links} learning={snapshot.graph.learning} nodeCount={snapshot.graph.nodeCount} edgeCount={snapshot.graph.edgeCount} cacheCount={snapshot.graph.cacheCount} preferred={snapshot.graph.preferred} durable={snapshot.storage.durable} /></div>}
           </div>
         </main>
-
-
+        {auditOpen && desktop && <aside aria-label="Retrieval diagnostics" className="hidden w-[300px] overflow-y-auto border-l border-border lg:col-start-3 lg:row-start-1 lg:block">{auditPanel}</aside>}
       </div>
 
-      <footer className="sticky bottom-0 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-sm md:px-6">
+      <footer className="relative z-20 shrink-0 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-sm md:px-6">
         <form
           className="mx-auto flex max-w-3xl items-end gap-2 rounded-lg border border-border bg-surface p-2"
           data-tour="tour-composer"
@@ -596,6 +632,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         >
           <textarea
             ref={taRef}
+            aria-label="Ask a question about your documents"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => {
@@ -760,47 +797,8 @@ export function Console({ initial }: { initial: Snapshot }) {
         </Modal>
       )}
 
-      {corpusOpen && (
-        <Modal title="Sources" onClose={() => setCorpusOpen(false)}>
-          <div data-tour="tour-corpus"><CorpusPanel
-            snapshot={snapshot}
-            corpus={corpus}
-            onCorpus={setCorpus}
-            ingestUrl={ingestUrl}
-            ingestBody={ingestBody}
-            ingestTitle={ingestTitle}
-            ingestBusy={ingestBusy}
-            ingestError={ingestError}
-            indexing={indexing}
-            pending={snapshot.pendingEmbeddings}
-            onUrl={setIngestUrl}
-            onBody={setIngestBody}
-            onTitle={setIngestTitle}
-            onIngestUrl={ingestRemote}
-            onIngestPaste={ingestPaste}
-            onRemove={async (id) => {
-              await removeDocument({ data: { id } });
-              await refresh();
-            }}
-          /></div>
-        </Modal>
-      )}
-
-      {auditOpen && (
-        <Modal title="Evidence" onClose={() => setAuditOpen(false)}>
-          <AuditPanel
-            snapshot={snapshot}
-            last={messages.filter((m) => m.role === "assistant").at(-1)}
-            evalReport={evalReport}
-            evalBusy={evalBusy}
-            evalError={evalError}
-            onRunEval={() => void runEval()}
-            canEval={hasKey}
-            view={view}
-            onTour={() => setTourOpen(true)}
-          />
-        </Modal>
-      )}
+      {corpusOpen && !desktop && <div className="lg:hidden"><Modal title="Sources" onClose={() => setCorpusOpen(false)}>{sourcePanel}</Modal></div>}
+      {auditOpen && !desktop && <div className="lg:hidden"><Modal title="Evidence" onClose={() => setAuditOpen(false)}>{auditPanel}</Modal></div>}
       <ProductTour open={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
@@ -1103,18 +1101,6 @@ function AuditPanel({
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-4">
       {!last && <RunPreview onTour={onTour} />}
-      {snapshot.graph && (
-        <KnowledgeGraph
-          nodes={snapshot.graph.nodes}
-          links={snapshot.graph.links}
-          learning={snapshot.graph.learning}
-          nodeCount={snapshot.graph.nodeCount}
-          edgeCount={snapshot.graph.edgeCount}
-          cacheCount={snapshot.graph.cacheCount}
-          preferred={snapshot.graph.preferred}
-          durable={snapshot.storage.durable}
-        />
-      )}
       {last?.graphTrace && <details className="rounded-md border border-border bg-raised p-3 text-xs">
         <summary className="min-h-11 cursor-pointer text-primary">Graph consulted · {last.graphTrace.cache === "hit" ? "cached answer · no model call" : `${last.graphTrace.slugs.length} source suggestions`} · {formatMs(last.graphTrace.durationMs)}</summary>
         <p className="mt-2 text-muted">Cache: {last.graphTrace.cache}. Graph suggestions guide ranking; cited passages determine what the answer can claim.</p>

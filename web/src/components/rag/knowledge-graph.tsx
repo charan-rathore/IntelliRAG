@@ -33,10 +33,15 @@ export function KnowledgeGraph(props: Props) {
   const connections = useMemo(() => active ? graph.links.filter(e => e.source === active.id || e.target === active.id) : [], [graph.links, active]);
   const matches = useMemo(() => graph.nodes.filter(n => search.trim() ? n.label.toLowerCase().includes(search.trim().toLowerCase()) : n.kind === "document"), [graph.nodes, search]);
   const visible = useMemo(() => {
-    if (!active) return matches.slice(0, 6);
+    if (!active) {
+      const seeds = matches.slice(0, 8), ids = new Set(seeds.map(n => n.id));
+      const neighbors = new Set<string>();
+      for (const edge of graph.links) { if (ids.has(edge.source)) neighbors.add(edge.target); if (ids.has(edge.target)) neighbors.add(edge.source); }
+      return [...seeds, ...[...neighbors].filter(id => !ids.has(id)).map(id => byId.get(id)).filter((n): n is GraphNode => Boolean(n)).slice(0, 12)];
+    }
     const ids = connections.slice(neighborPage * 6, neighborPage * 6 + 6).map(e => e.source === active.id ? e.target : e.source);
     return [active, ...[...new Set(ids)].map(id => byId.get(id)).filter((n): n is GraphNode => Boolean(n))];
-  }, [active, matches, connections, neighborPage, byId]);
+  }, [active, matches, connections, neighborPage, byId, graph.links]);
   const learning = props.learning?.nodes.find(n => n.id === active?.id);
   const prior = byId.get(trail.at(-2) || '');
   const arrival = active && prior ? graph.links.find(e => (e.source === prior.id && e.target === active.id) || (e.target === prior.id && e.source === active.id)) : undefined;
@@ -88,7 +93,7 @@ export function KnowledgeGraph(props: Props) {
         <div className="relative overflow-hidden rounded-xl border border-border bg-bg" style={{ backgroundImage: "radial-gradient(ellipse at 50% 50%,#8170cc18,transparent 70%),radial-gradient(#94a3b81a 1px,transparent 1px)", backgroundSize: "auto,20px 20px" }}>
           <svg viewBox="0 0 800 490" className="w-full" role="group" aria-label="Corpus knowledge graph">
             <circle cx="400" cy="245" r="160" fill="none" stroke="#94a3b81a" strokeDasharray="4 8" />
-            {(active ? connections : []).map((e, i) => { const a = positions.get(e.source), b = positions.get(e.target); if (!a || !b) return null; return <g key={i}><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={e.confidence === "USER_EDITED" ? "#e8bc75" : "#a798df"} strokeWidth={e.confidence === "EXTRACTED" ? 3 : e.confidence === "USER_EDITED" ? 2 : 1} opacity={active ? .65 : .25} strokeDasharray={e.confidence === "EXTRACTED" ? undefined : "5 5"} /><title>{`${e.relation} · ${e.confidence.toLowerCase()}`}</title>{active && visible.length < 10 && <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2} fill="#bdb4d8" fontSize="11" textAnchor="middle">{e.relation}</text>}</g>; })}
+            {(active ? connections : graph.links).map((e, i) => { const a = positions.get(e.source), b = positions.get(e.target); if (!a || !b) return null; return <g key={i}><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={e.confidence === "USER_EDITED" ? "#e8bc75" : "#a798df"} strokeWidth={e.confidence === "EXTRACTED" ? 3 : e.confidence === "USER_EDITED" ? 2 : 1} opacity={active ? .65 : .25} strokeDasharray={e.confidence === "EXTRACTED" ? undefined : "5 5"} /><title>{`${e.relation} · ${e.confidence.toLowerCase()}`}</title>{active && visible.length < 10 && <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2} fill="#bdb4d8" fontSize="11" textAnchor="middle">{e.relation}</text>}</g>; })}
             {visible.map(n => { const p = positions.get(n.id)!; return <g key={n.id} transform={`translate(${p.x} ${p.y})`} role="button" tabIndex={0} aria-label={`${n.label}, ${n.kind}`} aria-pressed={selected === n.id} onClick={() => choose(n)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(n); } }} className="cursor-pointer outline-none focus:stroke-white">
               <title>{`${n.label} · ${n.source_file} ${n.source_location}`}</title><circle r="24" fill={colors[n.kind]} opacity=".1" /><circle r={n.kind === "document" ? 10 : 6} fill={colors[n.kind]} stroke={selected === n.id ? "white" : colors[n.kind]} strokeWidth="2" /><text y="35" textAnchor="middle" fill={colors[n.kind]} fontSize="12">{n.label.length > 25 ? n.label.slice(0, 23) + "…" : n.label}</text>
             </g>; })}
