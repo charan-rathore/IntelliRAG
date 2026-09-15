@@ -10,6 +10,8 @@ I wanted to know where retrieval-augmented generation actually breaks - not how 
 
 [Watch the real browser experiment](https://intellirag-live-own-track.vercel.app/walkthrough) — import an issue, inspect its citations and graph, test a refusal, and reuse a cached answer. Narrated, with a quiet original score and captions in the site’s own typography.
 
+**Pilot proposal:** [10-slide deck and PDF](https://intellirag-live-own-track.vercel.app/pilot/index.html) · [research, evidence and interview guide](docs/sales/research-and-pilot.md). Focus: technical support answers with inspectable evidence; proposed pilot targets are explicitly separate from measured results.
+
 **Python platform:** the phase history and benchmark sections below describe `rag-platform/`, a separate implementation in this monorepo. Its deterministic/mock CI results are not measurements of the public web deployment.
 
 **Repository:** [github.com/charan-rathore/IntelliRAG](https://github.com/charan-rathore/IntelliRAG)
