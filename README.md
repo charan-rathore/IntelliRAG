@@ -8,7 +8,7 @@ I wanted to know where retrieval-augmented generation actually breaks - not how 
 
 [![Watch the 57-second source-to-answer experiment](web/public/demo/intellirag-walkthrough-poster.jpg)](https://intellirag-live-own-track.vercel.app/walkthrough)
 
-[Watch the real browser experiment](https://intellirag-live-own-track.vercel.app/walkthrough) — import an issue, inspect its citations and graph, test a refusal, and reuse a cached answer. Silent, with captions in the site’s own typography.
+[Watch the real browser experiment](https://intellirag-live-own-track.vercel.app/walkthrough) — import an issue, inspect its citations and graph, test a refusal, and reuse a cached answer. Narrated, with a quiet original score and captions in the site’s own typography.
 
 **Python platform:** the phase history and benchmark sections below describe `rag-platform/`, a separate implementation in this monorepo. Its deterministic/mock CI results are not measurements of the public web deployment.
 

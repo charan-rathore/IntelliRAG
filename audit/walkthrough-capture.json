@@ -21,5 +21,11 @@
   "refusedCoverage": "refused",
   "repeatCacheHit": true,
   "browserErrors": [],
-  "presentation": "Automated public browser recording. Captions and cursor added; responses and graph data are real. Keyword/cited-extract mode, no model generation."
+  "presentation": "Automated public browser recording. Captions and cursor added; responses and graph data are real. Keyword/cited-extract mode, no model generation.",
+  "narratedEdition": {
+    "duration": 57.4,
+    "voice": "en-US-AndrewMultilingualNeural (synthetic)",
+    "music": "Original script-generated ambient score; no third-party music recording",
+    "source": "web/scripts/narrate-walkthrough.mjs"
+  }
 }

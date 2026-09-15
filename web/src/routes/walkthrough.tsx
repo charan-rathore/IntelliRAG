@@ -5,7 +5,7 @@ import walkthrough from '@/data/walkthrough.json';
 export const Route = createFileRoute('/walkthrough')({
   head: () => ({ meta: [
     { title: 'One issue. Two questions. — IntelliRAG walkthrough' },
-    { name: 'description', content: 'A short, silent experiment on the public IntelliRAG lab: import a GitHub issue, inspect a cited answer and its graph, test an unsupported question, then reuse the cache.' },
+    { name: 'description', content: 'A short, narrated experiment on the public IntelliRAG lab: import a GitHub issue, inspect a cited answer and its graph, test an unsupported question, then reuse the cache.' },
     { property: 'og:image', content: 'https://intellirag-live-own-track.vercel.app/demo/intellirag-walkthrough-poster.jpg' },
   ] }),
   component: Walkthrough,
@@ -35,15 +35,15 @@ function Walkthrough() {
         </div>
       </header>
       <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 text-xs text-muted sm:px-5"><span className="text-primary">● RECORDED ON THE PUBLIC LAB</span><span>{walkthrough.durationLabel} · silent · captions included</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 text-xs text-muted sm:px-5"><span className="text-primary">● RECORDED ON THE PUBLIC LAB</span><span>{walkthrough.durationLabel} · voice + music · captions included</span></div>
         <video ref={player} className="aspect-[36/25] w-full bg-black" controls playsInline preload="metadata" poster="/demo/intellirag-walkthrough-poster.jpg" onError={() => setFailed(true)} aria-label="IntelliRAG experiment with visible explanatory captions" aria-describedby="demo-context">
-          <source src="/demo/intellirag-walkthrough.mp4" type="video/mp4" />
+          <source src="/demo/intellirag-walkthrough-narrated.mp4" type="video/mp4" />
           <track kind="captions" src="/demo/intellirag-walkthrough.vtt" srcLang="en" label="English" />
-          Your browser cannot play this video. <a href="/demo/intellirag-walkthrough.mp4">Download the MP4.</a>
+          Your browser cannot play this video. <a href="/demo/intellirag-walkthrough-narrated.mp4">Download the MP4.</a>
         </video>
-        {failed ? <p role="alert" className="border-t border-border p-4 text-sm text-muted">Playback could not load. <a className="text-primary underline" href="/demo/intellirag-walkthrough.mp4">Open or download the MP4</a>, or use the transcript below.</p> : null}
+        {failed ? <p role="alert" className="border-t border-border p-4 text-sm text-muted">Playback could not load. <a className="text-primary underline" href="/demo/intellirag-walkthrough-narrated.mp4">Open or download the MP4</a>, or use the transcript below.</p> : null}
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted"><p>Real actions and responses. Captions added for clarity.</p><a className="inline-flex min-h-11 items-center text-primary underline" href="/demo/intellirag-walkthrough.mp4" download>Download MP4 ↓</a></div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted"><p>Real actions and responses. Original script, synthetic voice and original music.</p><a className="inline-flex min-h-11 items-center text-primary underline" href="/demo/intellirag-walkthrough-narrated.mp4" download>Download MP4 ↓</a></div>
       <nav className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Video chapters">
         {walkthrough.chapters.map(chapter => <button key={chapter.at} type="button" onClick={() => seek(chapter.at)} className="flex min-h-16 items-start gap-3 rounded-lg border border-border bg-raised p-4 text-left transition-colors hover:border-primary focus-visible:outline-2 focus-visible:outline-primary">
           <span className="font-mono text-xs text-primary">{chapter.time}</span><span className="text-sm">{chapter.title}</span>
@@ -56,7 +56,7 @@ function Walkthrough() {
       <details className="mt-5 rounded-lg border border-border p-5">
         <summary className="min-h-11 cursor-pointer text-sm font-medium">Read the full experiment transcript</summary>
         <ol className="mt-4 space-y-5">
-          {walkthrough.chapters.map(chapter => <li key={chapter.at}><h3 className="text-sm text-fg"><span className="mr-3 font-mono text-xs text-primary">{chapter.time}</span>{chapter.title}</h3><p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">{chapter.body}</p></li>)}
+          {walkthrough.chapters.map(chapter => <li key={chapter.at}><h3 className="text-sm text-fg"><span className="mr-3 font-mono text-xs text-primary">{chapter.time}</span>{chapter.title}</h3><p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">{chapter.narration}</p></li>)}
         </ol>
         <a className="mt-5 inline-flex min-h-11 items-center text-sm text-primary underline" href="https://github.com/brianc/node-postgres/issues/3745" target="_blank" rel="noreferrer">Read the original GitHub issue ↗</a>
       </details>
