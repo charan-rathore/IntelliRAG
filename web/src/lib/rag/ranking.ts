@@ -436,7 +436,7 @@ export function selectContext(
   }
 
   const packed: RetrievedChunk[] = [];
-  const seenDocs = new Set<string>();
+  const seenText = new Set<string>();
   let used = 0;
   const cap = Math.min(3, opts.topK ?? 3);
   for (const chunk of pool) {
@@ -444,8 +444,9 @@ export function selectContext(
       dropReasons.set(chunk.chunkId, "Outside the packed context window (max 3 supported chunks).");
       continue;
     }
-    if (seenDocs.has(chunk.slug) && packed.length >= 1 && !multi) {
-      dropReasons.set(chunk.chunkId, "Duplicate document — a stronger chunk from this source is already packed.");
+    const normalizedText = chunk.text.replace(/\s+/g, " ").trim();
+    if (seenText.has(normalizedText)) {
+      dropReasons.set(chunk.chunkId, "Duplicate passage — the same text is already packed.");
       continue;
     }
     if (used + chunk.tokenCount > maxTokens && packed.length) {
@@ -453,7 +454,7 @@ export function selectContext(
       continue;
     }
     packed.push({ ...chunk, rank: packed.length + 1 });
-    seenDocs.add(chunk.slug);
+    seenText.add(normalizedText);
     used += chunk.tokenCount;
   }
   return { packed, dropReasons };
