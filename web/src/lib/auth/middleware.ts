@@ -1,10 +1,10 @@
 import { createMiddleware } from "@tanstack/react-start";
 
 /**
- * Auth middleware for server functions — the standard way to get the caller's
+ * Auth middleware for server functions. the standard way to get the caller's
  * verified user id. When deployed the session cookie is same-origin and rides
  * along automatically. In the live preview the client also forwards the bearer
- * token (partitioned cookies) via the `.client` hook below — call sites do not
+ * token (partitioned cookies) via the `.client` hook below. call sites do not
  * thread it themselves.
  *
  *   import { createServerFn } from "@tanstack/react-start";
@@ -20,7 +20,7 @@ import { createMiddleware } from "@tanstack/react-start";
  *
  * Signed out with auth on (live preview included) -> throws `UnauthorizedError`
  * (see `verify.server.ts`). With auth disabled (`VITE_AUTH_ENABLED=false`, the
- * shipped default) it resolves the shared dev user — but throws instead when a
+ * shipped default) it resolves the shared dev user. but throws instead when a
  * `DATABASE_URL` is also set, so an app without sign-in must not use this at
  * all. On the auth-on path, use it on every server function that touches
  * per-user data and scope every query by `context.userId`.
@@ -36,7 +36,7 @@ export const authMiddleware = createMiddleware({ type: "function" })
   .server(async ({ next, context }) => {
     // ONLY import `*.server` modules here. This file is dual client/server
     // (bearer hook on the client). A plain `./isolation` path was renamed to
-    // `isolation.server.ts` — keep this import in sync so image `tsc` resolves
+    // `isolation.server.ts`. keep this import in sync so image `tsc` resolves
     // it, and so Vite does not ship `@tanstack/react-start/server` to the browser.
     const { assertSameSiteRequest } = await import("./isolation.server");
     const { requireUserId } = await import("./verify.server");

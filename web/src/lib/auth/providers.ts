@@ -7,7 +7,7 @@
  * server-only Better Auth instance (and `pg`) into the browser bundle.
  *
  * Each app federates to the shared **auth broker** (`GROK_AUTH_ISSUER`), which
- * holds the real Google/X secrets. The app never sees them — it only knows its
+ * holds the real Google/X secrets. The app never sees them. it only knows its
  * own per-app client id/secret and which upstream to ask the broker for (`idp`).
  *
  * To add an upstream (e.g. GitHub) once the broker supports it: add one entry

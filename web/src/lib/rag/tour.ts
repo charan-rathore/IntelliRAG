@@ -6,7 +6,7 @@ export type TourStep = {
   ms: number;
 };
 
-/** Cinematic UI tour — subtitles name the control and what it does. */
+/** Cinematic UI tour. subtitles name the control and what it does. */
 export const TOUR_STEPS: TourStep[] = [
   { id: 'brand', target: 'tour-brand', title: 'Your source-backed workspace', subtitle: 'Bring documents, ask a question, and check the evidence behind the answer.', ms: 4000 },
   { id: 'sources', target: 'tour-sources', title: 'Bring a source', subtitle: 'Sources opens document import and corpus selection. Close it when you want to focus on the answer.', ms: 4500 },

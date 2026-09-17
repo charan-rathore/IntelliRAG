@@ -36,7 +36,7 @@ export function buildContext(
 ) {
   const sources = chunks
     .map((c, i) => {
-      const loc = [c.title, c.filepath, c.heading ?? c.symbol].filter(Boolean).join(" — ");
+      const loc = [c.title, c.filepath, c.heading ?? c.symbol].filter(Boolean).join(". ");
       return `[Source ${i + 1}] ${loc}\n${c.text}`;
     })
     .join("\n\n");

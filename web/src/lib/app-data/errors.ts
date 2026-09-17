@@ -37,7 +37,7 @@ export function classifyCallToolError(
   if (raw.includes("scope_denied")) {
     return {
       kind: "scope_denied",
-      message: "This view isn't available — the app requested a tool outside its grant.",
+      message: "This view isn't available. the app requested a tool outside its grant.",
       detail,
     };
   }

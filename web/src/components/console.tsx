@@ -30,6 +30,7 @@ import {
   submitGraphFeedback,
 } from "@/lib/rag/functions";
 import { EXAMPLE_QUESTIONS } from "@/lib/rag/corpus";
+import { REPO_DEMO_CORPUS, REPO_DEMO_QUESTION } from "@/lib/rag/repo-demo";
 import { ALL_CORPORA, SEED_CORPUS_ID, corpusLabel } from "@/lib/rag/corpus-scope";
 import type { GraphOutcome } from "@/lib/rag/graphify/schema";
 import {
@@ -111,7 +112,7 @@ function visibleStaleReasons(reasons: StaleReason[], denseAvailable: boolean): S
 }
 
 function formatMs(ms?: number) {
-  if (ms == null || Number.isNaN(ms)) return "—";
+  if (ms == null || Number.isNaN(ms)) return ", ";
   if (ms < 1000) return `${Math.round(ms)} ms`;
   return `${(ms / 1000).toFixed(1)} s`;
 }
@@ -162,7 +163,7 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [evalError, setEvalError] = useState<string | null>(null);
   const [evalReport, setEvalReport] = useState<Snapshot["lastEval"]>(initial.lastEval);
   const [view, setView] = useState<ConsoleView>("lab");
-  const [corpus, setCorpus] = useState(SEED_CORPUS_ID);
+  const [corpus, setCorpus] = useState(REPO_DEMO_CORPUS);
   const [coachOpen, setCoachOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
@@ -303,7 +304,7 @@ export function Console({ initial }: { initial: Snapshot }) {
     setCoachOpen(false);
   };
 
-  const ask = async (preset?: string) => {
+  const ask = async (preset?: string, corpusOverride?: string) => {
     const q = (preset ?? question).trim();
     if (!q || busy) return;
     setQuestion("");
@@ -326,7 +327,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           question: q,
           retrievalMode: mode,
           topK,
-          corpus,
+          corpus: corpusOverride ?? corpus,
           graphEdits: loadGraphEdits(),
         }),
       });
@@ -417,8 +418,16 @@ export function Console({ initial }: { initial: Snapshot }) {
 
   const runDemo = (q: string) => {
     setView("lab");
+    setCorpus(SEED_CORPUS_ID);
     window.localStorage.setItem(VIEW_MODE_STORAGE, "lab");
-    void ask(q);
+    void ask(q, SEED_CORPUS_ID);
+  };
+
+  const runRepositoryDemo = async () => {
+    if (busy || ingestBusy) return;
+    setIngestError(null);
+    setCorpus(REPO_DEMO_CORPUS);
+    await ask(REPO_DEMO_QUESTION, REPO_DEMO_CORPUS);
   };
 
   const ingestRemote = async () => {
@@ -432,7 +441,7 @@ export function Console({ initial }: { initial: Snapshot }) {
       }
       setIngestUrl("");
       const next = await refresh();
-      if (hasKey && next.pendingEmbeddings > 0) await runIndexLoop();
+      if (snapshot.embeddingVia && next.pendingEmbeddings > 0) await runIndexLoop();
     } catch (err) {
       setIngestError(err instanceof Error ? err.message : "Ingest failed");
     } finally {
@@ -452,7 +461,7 @@ export function Console({ initial }: { initial: Snapshot }) {
       }
       setIngestBody("");
       const next = await refresh();
-      if (hasKey && next.pendingEmbeddings > 0) await runIndexLoop();
+      if (snapshot.embeddingVia && next.pendingEmbeddings > 0) await runIndexLoop();
     } catch (err) {
       setIngestError(err instanceof Error ? err.message : "Ingest failed");
     } finally {
@@ -577,6 +586,9 @@ export function Console({ initial }: { initial: Snapshot }) {
                 hasKey={hasKey}
                 onAsk={runDemo}
                 onTour={() => setTourOpen(true)}
+                onRepositoryDemo={() => void runRepositoryDemo()}
+                importing={ingestBusy}
+                importError={ingestError}
               />
             ) : (
               <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -673,11 +685,11 @@ export function Console({ initial }: { initial: Snapshot }) {
             <p className="text-sm font-medium text-fg">Two models, two jobs</p>
             <p className="mt-2 text-xs leading-relaxed text-muted">
               Retrieval compares vectors. Every document chunk and every question must be
-              embedded with <span className="font-mono text-fg">{snapshot.embeddingModel}</span> —
+              embedded with <span className="font-mono text-fg">{snapshot.embeddingModel}</span>,
               same model, same 768 dimensions, same prefixes. Gemini 3.7 Flash never enters that
               vector space; it only writes the answer. Dense retrieval needs durable Postgres
               (`DATABASE_URL` / Neon in production). Scores in Lab are raw cosine / BM25 / RRF /
-              calibrated mix — not confidence and not a cross-encoder.
+              calibrated mix. not confidence and not a cross-encoder.
             </p>
             {snapshot.storage?.warning && (
               <p className="mt-2 text-xs leading-relaxed text-warn">{snapshot.storage.warning}</p>
@@ -689,7 +701,7 @@ export function Console({ initial }: { initial: Snapshot }) {
               Embed {snapshot.embeddingVia === "google" ? "Google AI" : snapshot.embeddingVia === "openrouter" ? "OpenRouter → Gemini" : "unset"}
             </span>
             <span className="rounded-full border border-border px-3 py-1 text-muted">
-              Answer {snapshot.generationVia === "openrouter" ? "OpenRouter → 3.7 Flash" : snapshot.generationVia === "google" ? "Google AI → 3.7 Flash" : snapshot.generationVia === "xai" ? "Grok 4.5" : "extractive (no LLM key)"}
+              Answer {snapshot.generationVia === "openrouter" ? "OpenRouter → 3.7 Flash" : snapshot.generationVia === "google" ? "Google AI → 3.7 Flash" : snapshot.generationVia === "xai" ? "Grok 4.5" : snapshot.generationVia === "ollama" ? "Local Llama 3" : "extractive (no LLM key)"}
             </span>
           </div>
           {snapshot.xaiFromEnv && (
@@ -1035,7 +1047,7 @@ function DocRow({
         >
           {doc.title}
         </Link>
-        {doc.sourceType !== "seed" && (
+        {doc.sourceType !== "seed" && doc.corpusId !== REPO_DEMO_CORPUS && (
           <button
             type="button"
             aria-label={`Remove ${doc.title}`}
@@ -1154,7 +1166,7 @@ function AuditPanel({
                   <li key={key} className="flex justify-between gap-2">
                     <span className="text-muted">{key.replaceAll("_", " ")}</span>
                     <span>
-                      {typeof value === "number" ? value.toFixed(3) : "—"}
+                      {typeof value === "number" ? value.toFixed(3) : ", "}
                       {typeof baseline === "number" ? (
                         <span className="text-subtle"> / {baseline.toFixed(3)}</span>
                       ) : null}

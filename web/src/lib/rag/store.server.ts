@@ -7,6 +7,7 @@
  */
 import { getSql, vercelWithoutDatabase, type Sql } from "@/lib/db";
 import { SEED_DOCUMENTS } from "./corpus";
+import { REPO_DEMO_DOCUMENT } from "./repo-demo.server";
 import { chunkDocument, type ChunkOptions } from "./chunking";
 import * as memory from "./memory.server";
 import { getStorageStatus } from "./storage";
@@ -37,6 +38,7 @@ function dbUnavailable(err: unknown) {
 
 export async function ensureSeedDocuments(): Promise<void> {
   if (vercelWithoutDatabase()) return memory.ensureSeedDocuments();
+  await upsertDocument(REPO_DEMO_DOCUMENT);
   for (const seed of SEED_DOCUMENTS) {
     await upsertDocument({
       title: seed.title,
@@ -125,7 +127,7 @@ async function upsertDurable(input: UpsertInput, sql: Sql) {
       `
     )[0];
 
-  if (existing && existing.content_hash === hash) {
+  if (existing && existing.content_hash === hash && existing.corpus_id === corpusId) {
     const count = await sql<{ n: number }>`
       select count(*)::int as n from chunks where document_id = ${existing.id}
     `;

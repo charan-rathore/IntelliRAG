@@ -1,3 +1,4 @@
+import { localModel } from "./ollama.server";
 import { getRequest, setCookie } from "@tanstack/react-start/server";
 import type { KeyProvider } from "./types";
 
@@ -86,7 +87,7 @@ export function keyStatus() {
     hasGeminiKey: gemini,
     hasOpenRouterKey: openrouter,
     hasXaiKey: envX,
-    hasServerKey: gemini || openrouter || envX,
+    hasServerKey: gemini || openrouter || envX || Boolean(localModel()),
     geminiFromEnv: envG,
     openRouterFromEnv: envO,
     xaiFromEnv: envX,
@@ -99,7 +100,7 @@ export function keyStatus() {
         ? "google"
         : envX
           ? "xai"
-          : null) as KeyProvider | null,
+          : localModel() ? "ollama" : null) as KeyProvider | null,
   };
 }
 
@@ -150,6 +151,6 @@ export function resolveRuntime(): {
       ? { provider: "google" as const, apiKey: keys.gemini }
       : envXai()
         ? { provider: "xai" as const, apiKey: envXai()! }
-        : null;
+        : localModel() ? { provider: "ollama" as const, apiKey: "local" } : null;
   return { embed, generate };
 }

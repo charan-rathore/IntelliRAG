@@ -162,7 +162,7 @@ export function gateIdentitySessions() {
               console.error(`${LOG} no request headers on /get-session`);
               return;
             }
-            // Bearer auth (live-preview popup) already carries a session — leave it alone.
+            // Bearer auth (live-preview popup) already carries a session. leave it alone.
             if (inbound.get("authorization")) return;
             if (!inbound.get(GATE_IDENTITY_HEADER)) return;
 
@@ -202,7 +202,7 @@ export function gateIdentitySessions() {
                     GATE_PROVIDER_ID,
                   )
                 ) {
-                  // Already signed in as this gate identity — nothing to do.
+                  // Already signed in as this gate identity. nothing to do.
                   return;
                 }
                 await ctx.context.internalAdapter
@@ -245,7 +245,7 @@ export function gateIdentitySessions() {
               // Persist session rows + internal newSession state.
               await setSessionCookie(ctx, result.data);
 
-              // Explicitly sign the token and emit Set-Cookie — do NOT rely on
+              // Explicitly sign the token and emit Set-Cookie. do NOT rely on
               // reading it back from ctx.context.responseHeaders (often empty
               // here, which previously caused a silent signed-out render).
               const sessionValue = await emitSessionCookie(

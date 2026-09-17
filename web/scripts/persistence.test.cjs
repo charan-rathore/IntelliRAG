@@ -8,7 +8,7 @@ const { PGlite } = require("@electric-sql/pglite");
 require.extensions[".ts"] = (mod, file) =>
   mod._compile(
     ts.transpileModule(fs.readFileSync(file, "utf8"), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
     }).outputText,
     file,
   );

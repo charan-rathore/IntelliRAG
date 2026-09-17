@@ -1,12 +1,12 @@
 /**
  * Self-hosted Better Auth for THIS app (server-only).
  *
- * Pre-wired for live preview + deploy — do not rewrite this file. To enable
+ * Pre-wired for live preview + deploy. do not rewrite this file. To enable
  * local email/password, flip the flag in `./email-password` only (see auth skill).
  *
  * The app runs its own Better Auth at `/api/auth/*`, so the session cookie stays
  * on this app's own origin. Sign-in federates to the shared **Grok auth broker**
- * (`GROK_AUTH_ISSUER`) via the `genericOAuth` plugin — the broker brokers the
+ * (`GROK_AUTH_ISSUER`) via the `genericOAuth` plugin. the broker brokers the
  * upstream sign-in methods (Google, X, …) and holds their shared secrets; this
  * app only holds its own client id/secret and names the upstream it wants via
  * each provider's `idp` hint.
@@ -19,12 +19,12 @@
  *     origin from the request, so real sign-in works (no demo users). Sessions
  *     and identities persist in the embedded PGLite DB (same DB as app data);
  *     the process restart wipes both. Live-preview iframe clients use a bearer
- *     token (partitioned cookies) — see `client.ts`.
+ *     token (partitioned cookies). see `client.ts`.
  *   - Off (`VITE_AUTH_ENABLED=false`, the shipped default): no providers;
  *     `requireUserId` resolves a dev user with no database configured, and
  *     throws fail-closed once `DATABASE_URL` is set (see `verify.server.ts`).
  *
- * NEVER import this from client code — it pulls in `pg` + the preview secret +
+ * NEVER import this from client code. it pulls in `pg` + the preview secret +
  * server-only Better Auth internals. The client uses `@/lib/auth/client`;
  * components read the user via `@/lib/auth/use-current-user`; server functions get
  * a verified id via `@/lib/auth/middleware`.
@@ -49,7 +49,7 @@ import {
 } from "./preview";
 
 // Kick (and share) PGLite bootstrap as soon as the auth server module loads.
-// Skip on Vercel/Lambda — PGLite's wasm image is not on that filesystem.
+// Skip on Vercel/Lambda. PGLite's wasm image is not on that filesystem.
 if (!vercelWithoutDatabase()) {
   void ensureDbReady();
 }
@@ -96,11 +96,11 @@ export const authConfigured =
 // preview allowlist, which makes the OAuth `redirect_uri` the concrete preview URL
 // the broker's preview client accepts.
 const explicitBaseURL = env("BETTER_AUTH_URL");
-// Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
+// Explicit `string[]` (not a readonly tuple). Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
 // Local `npm run dev` (port 8080 contract). Browsers may send Origin as any of
-// these for the same server — trusting only `localhost` rejects `127.0.0.1` and
+// these for the same server. trusting only `localhost` rejects `127.0.0.1` and
 // breaks email/password with "Invalid origin".
 const LOCAL_DEV_ORIGINS: string[] = [
   "http://localhost:8080",
@@ -133,7 +133,7 @@ const databaseUrl = env("DATABASE_URL");
 
 // Static broker OAuth endpoints (skip OIDC discovery on every sign-in / callback).
 // Discovery would cost an extra network hop to the broker before the popup can
-// even redirect to Google/X — the live-preview popup felt stuck on the app for
+// even redirect to Google/X. the live-preview popup felt stuck on the app for
 // that whole round-trip. These paths match the broker's discovery document.
 const issuerBase = grokIssuer.replace(/\/+$/, "");
 const grokAuthorizationUrl = `${issuerBase}/api/auth/oauth2/authorize`;
@@ -141,7 +141,7 @@ const grokTokenUrl = `${issuerBase}/api/auth/oauth2/token`;
 const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 
 // Real Postgres when `DATABASE_URL` is set (deployed apps), else the app's
-// embedded PGLite (preview) via a Kysely dialect — so Better Auth persists to the
+// embedded PGLite (preview) via a Kysely dialect. so Better Auth persists to the
 // SAME DB as app data, including email/password users. Both use the Better Auth
 // schema from `migrations/auth/0001_auth.sql`, copied into `migrations/` when
 // the app turns sign-in on. On Vercel without DATABASE_URL, omit the dialect so
@@ -152,7 +152,7 @@ const database = databaseUrl
     ? memoryAdapter({})
     : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
-/** Session token cookie name — also read by the live-preview popup completion page. */
+/** Session token cookie name. also read by the live-preview popup completion page. */
 export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";
 
 // Built separately so the `betterAuth({...})` call stays easy to edit without
@@ -187,7 +187,7 @@ export const auth = betterAuth({
   database,
 
   // CSRF / origin check for credentialed auth POSTs (email sign-up/sign-in, …).
-  // See `trustedOrigins` construction above — must cover live preview hosts AND
+  // See `trustedOrigins` construction above. must cover live preview hosts AND
   // local loopback variants, or clients get "Invalid origin".
   trustedOrigins,
 
@@ -196,7 +196,7 @@ export const auth = betterAuth({
   // synthetic/unverified, so WITHOUT this a login can fail with
   // `account_not_linked` (Better Auth refuses to attach an untrusted, unverified
   // identity to an existing user). Google and X carry DISTINCT emails, so this
-  // never merges them into one user — they stay separate identities.
+  // never merges them into one user. they stay separate identities.
   account: {
     encryptOAuthTokens: true,
     accountLinking: {
@@ -212,12 +212,12 @@ export const auth = betterAuth({
   },
 
   // Cache the session in the short-lived signed `session_data` cookie so reads
-  // (incl. the client's `/get-session`) skip the DB — this shrinks the "loading"
+  // (incl. the client's `/get-session`) skip the DB. this shrinks the "loading"
   // window and reduces auth flicker. See the `auth` skill for the full
   // flicker-prevention guidance (gate on `isPending`; SSR the session).
   session: { cookieCache: { enabled: true, maxAge: 300 } },
 
-  // Local email/password — toggled only via `./email-password` (not a plugin).
+  // Local email/password. toggled only via `./email-password` (not a plugin).
   ...(emailAndPasswordEnabled ? { emailAndPassword: { enabled: true } } : {}),
 
   // `__Host-` prefixed cookies: the browser REFUSES any same-named cookie that

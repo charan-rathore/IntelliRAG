@@ -34,7 +34,7 @@ export const DEMO_RUNS: DemoRun[] = [
     question: "What's the weather in Tokyo?",
     kind: "refused",
     audience: "RAG engineer",
-    promise: "Off-corpus questions are refused after retrieval finds no support — not because of a weather regex.",
+    promise: "Off-corpus questions are refused after retrieval finds no support. not because of a weather regex.",
     expect: "Refused · not in indexed corpus",
   },
 ];
@@ -58,7 +58,7 @@ export const TRUST_MARKS = [
 
 export const RUN_STORY = [
   "You ask a runbook question.",
-  "Hybrid retrieval scores every chunk (cosine, BM25, RRF, then a calibrated lexical/title mix — not a cross-encoder, not MMR).",
+  "Hybrid retrieval scores every chunk (cosine, BM25, RRF, then a calibrated lexical/title mix. not a cross-encoder, not MMR).",
   "Context packing uses an absolute calibrated floor plus a relative drop vs rank-1. That is not “similarity ≥ 0.55”.",
   "Flash cites [Source N] only when evidence supports the claim. Otherwise: Not in the indexed corpus.",
   "Lab shows Used vs Inspect only, so you can see why a chunk was dropped.",
@@ -75,7 +75,7 @@ export const COACH_COPY: Record<CoverageKind, { title: string; body: string }> =
   },
   refused: {
     title: "The lab refused instead of inventing an answer.",
-    body: "Retrieval found no supporting evidence. The answer is Not in the indexed corpus — not a weather-keyword shortcut.",
+    body: "Retrieval found no supporting evidence. The answer is Not in the indexed corpus. not a weather-keyword shortcut.",
   },
   guide: {
     title: "That was help with the console.",
@@ -146,7 +146,7 @@ export const SAMPLE_CANDIDATES: RetrievalCandidate[] = [
     scores: { dense: 0.38, keyword: 0.22, hybrid: 0.31, rerank: 0.41 },
     usedInContext: false,
     overlapTerms: ["cache", "ttl"],
-    dropReason: "Below the relative floor vs rank-1 calibrated score — inspect only. Not an absolute 0.55 cosine cut.",
+    dropReason: "Below the relative floor vs rank-1 calibrated score. inspect only. Not an absolute 0.55 cosine cut.",
   }),
   sampleCandidate({
     chunkId: "sample-linux",
@@ -158,6 +158,6 @@ export const SAMPLE_CANDIDATES: RetrievalCandidate[] = [
     scores: { dense: 0.21, keyword: 0.12, hybrid: 0.16, rerank: 0.11 },
     usedInContext: false,
     overlapTerms: ["cache"],
-    dropReason: "No stampede overlap. Keyword score 0.12 — retrieved, then dropped.",
+    dropReason: "No stampede overlap. Keyword score 0.12. retrieved, then dropped.",
   }),
 ];

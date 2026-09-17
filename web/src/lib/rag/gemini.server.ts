@@ -1,3 +1,4 @@
+import { localModel, streamLocal } from "./ollama.server";
 import {
   EMBEDDING_DIMENSIONS,
   EMBEDDING_MODEL,
@@ -537,6 +538,7 @@ export async function streamGenerate(opts: {
   if (!runtime.generate) {
     throw new GeminiError("Add a Gemini or OpenRouter API key to generate answers", 401);
   }
+  if (runtime.generate.provider === "ollama") return streamLocal(opts);
   if (runtime.generate.provider === "openrouter") {
     return streamOpenRouter({ ...opts, apiKey: runtime.generate.apiKey });
   }
@@ -555,6 +557,7 @@ export async function completeOnce(opts: {
   if (!runtime.generate) {
     throw new GeminiError("Add a Gemini or OpenRouter API key to generate answers", 401);
   }
+  if (runtime.generate.provider === "ollama") return streamLocal({ ...opts, onToken: () => {} });
   if (runtime.generate.provider === "openrouter") {
     return generateOpenRouter({ ...opts, apiKey: runtime.generate.apiKey });
   }
@@ -565,6 +568,7 @@ export async function completeOnce(opts: {
 }
 
 export function generationModelLabel(provider: KeyProvider | null) {
+  if (provider === "ollama") return `ollama/${localModel()?.model || "unavailable"}`;
   if (provider === "openrouter") return GENERATION_MODEL_OPENROUTER;
   if (provider === "xai") return GENERATION_MODEL_XAI;
   return GENERATION_MODEL;

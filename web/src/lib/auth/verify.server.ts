@@ -6,10 +6,10 @@ import { auth, authConfigured } from "./server";
  * Server-side session resolution (server-only).
  *
  * Because this app runs its OWN Better Auth at same-origin `/api/auth/*`, the
- * session cookie is sent with every request to this app — server functions AND
+ * session cookie is sent with every request to this app. server functions AND
  * SSR loaders included. So we resolve the user straight from the request cookies
  * via `auth.api.getSession` (no client-minted JWT needed). Never trust a
- * client-supplied user id — only the result of this verification.
+ * client-supplied user id. only the result of this verification.
  */
 
 /** True when a real database is configured server-side. */
@@ -21,7 +21,7 @@ export { authConfigured };
 if (databaseConfigured && !authConfigured) {
   console.error(
     "[auth] DATABASE_URL is set but auth is disabled (VITE_AUTH_ENABLED=false) " +
-      "— requireUserId() will reject every request (fail closed) rather than " +
+      ",  requireUserId() will reject every request (fail closed) rather than " +
       "share one dev user on a real database.",
   );
 }
@@ -31,7 +31,7 @@ export const DEV_USER_ID = "dev-user";
 
 /**
  * Thrown by `requireUserId` when the caller has no valid session. Carries
- * `status: 401`; the message is a stable contract — match
+ * `status: 401`; the message is a stable contract. match
  * `err.message === "Unauthorized"` client-side to send the visitor to sign-in.
  */
 export class UnauthorizedError extends Error {
@@ -85,7 +85,7 @@ export async function requireUserId(bearerToken?: string): Promise<string> {
   if (!authConfigured && !gateIdentityEnabled()) {
     if (databaseConfigured) {
       throw new Error(
-        "Auth is disabled (VITE_AUTH_ENABLED=false) but DATABASE_URL is set — " +
+        "Auth is disabled (VITE_AUTH_ENABLED=false) but DATABASE_URL is set. " +
           "refusing to fall back to the shared dev user against a real database.",
       );
     }

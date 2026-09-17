@@ -9,7 +9,7 @@ const SIGN: Record<GraphOutcome, number> = {
 
 /**
  * graphify reflect(): time-decayed signed scores, min corroboration 2 for preferred.
- * Learning is a sidecar — never stamped into graph.json.
+ * Learning is a sidecar. never stamped into graph.json.
  */
 export function reflect(state: GraphState, now = Date.now()): LearningSidecar {
   const byNode = new Map<string, MemoryDoc[]>();

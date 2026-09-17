@@ -1,9 +1,9 @@
 /**
- * Live-preview sign-in popup — server-only (NEVER import from the client).
+ * Live-preview sign-in popup. server-only (NEVER import from the client).
  *
  * The sandbox preview runs the app in a partitioned iframe, so OAuth must happen
  * in a top-level popup (first-party cookies). This handler is the ENTIRE popup
- * document — no React shell:
+ * document. no React shell:
  *
  *   Phase 1 (`?providerId=…`): start OAuth server-side and 302 straight to the
  *     broker / upstream login page. The popup never paints the app.
@@ -12,7 +12,7 @@
  *     server-fn round-trip.
  *
  * Wired automatically by the Vite `authPopupPlugin` in `vite.config.ts` during
- * `npm run dev` (live preview). Do NOT create `src/routes/auth/popup.tsx` — a
+ * `npm run dev` (live preview). Do NOT create `src/routes/auth/popup.tsx`. a
  * React route here paints the full app shell in the popup. The opener lives in
  * `client.ts` (`signIn` → `openSignInPopup`).
  */

@@ -80,7 +80,7 @@ export function dropReason(opts: {
   afterMmr: boolean;
 }): string | undefined {
   if (opts.usedInContext) return undefined;
-  if (!opts.afterCliff) return "Below the rank-1 score cliff — kept for inspection, not sent to Flash";
+  if (!opts.afterCliff) return "Below the rank-1 score cliff. kept for inspection, not sent to Flash";
   if (!opts.afterMmr) return "Outside the top context window (retrieve many, generate from few)";
   return "Outside the context token budget";
 }

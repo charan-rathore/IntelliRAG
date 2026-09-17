@@ -142,7 +142,7 @@ export function classifyEvidence(opts: {
   if (!distinctiveTerms(opts.query).length) {
     return gate(
       "ambiguous",
-      "The question has no distinctive entity. Several indexed sources may apply — do not treat one as the only answer.",
+      "The question has no distinctive entity. Several indexed sources may apply. do not treat one as the only answer.",
       stats,
     );
   }

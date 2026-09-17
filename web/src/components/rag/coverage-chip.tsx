@@ -9,12 +9,12 @@ const COPY: Record<CoverageKind, { label: string; hint: string; tone: string }> 
   },
   general: {
     label: "General Flash",
-    hint: "Unused in grounded mode — insufficient evidence is refused instead",
+    hint: "Unused in grounded mode. insufficient evidence is refused instead",
     tone: "text-warn border-warn/30",
   },
   refused: {
     label: "Refused",
-    hint: "Not in the indexed corpus — no fake citations",
+    hint: "Not in the indexed corpus. no fake citations",
     tone: "text-bad border-bad/30",
   },
   guide: {

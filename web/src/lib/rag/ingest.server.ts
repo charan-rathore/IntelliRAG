@@ -1,6 +1,6 @@
 /**
  * Ingestion. A GitHub repository-root or tree URL enumerates the git tree
- * (text/code files, size and vendor filters) — it does not index only README.md.
+ * (text/code files, size and vendor filters). it does not index only README.md.
  * A blob URL still indexes that one file. Code files use function/class chunking.
  */
 import { embedTexts, GeminiError } from "./gemini.server";

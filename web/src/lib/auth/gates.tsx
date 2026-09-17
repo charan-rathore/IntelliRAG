@@ -4,9 +4,9 @@ import { authEnabled, signOut } from "./client";
 import { useCurrentUser, useCurrentUserState } from "./use-current-user";
 
 /**
- * Auth state components — plain wrappers around `useCurrentUserState()`.
+ * Auth state components. plain wrappers around `useCurrentUserState()`.
  *
- * With auth on, visitors are signed out until they authenticate — in the sandbox
+ * With auth on, visitors are signed out until they authenticate. in the sandbox
  * live preview too, which does real sign-in. The shared dev user appears only
  * when auth is disabled (`VITE_AUTH_ENABLED=false`, the shipped default).
  * While the session is still resolving, gates that care about signed-out state
@@ -33,7 +33,7 @@ export function SignedOut({ children }: { children: ReactNode }) {
 }
 
 /**
- * Client-side redirect to the sign-in route (TanStack `<Navigate>` — NOT a full
+ * Client-side redirect to the sign-in route (TanStack `<Navigate>`. NOT a full
  * `window.location` reload). A hard navigation re-bootstraps the SPA and re-runs
  * session loading, which feels like a second "Loading…" on /login.
  *

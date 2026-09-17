@@ -194,7 +194,7 @@ export function installPreviewHostBridge(
     if (envelope.data.type === "history") {
       const parsed = HistorySchema.safeParse(event.data);
       if (!parsed.success) return;
-      // Do not history.go(-1) off the first entry — that leaves the preview.
+      // Do not history.go(-1) off the first entry. that leaves the preview.
       if (parsed.data.delta === -1 && isAtHistoryRoot()) return;
       // Location sync comes from the popstate listener once history settles.
       window.history.go(parsed.data.delta);

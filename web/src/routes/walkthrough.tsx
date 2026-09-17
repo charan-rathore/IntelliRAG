@@ -4,7 +4,7 @@ import walkthrough from '@/data/walkthrough.json';
 
 export const Route = createFileRoute('/walkthrough')({
   head: () => ({ meta: [
-    { title: 'One issue. Two questions. — IntelliRAG walkthrough' },
+    { title: 'One issue. Two questions.. IntelliRAG walkthrough' },
     { name: 'description', content: 'A short, narrated experiment on the public IntelliRAG lab: import a GitHub issue, inspect a cited answer and its graph, test an unsupported question, then reuse the cache.' },
     { property: 'og:image', content: 'https://intellirag-live-own-track.vercel.app/demo/intellirag-walkthrough-poster.jpg' },
   ] }),

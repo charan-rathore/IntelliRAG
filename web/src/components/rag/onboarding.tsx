@@ -103,7 +103,7 @@ export function DemoCatalog({
       </div>
       {!hasKey && (
         <p className="mt-3 text-xs leading-relaxed text-subtle">
-          Demos hit the live index without an LLM key — answers are extractive citations from packed chunks. Add OpenRouter in Settings for Gemini 3.7 Flash.
+          Demos hit the live index without an LLM key. answers are extractive citations from packed chunks. Add OpenRouter in Settings for Gemini 3.7 Flash.
         </p>
       )}
     </div>
@@ -173,16 +173,23 @@ export function FirstRunCoach({
   );
 }
 
-export function WelcomeOnboarding({ onAsk, onSources, onTour }: {
+export function WelcomeOnboarding({ onAsk, onSources, onTour, hasKey, onRepositoryDemo, importing, importError }: {
   view: ConsoleView; hasKey: boolean; onAsk: (q: string) => void; onSources: () => void; onTour: () => void;
+  onRepositoryDemo: () => void; importing: boolean; importError: string | null;
 }) {
-  return <section className="mx-auto flex max-w-3xl flex-col gap-8 py-8 sm:py-14">
-    <div><p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">FROM SOURCE TO ANSWER</p>
-      <h1 className="mt-4 max-w-xl font-display text-4xl leading-tight tracking-[-0.03em] text-fg sm:text-6xl">Your docs.<br />Answers you can check.</h1>
-      <p className="mt-5 max-w-xl text-base leading-relaxed text-muted">Import a GitHub repo, issue, or document. Ask a question. Follow the citation—or see where the evidence runs out.</p>
-      <div className="mt-6 flex flex-wrap gap-3"><Button onClick={onSources}>Bring a source <ArrowRight className="size-4" /></Button><Button variant="ghost" onClick={onTour}>Show me the controls</Button></div>
+  return <section className="mx-auto flex max-w-3xl flex-col gap-5 py-3">
+    <div><p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">REPOSITORY SUPPORT, WITH EVIDENCE</p>
+      <h1 className="mt-3 font-display text-3xl leading-tight tracking-[-0.03em] text-fg sm:text-4xl">The docs have the pieces.<br />You need the decision.</h1>
+      <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">Bring a GitHub source. Ask what to do in your situation. Inspect the passages behind the answer and the connections below.</p>
     </div>
-    <div><p className="mb-3 text-xs uppercase tracking-[0.16em] text-muted">Or try a real question</p><div className="grid gap-3 sm:grid-cols-3">{DEMO_RUNS.map(demo => <button key={demo.id} onClick={() => onAsk(demo.question)} className="min-h-28 rounded-lg border border-border bg-surface p-4 text-left text-sm leading-relaxed transition-colors hover:border-primary"><span className="block text-xs text-muted">{demo.kind === 'refused' ? 'Test the boundary' : 'Find the evidence'}</span><span className="mt-2 block">{demo.question}</span><ArrowRight className="mt-3 size-4 text-primary" /></button>)}</div></div>
-    <p className="text-sm leading-relaxed text-muted">Sources manages your documents. Evidence opens the graph and retrieval details when you need them.</p>
+    <div className="rounded-lg border border-primary/40 bg-surface p-4">
+      <p className="text-xs text-muted">LOADED & READY · <a href="https://github.com/sindresorhus/p-queue/blob/180ab9e25cd10b6f548767d7176076b50d25e188/readme.md" target="_blank" rel="noreferrer" className="text-primary underline">sindresorhus/p-queue · pinned README ↗</a></p>
+      <h2 className="mt-2 text-lg font-medium">How do I change configuration safely while jobs are still queued?</h2>
+      <p className="mt-2 text-sm leading-relaxed text-muted">The docs explain pause, running jobs, and an empty queue separately. This question asks how those rules fit together, and why waiting for everything could leave you stuck.</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3"><Button disabled={importing} onClick={onRepositoryDemo}>Ask this question<ArrowRight className="size-4" /></Button><Button variant="ghost" onClick={onSources}>Use your own source</Button></div>
+      <p className="mt-2 text-xs text-muted">{hasKey ? "Runs against a pinned README revision. Follow-up questions stay in that repository." : "No model key is configured: try cited source extracts now. Add OpenRouter in Settings for a reasoned Gemini answer."}</p>
+      {importError && <p role="alert" className="mt-2 text-sm text-bad">{importError}</p>}
+    </div>
+    <div className="flex flex-wrap items-center gap-3 text-xs"><button onClick={() => onAsk(DEMO_RUNS[0].question)} className="min-h-11 text-primary underline">Try the built-in runbooks</button><button onClick={onTour} className="min-h-11 text-muted underline">Show me the controls</button><span className="text-muted">Sources and Evidence toggle the side panels.</span></div>
   </section>;
 }

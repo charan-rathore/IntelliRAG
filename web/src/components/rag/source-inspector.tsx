@@ -29,7 +29,7 @@ function ScoreBar({ value, kind }: { value: number | null; kind: keyof Retrieval
         </span>
       )}
       <span className="min-w-[2.5rem] font-mono text-xs tabular-nums text-muted">
-        {value == null ? "—" : value >= 10 ? value.toFixed(1) : value.toFixed(3)}
+        {value == null ? ", " : value >= 10 ? value.toFixed(1) : value.toFixed(3)}
       </span>
     </span>
   );
@@ -128,8 +128,8 @@ function CandidateRow({
           )}
           {candidate.ranks && (
             <p className="mb-2 font-mono text-[10px] tabular-nums text-subtle">
-              ranks dense={candidate.ranks.dense ?? "—"} bm25={candidate.ranks.keyword ?? "—"} rrf=
-              {candidate.ranks.fused ?? "—"} rerank={candidate.ranks.rerank}
+              ranks dense={candidate.ranks.dense ?? ", "} bm25={candidate.ranks.keyword ?? ", "} rrf=
+              {candidate.ranks.fused ?? ", "} rerank={candidate.ranks.rerank}
               {candidate.ranks.dense != null &&
               candidate.ranks.dense === 1 &&
               candidate.ranks.rerank !== 1

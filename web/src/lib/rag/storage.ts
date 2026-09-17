@@ -31,7 +31,7 @@ export function getDatabaseUrl(): string | undefined {
 
 /**
  * True on Vercel/Lambda even when `process.env.VERCEL` was stripped at build.
- * The live crash was `ENOENT … /var/task/_libs/pglite.data` — cwd is the
+ * The live crash was `ENOENT … /var/task/_libs/pglite.data`. cwd is the
  * signal that cannot be faked by the bundler.
  */
 export function isServerlessRuntime(cwd = safeCwd()): boolean {

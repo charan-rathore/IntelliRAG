@@ -1,7 +1,7 @@
 /**
  * Query orchestration. classifyIntent only routes greetings and capability
  * questions. Off-topic / ungrounded questions are decided after retrieval via
- * evidence classification — not a weather/joke/recipe regex. Insufficient
+ * evidence classification. not a weather/joke/recipe regex. Insufficient
  * evidence yields the deterministic string “Not in the indexed corpus.”
  */
 import { createHash } from "node:crypto";
@@ -33,6 +33,7 @@ import type {
 } from "./types";
 import { EMBEDDING_MODEL } from "./types";
 import { snippet } from "./text";
+import { extractiveAnswer } from "./extractive";
 
 export type QueryEvent =
   | ({ type: "graph" } & GraphTrace)
@@ -111,17 +112,6 @@ function markCited(
   return candidates.map((c) => ({ ...c, cited: citedIds.has(c.chunkId) }));
 }
 
-function extractiveAnswer(chunks: RetrievedChunk[]): string {
-  return chunks
-    .slice(0, 3)
-    .map((chunk, i) => {
-      const cleaned = chunk.text.replace(/^#{1,6}\s+/gm, "").replace(/\n{3,}/g, "\n\n").trim();
-      const clip = cleaned.length > 1800 ? `${cleaned.slice(0, 1800).trim()}…` : cleaned;
-      return `${clip} [Source ${i + 1}]`;
-    })
-    .join("\n\n");
-}
-
 function guideDone(
   answer: string,
   intent: string,
@@ -176,7 +166,7 @@ export async function runQueryStream(
   if (intent === "greeting") {
     emit(
       guideDone(
-        "Hey — I’m IntelliRAG. Indexed runbooks cover Kubernetes, asyncio, databases, Docker, Git, Redis, HTTP caching, Linux, Node, and SRE. I cite those sources when retrieval finds support. Questions without corpus evidence are refused — I will not answer from model memory and pretend it was grounded.\n\nTry: “What caused the Kubernetes pod scheduling failures?”",
+        "Hey. I’m IntelliRAG. Indexed runbooks cover Kubernetes, asyncio, databases, Docker, Git, Redis, HTTP caching, Linux, Node, and SRE. I cite those sources when retrieval finds support. Questions without corpus evidence are refused. I will not answer from model memory and pretend it was grounded.\n\nTry: “What caused the Kubernetes pod scheduling failures?”",
         intent,
         { guide: performance.now() - started },
       ),
@@ -202,7 +192,7 @@ export async function runQueryStream(
   const runtime = resolveRuntime();
   const edits = input.graphEdits ?? EMPTY_EDITS;
   // Source revisions are checked by ensureGraph. Settings and credentials isolate answer variants.
-  const policy = createHash("sha256").update(JSON.stringify({ version: 4, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
+  const policy = createHash("sha256").update(JSON.stringify({ version: 5, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
     model: runtime.generate ? generationModelLabel(runtime.generate.provider) : "extractive", runtime, edits })).digest("hex");
   const graphStart = performance.now();
   emit({ type: "stage", name: "graph-lookup" });
@@ -398,7 +388,7 @@ export async function runQueryStream(
   }
 
   if (!runtime.generate) {
-    const answer = extractiveAnswer(retrieved.chunks);
+    const answer = extractiveAnswer(question, retrieved.chunks);
     emit({ type: "token", text: answer });
     const citations = citationsFrom(answer, retrieved.chunks);
     const candidates = markCited(retrieved.candidates, citations);

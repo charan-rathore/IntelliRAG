@@ -14,7 +14,7 @@ const LABELS: Record<string, string> = {
 };
 
 function formatMs(ms?: number) {
-  if (ms == null || Number.isNaN(ms)) return "—";
+  if (ms == null || Number.isNaN(ms)) return ", ";
   if (ms < 1000) return `${Math.round(ms)} ms`;
   return `${(ms / 1000).toFixed(1)} s`;
 }

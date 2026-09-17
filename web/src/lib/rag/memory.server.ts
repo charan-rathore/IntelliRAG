@@ -7,6 +7,7 @@
 import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { SEED_DOCUMENTS } from "./corpus";
+import { REPO_DEMO_DOCUMENT } from "./repo-demo.server";
 import { chunkDocument, type ChunkOptions } from "./chunking";
 import { getStorageStatus } from "./storage";
 import { sha256Hex, slugify } from "./text";
@@ -148,6 +149,7 @@ async function replaceChunks(
 }
 
 export async function ensureSeedDocuments(): Promise<void> {
+  await upsertDocument(REPO_DEMO_DOCUMENT);
   const s = state();
   for (const seed of SEED_DOCUMENTS) {
     const existing = s.documents.find((d) => d.slug === seed.slug);
@@ -201,7 +203,7 @@ export async function upsertDocument(input: UpsertInput) {
   const existing =
     (input.sourceUri ? s.documents.find((d) => d.source_uri === input.sourceUri) : undefined) ??
     s.documents.find((d) => d.slug === slugBase);
-  if (existing && existing.content_hash === hash) {
+  if (existing && existing.content_hash === hash && existing.corpus_id === corpusId) {
     return {
       id: existing.id,
       slug: existing.slug,

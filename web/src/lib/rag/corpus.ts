@@ -186,7 +186,7 @@ Set memory and CPU limits in Compose or Kubernetes. Without a memory limit, a le
 Containers on the same Compose network resolve each other by service name. Do not hard-code localhost for sibling services.
 
 ## Logs
-Prefer JSON logging and ship stdout. Do not write only to a file inside the container — it disappears with the writable layer.
+Prefer JSON logging and ship stdout. Do not write only to a file inside the container. it disappears with the writable layer.
 `,
   },
   {
@@ -245,7 +245,7 @@ top or htop: look for a process stuck at 100%. perf top for hot functions. If lo
 free -h. If available is near zero and si/so in vmstat is nonzero, you are paging. OOM killer leaves "Out of memory" in dmesg.
 
 ## Disk
-iostat -xz 1. %util near 100 and high await means the disk is the bottleneck. df -h for full volumes — logs filling /var is a classic outage.
+iostat -xz 1. %util near 100 and high await means the disk is the bottleneck. df -h for full volumes. logs filling /var is a classic outage.
 
 ## Network
 ss -tlnp for listeners. packet loss: ping and mtr. DNS: dig +trace, check /etc/resolv.conf.
@@ -466,14 +466,14 @@ export const PLATFORM_AUDIT = [
     original:
       "The live Python stack persisted vectors in Chroma/SQLite under RAG_CHROMA_DIR. Serverless and Vercel have no durable filesystem, so the index vanished on every cold start.",
     liveFix:
-      "Chunks and embeddings live in Postgres (Neon when DATABASE_URL is set). Local preview uses file-backed PGLite under .data/pglite. On Vercel without DATABASE_URL, dense retrieval is disabled — the UI must not claim stored vectors exist.",
+      "Chunks and embeddings live in Postgres (Neon when DATABASE_URL is set). Local preview uses file-backed PGLite under .data/pglite. On Vercel without DATABASE_URL, dense retrieval is disabled. the UI must not claim stored vectors exist.",
   },
   {
     id: "ollama-mock",
     severity: "critical" as const,
     title: "Ollama fallback to mock LLM",
     original:
-      "Generation defaulted to llama3.2 on localhost:11434. When Ollama was unreachable the console silently answered with a MockLLM — answers looked live but were not grounded.",
+      "Generation defaulted to llama3.2 on localhost:11434. When Ollama was unreachable the console silently answered with a MockLLM. answers looked live but were not grounded.",
     liveFix:
       "With a configured provider, queries can generate answers from retrieved evidence. Without a provider key, the console returns cited extracts or refuses unsupported questions; no model generation is claimed.",
   },
@@ -520,14 +520,14 @@ export const PLATFORM_AUDIT = [
     original:
       "Keyword retrieval was an in-memory BM25 rebuilt from Postgres at process start. Serverless workers started with an empty keyword index.",
     liveFix:
-      "BM25 is rebuilt per query from the current chunk table — cheap at lab scale, always consistent with dense search.",
+      "BM25 is rebuilt per query from the current chunk table. cheap at lab scale, always consistent with dense search.",
   },
   {
     id: "eval-mock",
     severity: "medium" as const,
     title: "Benchmarks on mock embeddings",
     original:
-      "CI quality gates used mock embeddings and a mock LLM. Precision looked low (0.20) and faithfulness sat at 0.50 — not a measure of real RAG.",
+      "CI quality gates used mock embeddings and a mock LLM. Precision looked low (0.20) and faithfulness sat at 0.50. not a measure of real RAG.",
     liveFix:
       "The trace reports whether query embedding and model generation actually ran. Keyword/extractive runs are not hybrid or LLM evaluation results. Real-provider evaluation requires a configured persistent index and provider.",
   },

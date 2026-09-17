@@ -16,7 +16,7 @@ import {
 } from "./types";
 
 export const SCORE_SEMANTICS =
-  "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1 — not an absolute 0.55 cosine threshold.";
+  "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.";
 
 export type IdF = Map<string, number>;
 
@@ -340,7 +340,7 @@ export function selectContext(
         continue;
       }
       if (seen.has(chunk.slug)) {
-        dropReasons.set(chunk.chunkId, "Duplicate document — a stronger chunk from this source is already packed.");
+        dropReasons.set(chunk.chunkId, "Duplicate document. a stronger chunk from this source is already packed.");
         continue;
       }
       packed.push({ ...chunk, rank: packed.length + 1 });
@@ -446,7 +446,7 @@ export function selectContext(
     }
     const normalizedText = chunk.text.replace(/\s+/g, " ").trim();
     if (seenText.has(normalizedText)) {
-      dropReasons.set(chunk.chunkId, "Duplicate passage — the same text is already packed.");
+      dropReasons.set(chunk.chunkId, "Duplicate passage. the same text is already packed.");
       continue;
     }
     if (used + chunk.tokenCount > maxTokens && packed.length) {

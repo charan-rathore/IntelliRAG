@@ -1,11 +1,11 @@
 /**
  * Full-mesh WebRTC rooms: one RTCPeerConnection per remote peer, signaled
  * through /api/rtc (see signaling.server.ts), game data flowing directly
- * browser-to-browser afterwards. Client-authoritative by construction — see
+ * browser-to-browser afterwards. Client-authoritative by construction. see
  * the multiplayer-p2p skill for when NOT to use this.
  *
  * Negotiation follows the "perfect negotiation" pattern: on a glare (both
- * sides offering at once) the polite peer — the lexicographically smaller id —
+ * sides offering at once) the polite peer. the lexicographically smaller id,
  * rolls back and accepts, so pairs converge without wedging.
  */
 
@@ -14,7 +14,7 @@ export type SignalKind = "offer" | "answer" | "ice";
 /**
  * Wire contract between this client and the signaling relay the app provides
  * at /api/rtc (see the multiplayer-p2p skill for a reference implementation).
- * The client only needs these shapes — the relay's storage is the app's choice.
+ * The client only needs these shapes. the relay's storage is the app's choice.
  */
 export interface PeerRow {
   id: string;
@@ -66,7 +66,7 @@ interface PeerSlot {
   lastProgressAt: number;
   /** Watchdog recreations (dialer) / stall windows (receiver) so far. */
   recoveryAttempts: number;
-  /** Gave up after MAX_RECOVERY_ATTEMPTS — excluded from fast-poll pressure. */
+  /** Gave up after MAX_RECOVERY_ATTEMPTS. excluded from fast-poll pressure. */
   terminal?: boolean;
   /** One-shot: pc was already recreated to absorb a failing remote offer. */
   recreatedForOffer?: boolean;
@@ -412,7 +412,7 @@ export class P2PRoom {
       } else if (kind === "ice") {
         const candidate = payload as RTCIceCandidateInit;
         if (!slot.pc.remoteDescription) {
-          // Candidate raced ahead of its SDP — hold it until the description
+          // Candidate raced ahead of its SDP. hold it until the description
           // lands (flushed after every successful setRemoteDescription).
           slot.pendingCandidates.push(candidate);
           return;
@@ -493,7 +493,7 @@ export class P2PRoom {
   /**
    * Stuck-pair recovery, piggybacked on the ping interval. A pair that has
    * made no progress for STALL_MS gets rebuilt by the dialer with a FRESH
-   * RTCPeerConnection (new DTLS identity — fixes the suspend/resume
+   * RTCPeerConnection (new DTLS identity. fixes the suspend/resume
    * fingerprint wedge). After MAX_RECOVERY_ATTEMPTS the pair is terminal:
    * visible to the app as its last connectionState, ignored by fast-poll.
    */
@@ -502,7 +502,7 @@ export class P2PRoom {
     const now = Date.now();
     for (const [peerId, slot] of this.peers) {
       // pc.close() and some suspend/resume wedges never fire
-      // connectionstatechange — read the LIVE state so a silently-dead pc
+      // connectionstatechange. read the LIVE state so a silently-dead pc
       // still trips the stall timer instead of hiding behind a cached
       // "connected". Only live progress states refresh the stall clock.
       const live = slot.pc.connectionState;
@@ -557,7 +557,7 @@ export class P2PRoom {
   }
 
   private emitPeers(): void {
-    // Only notify when something observable actually changed — React state
+    // Only notify when something observable actually changed. React state
     // setters otherwise re-render consumers on every poll/ping.
     const list = this.peerList();
     const fingerprint = JSON.stringify(
