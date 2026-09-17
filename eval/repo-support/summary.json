@@ -1,0 +1,22 @@
+{
+  "answerableCount": 15,
+  "unknownCount": 5,
+  "meanEvidenceRecall": {
+    "Plain BM25": 0.7333333333333333,
+    "IntelliRAG before": 0.36666666666666664,
+    "IntelliRAG after": 0.7
+  },
+  "completeEvidenceCount": {
+    "Plain BM25": 10,
+    "IntelliRAG before": 4,
+    "IntelliRAG after": 9
+  },
+  "pairedAfterMinusBefore": 0.3333333333333333,
+  "pairedBootstrap95": [
+    0.13333333333333333,
+    0.6
+  ],
+  "caveat": "Exploratory first-party, single-repository diagnostic. Interval resamples questions, not repositories. Not answer accuracy; no LLM ran.",
+  "before": "2026-09-16T15:15:18.308Z",
+  "after": "2026-09-16T15:18:45.138Z"
+}

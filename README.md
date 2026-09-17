@@ -1,22 +1,36 @@
 # IntelliRAG
 
-An experimental RAG systems lab built from first principles.
+Repository support answers you can trace back to evidence.
 
-I wanted to know where retrieval-augmented generation actually breaks - not how to wrap another API. This repo implements the full pipeline so each layer can be measured: ingestion, chunking, embedding, indexing, hybrid retrieval, reranking, context assembly, citation-aware generation, evaluation, and observability.
+**The problem:** your docs explain each API, but a real support question asks how their rules fit together. IntelliRAG retrieves the relevant passages, passes them to a language model when configured, and keeps citations and retrieval decisions visible.
+
+**Try this:** open the preloaded, pinned `sindresorhus/p-queue` README and ask how to change shared configuration while jobs are still queued. The answer must combine pause, running-job completion and queue-idle behavior. The landing page offers this as a one-click question with the source already loaded. Without a model key, it shows cited extracts.
+
+[Why each architecture step exists](docs/architecture/web-rag-decisions.md) · [Evaluation protocol and raw evidence](eval/repo-support/README.md)
 
 **Live web status (September 2026):** [Public Vercel console](https://intellirag-live-own-track.vercel.app/) is running from this canonical repository. It currently supports keyword retrieval, cited extracts, issue ingestion and a lexical graph. Persistent semantic/hybrid production acceptance remains dependent on Postgres and provider configuration. See [the production setup and acceptance runbook](WEB.md) and [the measured audit with open findings](audit/REPORT.md).
 
 [![Watch the 57-second source-to-answer experiment](web/public/demo/intellirag-walkthrough-poster.jpg)](https://intellirag-live-own-track.vercel.app/walkthrough)
 
-[Watch the real browser experiment](https://intellirag-live-own-track.vercel.app/walkthrough) — import an issue, inspect its citations and graph, test a refusal, and reuse a cached answer. Narrated, with a quiet original score and captions in the site’s own typography.
+[Watch the real browser experiment](https://intellirag-live-own-track.vercel.app/walkthrough). import an issue, inspect its citations and graph, test a refusal, and reuse a cached answer. Narrated, with a quiet original score and captions in the site’s own typography.
 
 **Pilot proposal:** [10-slide deck and PDF](https://intellirag-live-own-track.vercel.app/pilot/index.html) · [research, evidence and interview guide](docs/sales/research-and-pilot.md). Focus: technical support answers with inspectable evidence; proposed pilot targets are explicitly separate from measured results.
+
+## Measured repository-support diagnostic
+
+![Actual evidence-retention measurements](eval/repo-support/retrieval-results.svg)
+
+On 15 answerable questions from one pinned p-queue README, fixing document-level deduplication raised required-evidence recall from **36.7% to 70.0%**. Plain BM25 scored **73.3%**. This is a narrow improvement over our previous implementation, **not a win over the baseline or a generated-answer accuracy claim**. Five additional probes test unsupported questions. No LLM ran in this retrieval experiment.
+
+![Measured local retrieval stage times](eval/repo-support/stage-latency.svg)
+
+[Dataset, before/after runs, uncertainty and limitations](eval/repo-support/README.md). Gemini 3.7 Flash generation and independent answer judging remain pending provider configuration. Local stage timings exclude network, storage and generation.
 
 **Python platform:** the phase history and benchmark sections below describe `rag-platform/`, a separate implementation in this monorepo. Its deterministic/mock CI results are not measurements of the public web deployment.
 
 **Repository:** [github.com/charan-rathore/IntelliRAG](https://github.com/charan-rathore/IntelliRAG)
 
-The live dark-theme browser lab is in [`web/`](web/) — see [WEB.md](WEB.md). This is the only GitHub repo. The Python platform stays in `rag-platform/`.
+The live dark-theme browser lab is in [`web/`](web/). see [WEB.md](WEB.md). This is the only GitHub repo. The Python platform stays in `rag-platform/`.
 
 ---
 
@@ -135,7 +149,7 @@ Ingest → Chunk → Embed → Index → Retrieve → Rerank → Assemble Contex
 
 All benchmarks run on a **2-document test corpus** (Kubernetes incident runbook + Python asyncio guide) with **mock embeddings** and **mock LLM** for deterministic CI. Re-run with `--use-ollama` for real model scores.
 
-> **Important:** Mock embeddings produce deterministic but non-semantic retrieval rankings. Precision metrics are artificially low (0.20) because 5 chunks are retrieved but only 1 is labeled relevant per query. Recall is 1.0 because all relevant content is found. Real Ollama embeddings will change absolute scores but the relative ranking patterns (hybrid > dense, reranking lifts MRR) should hold.
+> **Important:** Mock embeddings produce deterministic but non-semantic retrieval rankings. Precision metrics are artificially low (0.20) because 5 chunks are retrieved but only 1 is labeled relevant per query. Recall is 1.0 because all relevant content is found. Mock ranking order does not establish how real embeddings or models will perform. Re-run with real providers before claiming an improvement.
 
 ### Phase 3: Chunking Benchmark
 
