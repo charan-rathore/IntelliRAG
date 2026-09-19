@@ -16,20 +16,20 @@ import { CoverageChip } from "@/components/rag/coverage-chip";
 import { loadGraphEdits, type GraphTrace } from "@/lib/rag/graphify/edits";
 import { KnowledgeGraph } from "@/components/rag/knowledge-graph";
 import { LatencyWaterfall } from "@/components/rag/latency-waterfall";
-import { FirstRunCoach, RunPreview, WelcomeOnboarding } from "@/components/rag/onboarding";
+import { FirstRunCoach, RunPreview, SuggestedQuestions, WelcomeOnboarding } from "@/components/rag/onboarding";
 import { ProductTour } from "@/components/rag/product-tour";
 import { PackedSources, SourceInspector } from "@/components/rag/source-inspector";
 import { ViewToggle } from "@/components/rag/view-toggle";
 import { formatAnswerHtml } from "@/lib/rag/answer";
 import {
   embedNextBatch,
+  getCorpusSuggestions,
   getLabSnapshot,
   ingestPastedDocument,
   ingestRemoteUrl,
   removeDocument,
   submitGraphFeedback,
 } from "@/lib/rag/functions";
-import { EXAMPLE_QUESTIONS } from "@/lib/rag/corpus";
 import { REPO_DEMO_CORPUS, REPO_DEMO_QUESTION } from "@/lib/rag/repo-demo";
 import { ALL_CORPORA, SEED_CORPUS_ID, corpusLabel } from "@/lib/rag/corpus-scope";
 import type { GraphOutcome } from "@/lib/rag/graphify/schema";
@@ -44,6 +44,7 @@ import {
   TOP_K_STORAGE,
   VIEW_MODE_STORAGE,
 } from "@/lib/rag/client-key";
+import type { SuggestedQuestion } from "@/lib/rag/predict-questions";
 import type {
   AuditFinding,
   Citation,
@@ -162,10 +163,11 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [evalBusy, setEvalBusy] = useState(false);
   const [evalError, setEvalError] = useState<string | null>(null);
   const [evalReport, setEvalReport] = useState<Snapshot["lastEval"]>(initial.lastEval);
-  const [view, setView] = useState<ConsoleView>("lab");
+  const [view, setView] = useState<ConsoleView>("reading");
   const [corpus, setCorpus] = useState(REPO_DEMO_CORPUS);
   const [coachOpen, setCoachOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<SuggestedQuestion[]>(initial.suggestions ?? []);
   const threadRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const indexLoop = useRef(false);
@@ -176,7 +178,19 @@ export function Console({ initial }: { initial: Snapshot }) {
     (d) => visibleStaleReasons(d.staleReasons, denseAvailable).length > 0,
   ).length;
   const asked = messages.filter((m) => m.role === "user").map((m) => m.text);
-  const followUps = EXAMPLE_QUESTIONS.filter((q) => !asked.includes(q)).slice(0, 3);
+  const followUps = suggestions
+    .map((s) => s.question)
+    .filter((q) => !asked.includes(q))
+    .slice(0, 3);
+
+  const refreshSuggestions = useCallback(async (corpusId: string) => {
+    try {
+      const next = await getCorpusSuggestions({ data: { corpusId, limit: 6 } });
+      setSuggestions(next);
+    } catch {
+      // keep prior suggestions if the sidecar is unavailable
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     const next = await getLabSnapshot();
@@ -184,6 +198,10 @@ export function Console({ initial }: { initial: Snapshot }) {
     if (next.lastEval) setEvalReport(next.lastEval);
     return next;
   }, []);
+
+  useEffect(() => {
+    void refreshSuggestions(corpus);
+  }, [corpus, refreshSuggestions]);
 
   const runEval = useCallback(async () => {
     setEvalBusy(true);
@@ -403,6 +421,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         });
       }
       void refresh();
+      void refreshSuggestions(corpusOverride ?? corpus);
     } catch (err) {
       setMessages((all) =>
         all.map((m) =>
@@ -441,6 +460,9 @@ export function Console({ initial }: { initial: Snapshot }) {
       }
       setIngestUrl("");
       const next = await refresh();
+      await refreshSuggestions(
+        "corpusId" in result && typeof result.corpusId === "string" ? result.corpusId : corpus,
+      );
       if (snapshot.embeddingVia && next.pendingEmbeddings > 0) await runIndexLoop();
     } catch (err) {
       setIngestError(err instanceof Error ? err.message : "Ingest failed");
@@ -461,6 +483,9 @@ export function Console({ initial }: { initial: Snapshot }) {
       }
       setIngestBody("");
       const next = await refresh();
+      await refreshSuggestions(
+        "corpusId" in result && typeof result.corpusId === "string" ? result.corpusId : corpus,
+      );
       if (snapshot.embeddingVia && next.pendingEmbeddings > 0) await runIndexLoop();
     } catch (err) {
       setIngestError(err instanceof Error ? err.message : "Ingest failed");
@@ -531,7 +556,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
             <p className="hidden text-xs text-muted sm:block">
-              {denseAvailable ? "hybrid retrieval · cited answers" : "keyword retrieval · cited answers"}
+              Ask your documents · cited answers
             </p>
           </div>
         </div>
@@ -584,11 +609,12 @@ export function Console({ initial }: { initial: Snapshot }) {
                 view={view}
                 onSources={() => setCorpusOpen(true)}
                 hasKey={hasKey}
-                onAsk={runDemo}
+                onAsk={(q) => void ask(q)}
                 onTour={() => setTourOpen(true)}
                 onRepositoryDemo={() => void runRepositoryDemo()}
                 importing={ingestBusy}
                 importError={ingestError}
+                suggestions={suggestions}
               />
             ) : (
               <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -612,22 +638,31 @@ export function Console({ initial }: { initial: Snapshot }) {
                   />
                 ))}
                 {!busy && followUps.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {followUps.map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => runDemo(q)}
-                        className="rounded-full border border-border bg-raised px-3 py-2 text-left text-xs text-muted transition-colors hover:bg-surface hover:text-fg"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
+                  <SuggestedQuestions
+                    suggestions={suggestions
+                      .filter((s) => followUps.includes(s.question))
+                      .slice(0, 3)}
+                    onAsk={(q) => void ask(q)}
+                    title="Suggested next questions"
+                    hint="Most asked and predicted for this document. You can also type a different question below."
+                  />
                 )}
               </div>
             )}
-          {snapshot.graph && <div className="mx-auto mt-5 max-w-5xl"><KnowledgeGraph nodes={snapshot.graph.nodes} links={snapshot.graph.links} learning={snapshot.graph.learning} nodeCount={snapshot.graph.nodeCount} edgeCount={snapshot.graph.edgeCount} cacheCount={snapshot.graph.cacheCount} preferred={snapshot.graph.preferred} durable={snapshot.storage.durable} /></div>}
+          {view === "lab" && snapshot.graph && (
+            <div className="mx-auto mt-5 max-w-5xl">
+              <KnowledgeGraph
+                nodes={snapshot.graph.nodes}
+                links={snapshot.graph.links}
+                learning={snapshot.graph.learning}
+                nodeCount={snapshot.graph.nodeCount}
+                edgeCount={snapshot.graph.edgeCount}
+                cacheCount={snapshot.graph.cacheCount}
+                preferred={snapshot.graph.preferred}
+                durable={snapshot.storage.durable}
+              />
+            </div>
+          )}
           </div>
         </main>
         {auditOpen && desktop && <aside aria-label="Retrieval diagnostics" className="hidden w-[300px] overflow-y-auto border-l border-border lg:col-start-3 lg:row-start-1 lg:block">{auditPanel}</aside>}
@@ -655,7 +690,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             }}
             rows={1}
             maxLength={4000}
-            placeholder="Ask about your documents…  / to focus"
+            placeholder="Ask about your documents, or pick a suggestion above…"
             className="max-h-36 min-h-11 flex-1 resize-none bg-transparent px-3 py-2 text-base text-fg outline-none placeholder:text-subtle"
           />
           <Button type="submit" size="icon" disabled={busy || !question.trim()} aria-label="Ask">
@@ -663,7 +698,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           </Button>
         </form>
         <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-subtle">
-          Enter to send · Shift+Enter for a new line · / focuses the composer
+          Type any question · Enter to send · Suggestions learn from what people ask on each document
         </p>
         <div className="mx-auto mt-2 flex max-w-3xl justify-center gap-2 sm:hidden">
           <Button variant="ghost" size="sm" onClick={() => setCorpusOpen(true)}>

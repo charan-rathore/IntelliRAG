@@ -14,6 +14,7 @@ import { sha256Hex, slugify } from "./text";
 import type { ChunkRow, DocumentHealth, DocumentRow, StaleReason, UpsertInput } from "./types";
 import { EMBEDDING_MODEL, FRESHNESS_HALF_LIFE_DAYS } from "./types";
 import { corpusIdForInput, parseCorpusScope, SEED_CORPUS_ID, type CorpusScope } from "./corpus-scope";
+import { seedPredictedQuestions } from "./suggested-questions.server";
 
 type TraceRow = {
   id: string;
@@ -149,13 +150,27 @@ async function replaceChunks(
 }
 
 export async function ensureSeedDocuments(): Promise<void> {
-  await upsertDocument(REPO_DEMO_DOCUMENT);
+  const demo = await upsertDocument(REPO_DEMO_DOCUMENT);
+  await seedPredictedQuestions({
+    corpusId: demo.corpusId,
+    documentSlug: demo.slug,
+    body: REPO_DEMO_DOCUMENT.body,
+    title: REPO_DEMO_DOCUMENT.title,
+  });
   const s = state();
   for (const seed of SEED_DOCUMENTS) {
     const existing = s.documents.find((d) => d.slug === seed.slug);
     if (existing) {
       const hash = await sha256Hex(seed.body);
-      if (existing.content_hash === hash) continue;
+      if (existing.content_hash === hash) {
+        await seedPredictedQuestions({
+          corpusId: existing.corpus_id || SEED_CORPUS_ID,
+          documentSlug: existing.slug,
+          body: seed.body,
+          title: seed.title,
+        });
+        continue;
+      }
       existing.body = seed.body;
       existing.content_hash = hash;
       existing.title = seed.title;
@@ -164,6 +179,12 @@ export async function ensureSeedDocuments(): Promise<void> {
       existing.indexed_at = null;
       existing.updated_at = nowIso();
       await replaceChunks(existing.id, seed.body, undefined, SEED_CORPUS_ID);
+      await seedPredictedQuestions({
+        corpusId: SEED_CORPUS_ID,
+        documentSlug: existing.slug,
+        body: seed.body,
+        title: seed.title,
+      });
       continue;
     }
     const id = crypto.randomUUID();
@@ -187,6 +208,12 @@ export async function ensureSeedDocuments(): Promise<void> {
       updated_at: ts,
     });
     await replaceChunks(id, seed.body, undefined, SEED_CORPUS_ID);
+    await seedPredictedQuestions({
+      corpusId: SEED_CORPUS_ID,
+      documentSlug: seed.slug,
+      body: seed.body,
+      title: seed.title,
+    });
   }
 }
 

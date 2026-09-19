@@ -19,6 +19,8 @@ The [public browser lab](https://intellirag-live-own-track.vercel.app/) lives in
 - Lexical graph rebuilds when documents change, bounded adjacency traversal, orphan pruning and keyboard/touch inspection.
 - Persistent evaluation run records with dataset/index hashes; explicit failure on unavailable judge.
 - Production health endpoint and a frozen pipeline acceptance runner.
+- Document question prediction (at least three suggestions per ingest) plus most-asked community questions stored per corpus.
+- Chat-first console: Sources/Evidence stay optional; Reading mode hides the graph and retrieval chrome by default.
 
 ## Engineering still required
 

@@ -13,8 +13,10 @@ import {
   pendingEmbeddingCount,
   recentTraces,
 } from "./store.server";
+import { listSuggestedQuestions } from "./suggested-questions.server";
 import { EMBEDDING_MODEL, GENERATION_MODEL } from "./types";
 import { getStorageStatus } from "./storage";
+import { REPO_DEMO_CORPUS } from "./repo-demo";
 
 export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async () => {
   const keys = keyStatus();
@@ -28,6 +30,7 @@ export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async ()
     embeddingModel: EMBEDDING_MODEL,
     lastEval: await loadLastEvalSummary(),
     storage: getStorageStatus(),
+    suggestions: [] as Awaited<ReturnType<typeof listSuggestedQuestions>>,
     graph: {
       nodeCount: 0,
       edgeCount: 0,
@@ -47,12 +50,19 @@ export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async ()
     const pending = await pendingEmbeddingCount(EMBEDDING_MODEL);
     const traces = await recentTraces(6);
     const graph = await graphSnapshot();
-    return { ...empty, documents, corpora, pendingEmbeddings: pending, traces, graph };
+    const suggestions = await listSuggestedQuestions(REPO_DEMO_CORPUS, 6);
+    return { ...empty, documents, corpora, pendingEmbeddings: pending, traces, graph, suggestions };
   } catch (err) {
     console.error("[intellirag] snapshot failed", err);
     return empty;
   }
 });
+
+export const getCorpusSuggestions = createServerFn({ method: "GET" })
+  .validator(z.object({ corpusId: z.string().min(1).max(500), limit: z.number().int().min(3).max(12).optional() }))
+  .handler(async ({ data }) => {
+    return listSuggestedQuestions(data.corpusId, data.limit ?? 6);
+  });
 
 export const saveLabKeys = createServerFn({ method: "POST" })
   .validator(
