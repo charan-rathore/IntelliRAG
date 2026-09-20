@@ -100,6 +100,7 @@ test('missing selected corpus fails before cache, retrieval or generation',async
  Module._load=function(id,parent,...rest){
   if(parent?.filename?.endsWith('rag/query.server.ts')){
    if(id==='./store.server')return {listDocuments:async()=>[{corpusId:'seed-lab'}]};
+   if(id==='./suggested-questions.server')return {recordAskedQuestion:async()=>null};
    if(['./gemini.server','./retrieve.server','./graphify/persist.server'].includes(id))return new Proxy({}, {get:()=>()=>{throw new Error('missing source must not reach models or cache');}});
   }
   return previousLoad.call(this,id,parent,...rest);

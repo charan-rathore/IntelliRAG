@@ -1,150 +1,8 @@
-import { ArrowRight, Check, Play } from "lucide-react";
-import { CoverageChip } from "@/components/rag/coverage-chip";
-import { SourceInspector } from "@/components/rag/source-inspector";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  COACH_COPY,
-  DEMO_RUNS,
-  PIPELINE_STEPS,
-  RUN_STORY,
-  SAMPLE_CANDIDATES,
-  SAMPLE_TRACE_QUESTION,
-  TRUST_MARKS,
-  type DemoRun,
-} from "@/lib/rag/onboarding";
+import { COACH_COPY, DEMO_RUNS } from "@/lib/rag/onboarding";
+import type { SuggestedQuestion } from "@/lib/rag/predict-questions";
 import type { ConsoleView, CoverageKind } from "@/lib/rag/types";
-import { cn } from "@/lib/utils";
-
-export function PipelinePreview() {
-  return (
-    <ol data-tour="tour-pipeline" className="grid gap-2 md:grid-cols-5">
-      {PIPELINE_STEPS.map((step, i) => (
-        <li
-          key={step.id}
-          className="ir-rise flex items-start gap-3 rounded-md border border-border bg-raised px-3 py-2 md:py-3 md:flex-col"
-          style={{ animationDelay: `${i * 60}ms` }}
-        >
-          <p className="font-mono text-xs tabular-nums text-subtle">
-            {String(i + 1).padStart(2, "0")}
-          </p>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-fg">{step.label}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">{step.detail}</p>
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-export function TrustStrip() {
-  return (
-    <ul className="flex flex-wrap gap-2">
-      {TRUST_MARKS.map((mark) => (
-        <li
-          key={mark.id}
-          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-raised px-3 py-2 text-xs text-muted"
-        >
-          <Check className="size-3.5 text-good" aria-hidden />
-          {mark.label}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function DemoCard({
-  demo,
-  onAsk,
-}: {
-  demo: DemoRun;
-  onAsk: (q: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onAsk(demo.question)}
-      className={cn(
-        "flex min-h-28 flex-col rounded-lg border bg-surface p-4 text-left transition-colors duration-150 hover:bg-raised",
-        demo.primary ? "border-primary/40" : "border-border",
-      )}
-    >
-      <span className="flex flex-wrap items-center gap-2">
-        <CoverageChip kind={demo.kind} />
-        <span className="text-xs uppercase tracking-[0.16em] text-subtle">{demo.audience}</span>
-      </span>
-      <span className="mt-3 text-sm font-medium leading-snug text-fg">{demo.question}</span>
-      <span className="mt-2 text-xs leading-relaxed text-muted">{demo.promise}</span>
-      <span className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
-        {demo.primary ? "Run this demo" : "Ask this"}
-        <ArrowRight className="size-3.5" />
-      </span>
-    </button>
-  );
-}
-
-export function DemoCatalog({
-  hasKey,
-  onAsk,
-}: {
-  hasKey: boolean;
-  onAsk: (q: string) => void;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Three ways to see it work</p>
-      <p className="mt-1 text-xs leading-relaxed text-subtle">
-        Each card fires a real query. Grounded packs runbooks. The off-corpus example checks whether unsupported questions are refused.
-      </p>
-      <div className="mt-3 grid gap-2 md:grid-cols-3">
-        {DEMO_RUNS.map((demo) => (
-          <DemoCard key={demo.id} demo={demo} onAsk={onAsk} />
-        ))}
-      </div>
-      {!hasKey && (
-        <p className="mt-3 text-xs leading-relaxed text-subtle">
-          Demos hit the live index without an LLM key. answers are extractive citations from packed chunks. Add OpenRouter in Settings for Gemini 3.7 Flash.
-        </p>
-      )}
-    </div>
-  );
-}
-
-export function SampleTrace() {
-  const packed = SAMPLE_CANDIDATES.filter((c) => c.usedInContext);
-  return (
-    <div data-tour="tour-sample" className="rounded-lg border border-border bg-surface px-4 py-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Sample trace</p>
-        <p className="text-xs text-subtle">Illustrative scores · no retrieval or model ran here</p>
-      </div>
-      <p className="mt-2 text-sm text-fg">{SAMPLE_TRACE_QUESTION}</p>
-      <SourceInspector candidates={SAMPLE_CANDIDATES} packed={packed} contextTokens={240} />
-    </div>
-  );
-}
-
-export function RunPreview({ onTour }: { onTour: () => void }) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">What a run looks like</p>
-      <ol className="mt-3 space-y-3">
-        {RUN_STORY.map((line, i) => (
-          <li key={line} className="flex gap-3">
-            <span className="font-mono text-xs tabular-nums text-subtle">
-              {String(i + 1).padStart(2, "0")}
-            </span>
-            <span className="text-xs leading-relaxed text-muted">{line}</span>
-          </li>
-        ))}
-      </ol>
-      <Button className="mt-4 w-full" size="sm" onClick={onTour}>
-        <Play className="size-3.5" />
-        Watch the guided tour
-      </Button>
-    </div>
-  );
-}
 
 export function FirstRunCoach({
   kind,
@@ -173,23 +31,151 @@ export function FirstRunCoach({
   );
 }
 
-export function WelcomeOnboarding({ onAsk, onSources, onTour, hasKey, onRepositoryDemo, importing, importError }: {
-  view: ConsoleView; hasKey: boolean; onAsk: (q: string) => void; onSources: () => void; onTour: () => void;
-  onRepositoryDemo: () => void; importing: boolean; importError: string | null;
+export function SuggestedQuestions({
+  suggestions,
+  onAsk,
+  title = "Suggested questions",
+  hint,
+}: {
+  suggestions: Array<Pick<SuggestedQuestion, "question" | "askCount" | "source">>;
+  onAsk: (q: string) => void;
+  title?: string;
+  hint?: string;
 }) {
-  return <section className="mx-auto flex max-w-3xl flex-col gap-5 py-3">
-    <div><p className="font-mono text-xs uppercase tracking-[0.18em] text-muted">REPOSITORY SUPPORT, WITH EVIDENCE</p>
-      <h1 className="mt-3 font-display text-3xl leading-tight tracking-[-0.03em] text-fg sm:text-4xl">The docs have the pieces.<br />You need the decision.</h1>
-      <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">Bring a GitHub source. Ask what to do in your situation. Inspect the passages behind the answer and the connections below.</p>
+  if (!suggestions.length) return null;
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">{title}</p>
+      {hint ? <p className="mt-1 text-xs leading-relaxed text-subtle">{hint}</p> : null}
+      <div className="mt-3 flex flex-col gap-2">
+        {suggestions.slice(0, 6).map((item) => (
+          <button
+            key={item.question}
+            type="button"
+            onClick={() => onAsk(item.question)}
+            className="group flex min-h-11 items-start justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-raised"
+          >
+            <span className="text-sm leading-snug text-fg">{item.question}</span>
+            <span className="flex shrink-0 items-center gap-2 pt-0.5">
+              {item.askCount > 0 ? (
+                <span className="text-[10px] uppercase tracking-[0.14em] text-subtle">
+                  asked {item.askCount}×
+                </span>
+              ) : item.source === "predicted" ? (
+                <span className="text-[10px] uppercase tracking-[0.14em] text-subtle">predicted</span>
+              ) : null}
+              <ArrowRight className="size-3.5 text-primary opacity-70 transition-opacity group-hover:opacity-100" />
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
-    <div className="rounded-lg border border-primary/40 bg-surface p-4">
-      <p className="text-xs text-muted">LOADED & READY · <a href="https://github.com/sindresorhus/p-queue/blob/180ab9e25cd10b6f548767d7176076b50d25e188/readme.md" target="_blank" rel="noreferrer" className="text-primary underline">sindresorhus/p-queue · pinned README ↗</a></p>
-      <h2 className="mt-2 text-lg font-medium">How do I change configuration safely while jobs are still queued?</h2>
-      <p className="mt-2 text-sm leading-relaxed text-muted">The docs explain pause, running jobs, and an empty queue separately. This question asks how those rules fit together, and why waiting for everything could leave you stuck.</p>
-      <div className="mt-3 flex flex-wrap items-center gap-3"><Button disabled={importing} onClick={onRepositoryDemo}>Ask this question<ArrowRight className="size-4" /></Button><Button variant="ghost" onClick={onSources}>Use your own source</Button></div>
-      <p className="mt-2 text-xs text-muted">{hasKey ? "Runs against a pinned README revision. Follow-up questions stay in that repository." : "No model key is configured: try cited source extracts now. Add OpenRouter in Settings for a reasoned Gemini answer."}</p>
-      {importError && <p role="alert" className="mt-2 text-sm text-bad">{importError}</p>}
+  );
+}
+
+export function WelcomeOnboarding({
+  onAsk,
+  onSources,
+  onTour,
+  hasKey,
+  onRepositoryDemo,
+  importing,
+  importError,
+  suggestions,
+}: {
+  view: ConsoleView;
+  hasKey: boolean;
+  onAsk: (q: string) => void;
+  onSources: () => void;
+  onTour: () => void;
+  onRepositoryDemo: () => void;
+  importing: boolean;
+  importError: string | null;
+  suggestions: Array<Pick<SuggestedQuestion, "question" | "askCount" | "source">>;
+}) {
+  const chips = suggestions.length
+    ? suggestions
+    : DEMO_RUNS.slice(0, 3).map((d) => ({
+        question: d.question,
+        askCount: 0,
+        source: "predicted" as const,
+      }));
+
+  return (
+    <section className="mx-auto flex max-w-3xl flex-col gap-6 py-4">
+      <div>
+        <p className="font-display text-4xl leading-[1.05] tracking-[-0.04em] text-fg sm:text-5xl">
+          IntelliRAG
+        </p>
+        <h1 className="mt-4 max-w-xl text-xl font-medium leading-snug text-fg sm:text-2xl">
+          Ask what your documents mean for your situation.
+        </h1>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
+          Bring a GitHub README or paste a doc. We suggest likely questions from that source, and
+          remember the ones people actually ask.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-primary/35 bg-surface px-4 py-4">
+        <p className="text-xs uppercase tracking-[0.16em] text-muted">Ready to try</p>
+        <p className="mt-2 text-base font-medium text-fg">
+          Change shared configuration while jobs are still queued
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          Uses the pinned <span className="text-fg">sindresorhus/p-queue</span> README. One click
+          asks a real support question against that source.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button disabled={importing} onClick={onRepositoryDemo}>
+            Ask this question
+            <ArrowRight className="size-4" />
+          </Button>
+          <Button variant="ghost" onClick={onSources}>
+            Use your own source
+          </Button>
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          {hasKey
+            ? "Answers cite the loaded document. Follow-ups stay in that corpus."
+            : "No model key yet: you still get cited extracts. Add a key in Settings for generated answers."}
+        </p>
+        {importError ? (
+          <p role="alert" className="mt-2 text-sm text-bad">
+            {importError}
+          </p>
+        ) : null}
+      </div>
+
+      <SuggestedQuestions
+        suggestions={chips}
+        onAsk={onAsk}
+        title="Questions you can ask next"
+        hint="Predicted from the loaded document, plus the most asked community questions for this source. Or type your own below."
+      />
+
+      <p className="text-xs text-subtle">
+        Sources and Evidence stay behind the header buttons when you need them.{" "}
+        <button type="button" onClick={onTour} className="text-muted underline hover:text-fg">
+          Show me the controls
+        </button>
+      </p>
+    </section>
+  );
+}
+
+/** Kept for product-tour targets that still reference the old preview. */
+export function RunPreview({ onTour }: { onTour: () => void }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">What a run looks like</p>
+      <ol className="mt-3 space-y-3 text-xs leading-relaxed text-muted">
+        <li>1. You bring a document and ask a question.</li>
+        <li>2. Retrieval packs supporting passages from that source.</li>
+        <li>3. The answer cites those passages, or refuses when evidence is missing.</li>
+      </ol>
+      <Button className="mt-4 w-full" size="sm" onClick={onTour}>
+        Watch the guided tour
+      </Button>
     </div>
-    <div className="flex flex-wrap items-center gap-3 text-xs"><button onClick={() => onAsk(DEMO_RUNS[0].question)} className="min-h-11 text-primary underline">Try the built-in runbooks</button><button onClick={onTour} className="min-h-11 text-muted underline">Show me the controls</button><span className="text-muted">Sources and Evidence toggle the side panels.</span></div>
-  </section>;
+  );
 }

@@ -24,9 +24,9 @@ export function loadTopK(): number {
 }
 
 export function loadViewMode(): "reading" | "lab" {
-  if (typeof window === "undefined") return "lab";
+  if (typeof window === "undefined") return "reading";
   const v = window.localStorage.getItem(VIEW_MODE_STORAGE);
-  return v === "reading" ? "reading" : "lab";
+  return v === "lab" ? "lab" : "reading";
 }
 
 export function loadCoachDismissed(): boolean {

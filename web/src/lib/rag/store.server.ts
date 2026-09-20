@@ -30,6 +30,7 @@ import {
   type CorpusScope,
   type CorpusSummary,
 } from "./corpus-scope";
+import { seedPredictedQuestions } from "./suggested-questions.server";
 
 function dbUnavailable(err: unknown) {
   const msg = err instanceof Error ? err.message : String(err);
@@ -38,15 +39,27 @@ function dbUnavailable(err: unknown) {
 
 export async function ensureSeedDocuments(): Promise<void> {
   if (vercelWithoutDatabase()) return memory.ensureSeedDocuments();
-  await upsertDocument(REPO_DEMO_DOCUMENT);
+  const demo = await upsertDocument(REPO_DEMO_DOCUMENT);
+  await seedPredictedQuestions({
+    corpusId: demo.corpusId,
+    documentSlug: demo.slug,
+    body: REPO_DEMO_DOCUMENT.body,
+    title: REPO_DEMO_DOCUMENT.title,
+  });
   for (const seed of SEED_DOCUMENTS) {
-    await upsertDocument({
+    const result = await upsertDocument({
       title: seed.title,
       body: seed.body,
       sourceType: seed.sourceType,
       sourceUri: `seed://${seed.slug}`,
       slugHint: seed.slug,
       corpusId: SEED_CORPUS_ID,
+    });
+    await seedPredictedQuestions({
+      corpusId: result.corpusId,
+      documentSlug: result.slug,
+      body: seed.body,
+      title: seed.title,
     });
   }
 }

@@ -17,6 +17,7 @@ import { buildContext, retrieve } from "./retrieve.server";
 import type { RetrieveResult } from "./retrieve-core";
 import { getStorageStatus } from "./storage";
 import { listDocuments, pendingEmbeddingCount, recordTrace } from "./store.server";
+import { recordAskedQuestion } from "./suggested-questions.server";
 import { coverageOf } from "./trace";
 import { parseCorpusScope, SEED_CORPUS_ID } from "./corpus-scope";
 import type {
@@ -157,6 +158,14 @@ export async function runQueryStream(
   const scopedDocuments =
     corpusScope.kind === "all" ? documents : documents.filter((d) => d.corpusId === corpusScope.corpusId);
   const storage = getStorageStatus();
+
+  if (intent !== "greeting" && intent !== "capability" && corpusScope.kind === "corpus") {
+    void recordAskedQuestion({
+      corpusId: corpusScope.corpusId,
+      question,
+      documentSlug: scopedDocuments[0]?.slug ?? null,
+    }).catch(() => undefined);
+  }
 
   if (corpusScope.kind === "corpus" && corpusScope.corpusId !== SEED_CORPUS_ID && !scopedDocuments.length) {
     emit({ type: "error", message: "Your selected source is no longer available. Refresh the source list and import it again. This is a storage problem, not evidence that your document lacks the answer. Persistent Postgres is required to keep imports across server restarts." });

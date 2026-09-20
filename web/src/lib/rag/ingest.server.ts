@@ -22,6 +22,7 @@ import {
   upsertDocument,
 } from "./store.server";
 import { githubCorpusId, urlCorpusId } from "./corpus-scope";
+import { seedPredictedQuestions } from "./suggested-questions.server";
 import { EMBEDDING_MODEL } from "./types";
 
 const MAX_BODY = 60_000;
@@ -67,8 +68,9 @@ export async function ingestText(input: {
 }) {
   const body = input.body.slice(0, MAX_BODY).trim();
   if (body.length < 40) throw new Error("Document is too short to index");
-  return upsertDocument({
-    title: titleFromMarkdown(body, input.title),
+  const title = titleFromMarkdown(body, input.title);
+  const result = await upsertDocument({
+    title,
     body,
     sourceType: input.sourceType,
     sourceUri: input.sourceUri,
@@ -79,6 +81,17 @@ export async function ingestText(input: {
     language: input.language,
     chunkKind: input.chunkKind,
   });
+  try {
+    await seedPredictedQuestions({
+      corpusId: result.corpusId,
+      documentSlug: result.slug,
+      body,
+      title,
+    });
+  } catch (err) {
+    console.error("[intellirag] question prediction failed", err);
+  }
+  return result;
 }
 
 async function ingestGithubRepo(target: {
