@@ -209,3 +209,71 @@ class TestGenerationBenchmark:
         assert result.num_queries == 1
         assert result.avg_faithfulness > 0.0
         assert result.citation_rate > 0.0
+
+
+class TestCitationIntegrity:
+    """Fabricated citations must not resolve or survive in the answer text."""
+
+    @staticmethod
+    def _ctx(ranks=(1, 2)) -> AssembledContext:
+        from libs.rag.context.models import ContextChunk, AssemblyStats
+
+        chunks = [
+            ContextChunk(
+                chunk_id=f"c{r}",
+                text=f"chunk text {r}",
+                score=0.9,
+                rank=r,
+                token_count=10,
+                citation_label=f"[Source {r}]",
+            )
+            for r in ranks
+        ]
+        return AssembledContext(
+            query="q",
+            chunks=chunks,
+            context_text="",
+            citations={},
+            stats=AssemblyStats(),
+            strategy="top_k",
+        )
+
+    def test_out_of_range_citation_dropped_and_marker_stripped(self):
+        from libs.rag.generation.citations import strip_unresolved_citations
+
+        ctx = self._ctx(ranks=(1, 2))
+        answer = "The docs cover this fully [Source 9]."
+        citations = parse_citations(answer, ctx)
+        assert citations == [], "out-of-range citation must not resolve"
+        cleaned = strip_unresolved_citations(answer, {c.source_index for c in citations})
+        assert "[Source 9]" not in cleaned
+        assert cleaned == "The docs cover this fully."
+
+    def test_no_positional_fallback_for_nonstandard_ranks(self):
+        ctx = self._ctx(ranks=(10, 11))
+        answer = "Something grounded [Source 1]."
+        citations = parse_citations(answer, ctx)
+        assert citations == [], "[Source 1] must not bind positionally to rank-10 chunk"
+
+    def test_service_does_not_fabricate_source_one(self):
+        class CitationFreeClient:
+            def generate(self, messages, cfg):
+                return {
+                    "content": "Resource fragmentation caused the scheduling failures.",
+                    "model": "stub",
+                    "prompt_tokens": 10,
+                    "completion_tokens": 8,
+                    "total_tokens": 18,
+                }
+
+        service = GenerationService(llm_client=CitationFreeClient())
+        result = service.generate(_assembled_context())
+        assert result.citations == [], "uncited answer must not gain a fabricated [Source 1]"
+        assert "[Source" not in result.answer
+        assert result.stats.citations_found == 0
+
+    def test_service_keeps_resolved_citations(self):
+        service = GenerationService(llm_client=MockLLMClient())
+        result = service.generate(_assembled_context())
+        assert result.citations, "real citations still resolve"
+        assert all("[Source" in result.answer for _ in [0])
