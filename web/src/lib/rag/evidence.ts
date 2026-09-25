@@ -2,6 +2,45 @@ import { distinctiveTerms, payloadQuery, type RerankSignals } from "./ranking";
 import { contentTokens, tokenSetMatches } from "./text";
 import type { EvidenceGate, EvidenceKind, RetrievedChunk } from "./types";
 
+
+const MONTHS = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+
+/** Full calendar dates named in the question, normalized to comparable surface forms. */
+export function extractQueryDates(query: string): string[][] {
+  const forms: string[][] = [];
+  const monthAlt = MONTHS.join("|");
+  const dmy = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${monthAlt})\\s+(\\d{4})\\b`, "gi");
+  let m: RegExpExecArray | null;
+  while ((m = dmy.exec(query))) {
+    forms.push(dateForms(Number(m[1]), m[2]!.toLowerCase(), m[3]!));
+  }
+  const mdy = new RegExp(`\\b(${monthAlt})\\s+(\\d{1,2})(?:st|nd|rd|th)?,??\\s+(\\d{4})\\b`, "gi");
+  while ((m = mdy.exec(query))) {
+    forms.push(dateForms(Number(m[2]), m[1]!.toLowerCase(), m[3]!));
+  }
+  const iso = /\b(\d{4})-(\d{2})-(\d{2})\b/g;
+  while ((m = iso.exec(query))) {
+    forms.push(dateForms(Number(m[3]), MONTHS[Number(m[2]) - 1] ?? "", m[1]!));
+  }
+  return forms;
+}
+
+function dateForms(day: number, month: string, year: string): string[] {
+  if (!month) return [];
+  const mm = String(MONTHS.indexOf(month) + 1).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+  return [
+    `${day} ${month} ${year}`,
+    `${month} ${day}, ${year}`,
+    `${month} ${day} ${year}`,
+    `${year}-${mm}-${dd}`,
+  ];
+}
+
+function hasTerm(packedLower: string, term: string): boolean {
+  return new RegExp(`\\b${term.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(packedLower);
+}
+
 const ABSENCE =
   /^(does|do|is|are|did)\b.+\b(recommend|mention|include|support|use|say|cover|describe)\b/i;
 
@@ -40,7 +79,7 @@ export function queryChunkSupport(query: string, packed: RetrievedChunk[]) {
 }
 
 function looksLikeBypassInstruction(query: string): boolean {
-  return /ignore (the )?(indexed )?(corpus|sources?|documents?|runbook)|answer from memory|from your (own )?knowledge|pretend (a )?source/i.test(
+  return /ignore (the )?(indexed )?(corpus|sources?|documents?|runbook|readme)|answer from memory|from your (own )?knowledge|pretend (a )?source/i.test(
     query,
   );
 }
@@ -118,6 +157,34 @@ export function classifyEvidence(opts: {
     return gate("insufficient", "The requested credential field is not present in the retrieved passages; topic overlap does not establish its value.", { ...stats, clearedForInsufficient: true });
   }
 
+  const packedLower = packedText.toLowerCase();
+
+  // A specific calendar date named in the question must appear in the passages;
+  // topic overlap does not establish what happened on that date.
+  const missingDates = extractQueryDates(opts.query).filter(
+    (forms) => !forms.some((f) => packedLower.includes(f)),
+  );
+  if (missingDates.length) {
+    return gate("insufficient", "The question names a specific date that is not present in the retrieved passages; the passages do not establish date-bound events.", { ...stats, clearedForInsufficient: true });
+  }
+
+  // Artifact identifiers with digits and separators (c7g.large, tls1.3-style
+  // SKUs and instance types) are exact targets, like camelCase APIs.
+  const artifactIds = opts.query.match(/\b(?=\w*\d)(?=\w*[a-z])[a-z0-9]+(?:\.[a-z0-9]+)+\b/gi) ?? [];
+  const missingArtifacts = artifactIds.filter((id) => !packedLower.includes(id.toLowerCase()));
+  if (missingArtifacts.length) {
+    return gate("insufficient", "The named artifact identifier is not present in the retrieved passages. Similar vocabulary does not answer this question.", { ...stats, clearedForInsufficient: true });
+  }
+
+  // Commercial/contractual fact fields must be stated explicitly in the passages.
+  const requestedCommercial = opts.query.match(/\b(?:slas?|uptime|pricing|prices?|costs?|contractual|warrant(?:y|ies)|discounts?|refunds?|billing)\b/gi) ?? [];
+  const missingCommercial = [...new Set(requestedCommercial.map((t) => t.toLowerCase()))].filter(
+    (term) => !hasTerm(packedLower, term),
+  );
+  if (missingCommercial.length) {
+    return gate("insufficient", "The requested commercial or contractual fact is not stated in the retrieved passages; topic overlap does not establish it.", { ...stats, clearedForInsufficient: true });
+  }
+
   if (ABSENCE.test(opts.query.trim())) {
     const missing = probeTermsNotInText(opts.query, `${top.title}\n${packedText}`);
     const relevantTitle = distinctiveTerms(opts.query).some((t) =>
@@ -148,7 +215,7 @@ export function classifyEvidence(opts: {
   }
 
   const noOverlap = support.hits.length === 0;
-  if (looksLikeBypassInstruction(opts.query) && (noOverlap || support.ratio < 0.25)) {
+  if (looksLikeBypassInstruction(opts.query) && (noOverlap || support.ratio < 0.5)) {
     return gate(
       "insufficient",
       "The question asks to skip the corpus or answer from memory, and packed chunks do not support the remaining question.",
