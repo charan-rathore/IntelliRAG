@@ -130,3 +130,49 @@ export async function jevSecondOpinion(opts: {
     clearTimeout(timer);
   }
 }
+
+export type JevShadowRecord = {
+  id: string;
+  answerable: boolean;
+  lexicalKind: EvidenceKind;
+  jevChoice?: "answer" | "refuse" | "clarify";
+  jevConfidence?: number;
+  usage?: { input_tokens: number; output_tokens: number };
+  latencyMs?: number;
+  error?: string;
+};
+
+const BUCKETS: Array<[number, number]> = [[0, 0.5], [0.5, 0.7], [0.7, 0.85], [0.85, 1.01]];
+
+/**
+ * Calibration from measured shadow data, not assertion: for each confidence
+ * bucket, how often was Jev's refuse/clarify verdict correct (the case was
+ * genuinely unanswerable)? The operating threshold is the lowest bucket edge
+ * at which tightening never hit an answerable question; below measurement,
+ * fall back to the conservative default.
+ */
+export function calibrateThreshold(records: JevShadowRecord[]): {
+  threshold: number;
+  buckets: Array<{ range: [number, number]; verdicts: number; correct: number; answerableHits: number }>;
+  measured: boolean;
+} {
+  const buckets = BUCKETS.map((range) => ({ range, verdicts: 0, correct: 0, answerableHits: 0 }));
+  for (const r of records) {
+    if (r.error || r.jevConfidence == null || (r.jevChoice !== "refuse" && r.jevChoice !== "clarify")) continue;
+    const b = buckets.find((b) => r.jevConfidence! >= b.range[0] && r.jevConfidence! < b.range[1]);
+    if (!b) continue;
+    b.verdicts += 1;
+    if (!r.answerable) b.correct += 1;
+    else b.answerableHits += 1;
+  }
+  let threshold = DEFAULT_CONFIDENCE;
+  let measured = false;
+  for (const b of buckets) {
+    if (b.verdicts > 0 && b.answerableHits === 0) {
+      threshold = b.range[0];
+      measured = true;
+      break;
+    }
+  }
+  return { threshold, buckets, measured };
+}

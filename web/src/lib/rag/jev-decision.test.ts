@@ -76,3 +76,28 @@ describe("jev second opinion", () => {
     assert.match(r.verdict.error!, /401/);
   });
 });
+
+describe("calibrateThreshold", () => {
+  it("picks the lowest bucket with verdicts and zero answerable hits", async () => {
+    const { calibrateThreshold } = await import("./jev-decision.ts");
+    const records = [
+      { id: "a", answerable: false, lexicalKind: "positive" as const, jevChoice: "refuse" as const, jevConfidence: 0.9 },
+      { id: "b", answerable: true, lexicalKind: "positive" as const, jevChoice: "refuse" as const, jevConfidence: 0.6 },
+      { id: "c", answerable: false, lexicalKind: "positive" as const, jevChoice: "refuse" as const, jevConfidence: 0.75 },
+    ];
+    const r = calibrateThreshold(records);
+    // 0.5-0.7 bucket hit an answerable question, so the safe edge is 0.7
+    assert.equal(r.threshold, 0.7);
+    assert.equal(r.measured, true);
+  });
+
+  it("falls back to the conservative default with no usable verdicts", async () => {
+    const { calibrateThreshold } = await import("./jev-decision.ts");
+    const r = calibrateThreshold([
+      { id: "a", answerable: true, lexicalKind: "positive" as const, jevChoice: "answer" as const, jevConfidence: 0.95 },
+      { id: "b", answerable: false, lexicalKind: "positive" as const, error: "jev timeout" },
+    ]);
+    assert.equal(r.threshold, 0.7);
+    assert.equal(r.measured, false);
+  });
+});
