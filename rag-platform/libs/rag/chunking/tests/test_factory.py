@@ -12,6 +12,7 @@ from libs.rag.chunking.factory import (
 from libs.rag.chunking.github_chunker import GitHubIssueChunker
 from libs.rag.chunking.recursive import RecursiveChunker
 from libs.rag.chunking.structure_aware import StructureAwareChunker
+from libs.rag.chunking.hybrid import HybridChunker
 from libs.shared.models.lifecycle import IngestionSource
 
 
@@ -28,7 +29,7 @@ class TestGetChunker(unittest.TestCase):
 
     def test_markdown_doc_returns_structure_aware(self) -> None:
         chunker = get_chunker(IngestionSource.MARKDOWN_DOC)
-        self.assertIsInstance(chunker, StructureAwareChunker)
+        self.assertIsInstance(chunker, HybridChunker)
 
     def test_custom_config_applied(self) -> None:
         config = ChunkerConfig(chunk_size=256, chunk_overlap=32)
@@ -115,14 +116,14 @@ class TestRegisterChunker(unittest.TestCase):
 
     def test_register_custom_chunker(self) -> None:
         original_chunker = get_chunker(IngestionSource.MARKDOWN_DOC)
-        self.assertIsInstance(original_chunker, StructureAwareChunker)
+        self.assertIsInstance(original_chunker, HybridChunker)
         
         register_chunker(IngestionSource.MARKDOWN_DOC, RecursiveChunker)
         
         new_chunker = get_chunker(IngestionSource.MARKDOWN_DOC)
         self.assertIsInstance(new_chunker, RecursiveChunker)
         
-        register_chunker(IngestionSource.MARKDOWN_DOC, StructureAwareChunker)
+        register_chunker(IngestionSource.MARKDOWN_DOC, HybridChunker)
 
 
 if __name__ == "__main__":

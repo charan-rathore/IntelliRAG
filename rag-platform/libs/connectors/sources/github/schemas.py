@@ -170,7 +170,7 @@ def categorize_validation_error(exc: Exception) -> IngestionErrorInfo:
             },
         )
     
-    if error_type in ("type_error", "int_type", "string_type", "bool_type"):
+    if error_type in ("type_error", "int_type", "string_type", "bool_type", "int_parsing", "float_parsing", "decimal_parsing", "bool_parsing", "string_pattern_mismatch"):
         return IngestionErrorInfo(
             code=IngestionErrorCode.VALIDATION_INVALID_FIELD_TYPE,
             message=f"Invalid type for field '{field_path}': {error_msg}",

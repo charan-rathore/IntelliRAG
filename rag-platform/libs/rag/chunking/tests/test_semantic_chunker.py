@@ -43,7 +43,7 @@ class TestSemanticChunkerConfig:
         config = SemanticChunkerConfig()
         
         assert config.chunk_size == 512
-        assert config.chunk_overlap == 25
+        assert config.chunk_overlap == 50
         assert config.embedding_model == "all-MiniLM-L6-v2"
         assert config.similarity_threshold == 0.5
         assert config.buffer_size == 1
@@ -107,7 +107,7 @@ class TestSemanticChunker:
     
     def test_fallback_when_no_model(self, base_metadata, document_ids):
         """Test fallback chunking when sentence-transformers unavailable."""
-        config = SemanticChunkerConfig(chunk_size=50)
+        config = SemanticChunkerConfig(chunk_size=50, chunk_overlap=10)
         chunker = SemanticChunker(config)
         doc_id, version_id = document_ids
         
