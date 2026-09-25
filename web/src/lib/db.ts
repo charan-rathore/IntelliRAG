@@ -217,11 +217,17 @@ async function createPgliteSql(): Promise<Sql> {
   // keep the "/migrations/" shape; migrationName() keys by basename, so both
   // appliers agree on what has been applied.
   const loadMigrationSql = async (): Promise<Record<string, string>> => {
-    const meta = import.meta as ImportMeta & {
-      glob?: (pattern: string, options: { query: string; import: string; eager: boolean }) => Record<string, string>;
-    };
-    if (typeof meta.glob === "function") {
-      return meta.glob("/migrations/*.sql", { query: "?raw", import: "default", eager: true });
+    // Vite statically replaces import.meta.glob during transformation, so it
+    // must be called by full name - under tsx/node (tests, scripts) the
+    // property does not exist and the call throws, falling through to disk.
+    try {
+      return import.meta.glob("/migrations/*.sql", {
+        query: "?raw",
+        import: "default",
+        eager: true,
+      }) as Record<string, string>;
+    } catch {
+      // no bundler glob - read the same directory from disk below
     }
     const { readdirSync, readFileSync } = await import("node:fs");
     const { fileURLToPath } = await import("node:url");
