@@ -23,6 +23,7 @@ class GenerationConfig:
     citation_prefix: str = "Source"
     timeout_seconds: float = 120.0
     stream: bool = False
+    provider: str = "ollama"
 
     @classmethod
     def for_ollama(
@@ -32,3 +33,16 @@ class GenerationConfig:
     ) -> "GenerationConfig":
         """Create config for local Ollama inference."""
         return cls(model=model, base_url=base_url)
+
+    @classmethod
+    def for_openrouter(
+        cls,
+        model: str = "google/gemini-3.7-flash",
+        base_url: str = "https://openrouter.ai/api/v1",
+    ) -> "GenerationConfig":
+        """Create config for OpenRouter generation.
+
+        Shares the web platform's default model and its OPENROUTER_API_KEY
+        environment variable, so one configuration covers both runtimes.
+        """
+        return cls(model=model, base_url=base_url, provider="openrouter")

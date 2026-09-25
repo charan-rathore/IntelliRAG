@@ -16,6 +16,7 @@ from .citations import (
 from .config import GenerationConfig
 from .models import GenerationResult, GenerationStats, ParsedCitation
 from .ollama import LLMClient, MockLLMClient, OllamaClient
+from .openrouter import OpenRouterClient
 from .prompts import build_messages
 
 logger = logging.getLogger(__name__)
@@ -37,7 +38,11 @@ class GenerationService:
     @property
     def llm_client(self) -> LLMClient:
         if self._llm_client is None:
-            self._llm_client = OllamaClient(self.config)
+            provider = self.config.provider or "ollama"
+            if provider == "openrouter":
+                self._llm_client = OpenRouterClient(self.config)
+            else:
+                self._llm_client = OllamaClient(self.config)
         return self._llm_client
 
     def generate(

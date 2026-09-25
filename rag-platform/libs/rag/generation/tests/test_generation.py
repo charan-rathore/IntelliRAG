@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from libs.rag.context.config import ContextAssemblyConfig
 from libs.rag.context.models import AssembledContext, AssemblyStats, ContextChunk
 from libs.rag.context.service import ContextAssemblyService
@@ -277,3 +279,74 @@ class TestCitationIntegrity:
         result = service.generate(_assembled_context())
         assert result.citations, "real citations still resolve"
         assert all("[Source" in result.answer for _ in [0])
+
+
+class TestOpenRouterClient:
+    """OpenRouter provider shares the web platform's config and env key."""
+
+    def test_default_config_matches_web_platform(self):
+        cfg = GenerationConfig.for_openrouter()
+        assert cfg.provider == "openrouter"
+        assert cfg.model == "google/gemini-3.7-flash"
+        assert cfg.base_url == "https://openrouter.ai/api/v1"
+
+    def test_service_selects_openrouter_only_when_configured(self):
+        from libs.rag.generation.ollama import OllamaClient
+        from libs.rag.generation.openrouter import OpenRouterClient
+
+        assert isinstance(GenerationService(GenerationConfig()).llm_client, OllamaClient)
+        assert isinstance(
+            GenerationService(GenerationConfig.for_openrouter()).llm_client,
+            OpenRouterClient,
+        )
+
+    def test_missing_key_is_an_explicit_error(self, monkeypatch):
+        from libs.rag.generation.openrouter import OpenRouterClient
+
+        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        client = OpenRouterClient()
+        assert not client.is_available()
+        with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
+            client.generate([{"role": "user", "content": "hi"}], None)
+
+    def test_generate_maps_openai_response(self, monkeypatch):
+        from libs.rag.generation import openrouter
+
+        calls = {}
+
+        class FakeResponse:
+            status_code = 200
+
+            def json(self):
+                return {
+                    "model": "google/gemini-3.7-flash",
+                    "choices": [{"message": {"content": " grounded answer [Source 1]"}}],
+                    "usage": {"prompt_tokens": 120, "completion_tokens": 9, "total_tokens": 129},
+                }
+
+        class FakeHttpxClient:
+            def __init__(self, base_url, timeout):
+                calls["base_url"] = base_url
+
+            def post(self, path, json=None, headers=None):
+                calls["path"] = path
+                calls["json"] = json
+                calls["headers"] = headers
+                return FakeResponse()
+
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+        monkeypatch.setattr(openrouter, "httpx", type("m", (), {"Client": FakeHttpxClient}), raising=False)
+        import httpx as real_httpx
+
+        monkeypatch.setattr(real_httpx, "Client", FakeHttpxClient)
+        client = openrouter.OpenRouterClient()
+        assert client.is_available()
+        out = client.generate([{"role": "user", "content": "q"}], None)
+        assert out["content"] == " grounded answer [Source 1]"
+        assert out["prompt_tokens"] == 120
+        assert out["completion_tokens"] == 9
+        assert out["total_tokens"] == 129
+        assert calls["path"] == "/chat/completions"
+        assert calls["headers"]["Authorization"] == "Bearer sk-or-test"
+        assert calls["json"]["model"] == "google/gemini-3.7-flash"
+        assert calls["json"]["stream"] is False
