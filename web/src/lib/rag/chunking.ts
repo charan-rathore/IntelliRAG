@@ -29,18 +29,13 @@ const CODE_BOUNDARY: Record<string, RegExp> = {
   python: /^(?:async\s+)?(?:def|class)\s+(\w+)/m,
   go: /^(?:func|type)\s+(\w+)/m,
   rust: /^(?:pub\s+)?(?:async\s+)?(?:fn|struct|enum|impl|trait)\s+(\w+)/m,
-  java: /^(?:public|private|protected)?\s*(?:static\s+)?(?:class|interface|enum|void|\w+)\s+(\w+)/m,
-  c: /^(?:static\s+|inline\s+|extern\s+)*[\w\s\*]+\s+(\w+)\s*\(/m,
-  h: /^(?:static\s+|inline\s+|extern\s+)*[\w\s\*]+\s+(\w+)\s*\(/m,
-  cpp: /^(?:static\s+|inline\s+|extern\s+)*[\w\s\*:]+\s+(\w+)\s*\(/m,
-  cc: /^(?:static\s+|inline\s+|extern\s+)*[\w\s\*:]+\s+(\w+)\s*\(/m,
-  hpp: /^(?:static\s+|inline\s+|extern\s+)*[\w\s\*:]+\s+(\w+)\s*\(/m,
+  java: /^\s*(?:(?:public|private|protected|static|final|abstract|synchronized)\s+)*(?:class|interface|enum|record)\s+(\w+)|^\s*(?:(?:public|private|protected|static|final|abstract|synchronized)\s+)+[\w<>\[\]]+\s+(\w+)\s*\(/m,
+  c: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\* ]*?[\*\s]\s*(\w+)\s*\(/m,
+  h: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\* ]*?[\*\s]\s*(\w+)\s*\(/m,
+  cpp: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\*: ]*?[\*\s]\s*(\w+)\s*\(/m,
+  cc: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\*: ]*?[\*\s]\s*(\w+)\s*\(/m,
+  hpp: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\*: ]*?[\*\s]\s*(\w+)\s*\(/m,
 };
-
-function currentHeading(text: string): string | null {
-  const match = text.match(/^#{1,4}\s+(.+)$/m);
-  return match?.[1]?.trim() ?? null;
-}
 
 function splitOnce(text: string, separator: string): string[] {
   if (!separator) return [text];
@@ -88,7 +83,8 @@ function symbolFrom(text: string, language: string | null): string | null {
   const re = language ? CODE_BOUNDARY[language] : undefined;
   if (re) {
     const m = text.match(re);
-    if (m?.[1]) return m[1];
+    const name = m?.slice(1).find((g) => g);
+    if (name) return name;
   }
   const any = text.match(
     /(?:export\s+)?(?:async\s+)?(?:function|class|const|def|fn|func)\s+(\w+)/,
@@ -161,6 +157,24 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
       merged.push(piece);
     }
   }
+  // Track the heading path across pieces so a chunk deep inside a long
+  // section still carries its section context ("Guide > Install > Linux").
+  const stack: Array<{ level: number; title: string }> = [];
+  const paths: Array<string | null> = merged.map((piece) => {
+    // Label the chunk with the path as of its FIRST heading (the section the
+    // chunk starts in); later headings in a merged piece only inform the
+    // stack for following chunks.
+    const headings = piece.matchAll(/^(#{1,4})\s+(.+)$/gm);
+    let label: string | null = null;
+    for (const m of headings) {
+      const level = m[1]!.length;
+      const title = m[2]!.trim();
+      while (stack.length && stack[stack.length - 1]!.level >= level) stack.pop();
+      stack.push({ level, title });
+      if (!label) label = stack.map((f) => f.title).join(" > ");
+    }
+    return label ?? (stack.length ? stack.map((f) => f.title).join(" > ") : null);
+  });
   const withOverlap: string[] = [];
   for (let i = 0; i < merged.length; i += 1) {
     const prev = merged[i - 1] ?? "";
@@ -172,7 +186,7 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     ordinal,
     text,
     tokenCount: estimateTokens(text),
-    heading: currentHeading(text),
+    heading: paths[ordinal] ?? null,
     symbol: extra.symbol,
     filepath: extra.filepath,
     language: extra.language,

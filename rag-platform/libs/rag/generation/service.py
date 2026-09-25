@@ -8,10 +8,15 @@ from typing import Optional, Union
 
 from libs.rag.context.models import AssembledContext
 
-from .citations import normalize_answer_citations, parse_citations
+from .citations import (
+    normalize_answer_citations,
+    parse_citations,
+    strip_unresolved_citations,
+)
 from .config import GenerationConfig
 from .models import GenerationResult, GenerationStats, ParsedCitation
 from .ollama import LLMClient, MockLLMClient, OllamaClient
+from .openrouter import OpenRouterClient
 from .prompts import build_messages
 
 logger = logging.getLogger(__name__)
@@ -33,7 +38,11 @@ class GenerationService:
     @property
     def llm_client(self) -> LLMClient:
         if self._llm_client is None:
-            self._llm_client = OllamaClient(self.config)
+            provider = self.config.provider or "ollama"
+            if provider == "openrouter":
+                self._llm_client = OpenRouterClient(self.config)
+            else:
+                self._llm_client = OllamaClient(self.config)
         return self._llm_client
 
     def generate(
@@ -63,20 +72,15 @@ class GenerationService:
             citations = parse_citations(
                 answer, context, citation_prefix=cfg.citation_prefix
             )
-            # Ensure the UI always has at least one openable source when we answered.
-            if not citations and context.chunks:
-                top = context.chunks[0]
-                citations = [
-                    ParsedCitation(
-                        label="[Source 1]",
-                        source_index=1,
-                        chunk_id=top.chunk_id,
-                        source_text=top.text,
-                        position=0,
-                    )
-                ]
-                if "[Source " not in answer:
-                    answer = f"{answer.rstrip()} [Source 1]"
+            # Fabricated markers must not survive: strip citations that did not
+            # resolve to a real chunk, and never invent a "[Source 1]" the model
+            # did not cite. An uncited answer is returned with zero citations so
+            # evaluation can see it honestly.
+            answer = strip_unresolved_citations(
+                answer,
+                {c.source_index for c in citations},
+                citation_prefix=cfg.citation_prefix,
+            )
 
         stats = GenerationStats(
             prompt_tokens=response.get("prompt_tokens", 0),

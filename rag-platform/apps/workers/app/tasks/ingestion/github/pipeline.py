@@ -118,7 +118,7 @@ def _prepare_version_transition(active: dict | None, now: datetime) -> tuple[int
     - New document (no active version): Start at version 1, nothing to deactivate
     - Update (has active version): Increment version, deactivate old
     """
-    if active:
+    if active is not None:
         version_index = int(active.get("version_index", 0)) + 1
         return version_index, True
     return 1, False

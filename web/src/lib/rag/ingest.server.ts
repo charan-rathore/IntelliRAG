@@ -27,6 +27,36 @@ import { EMBEDDING_MODEL } from "./types";
 
 const MAX_BODY = 60_000;
 
+const PDF_ERROR = "PDF ingestion is not supported yet. Convert the document to text or markdown and import that instead.";
+const TRUNCATION_ERROR = "Document exceeds the supported import size (60KB); import a smaller document instead of silently truncating it.";
+
+function assertNotPdf(body: string) {
+  if (body.startsWith("%PDF-")) throw new Error(PDF_ERROR);
+}
+
+export function htmlToText(html: string): string {
+  let text = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<head[\s\S]*?<\/head>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<\/(p|div|section|article|header|footer|li|ul|ol|tr|table|h[1-6]|pre|blockquote)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ");
+  text = text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'");
+  return text.replace(/[ \t]+/g, " ").replace(/\n\s*\n\s*\n+/g, "\n\n").trim();
+}
+
+function looksLikeHtml(body: string): boolean {
+  return /^\s*(<!doctype html|<html[\s>])/i.test(body);
+}
+
 function titleFromMarkdown(body: string, fallback: string) {
   const heading = body.match(/^#\s+(.+)$/m);
   return heading?.[1]?.trim() || fallback;
@@ -46,8 +76,11 @@ async function fetchText(url: string): Promise<string> {
     });
     if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
     let body = await res.text();
-    if (body.length > MAX_BODY) body = body.slice(0, MAX_BODY);
+    assertNotPdf(body);
+    const contentType = res.headers.get("content-type") ?? "";
+    if (contentType.includes("text/html") || looksLikeHtml(body)) body = htmlToText(body);
     if (!body.trim()) throw new Error("Remote document was empty");
+    if (body.length > MAX_BODY) throw new Error(TRUNCATION_ERROR);
     return body;
   } finally {
     clearTimeout(timer);
@@ -66,7 +99,10 @@ export async function ingestText(input: {
   language?: string | null;
   chunkKind?: "prose" | "code";
 }) {
-  const body = input.body.slice(0, MAX_BODY).trim();
+  assertNotPdf(input.body.trimStart());
+  const raw = looksLikeHtml(input.body) ? htmlToText(input.body) : input.body;
+  const body = raw.trim();
+  if (body.length > MAX_BODY) throw new Error(TRUNCATION_ERROR);
   if (body.length < 40) throw new Error("Document is too short to index");
   const title = titleFromMarkdown(body, input.title);
   const result = await upsertDocument({

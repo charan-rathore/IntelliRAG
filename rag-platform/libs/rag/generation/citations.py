@@ -68,11 +68,10 @@ def parse_citations(
         source_num = int(match.group(1))
         chunk = source_index.get(source_num)
         if chunk is None:
-            # ranks may be 0-based in some paths — try 1-based positional fallback
-            if 1 <= source_num <= len(context.chunks):
-                chunk = context.chunks[source_num - 1]
-            else:
-                continue
+            # A citation that does not resolve to a real chunk rank is a
+            # fabrication. Drop it; never bind it positionally to an
+            # unrelated chunk.
+            continue
 
         label = f"[Source {source_num}]"
         key = (label, source_num)
@@ -191,3 +190,24 @@ def citations_for_claim(
         )
 
     return matched
+
+def strip_unresolved_citations(
+    answer: str,
+    resolved_source_numbers: set[int],
+    citation_prefix: str = "Source",
+) -> str:
+    """Remove ``[Source N]`` markers that did not resolve to a real chunk.
+
+    A marker that opens nothing tells the user a source exists when none does,
+    so unresolved fabrications must not survive in the answer text.
+    """
+    pattern = re.compile(rf"\[{re.escape(citation_prefix)}\s+(\d+)\]", re.IGNORECASE)
+
+    def _drop(match: re.Match[str]) -> str:
+        return match.group(0) if int(match.group(1)) in resolved_source_numbers else ""
+
+    text = pattern.sub(_drop, answer)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r" {2,}", " ", text)
+    text = re.sub(r"\s+([.,!?;:])", r"\1", text)
+    return text.strip()

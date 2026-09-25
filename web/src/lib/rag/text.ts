@@ -1,4 +1,4 @@
-const TOKEN_PATTERN = /[a-z0-9]+/g;
+const TOKEN_PATTERN = /[\p{L}\p{N}]+/gu;
 
 export const QUERY_STOPWORDS = new Set([
   "the",

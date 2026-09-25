@@ -14,6 +14,7 @@ import { bumpCacheHit, findCachedAnswer, saveQueryResult } from "./graphify/pers
 import { resolveRuntime } from "./keys.server";
 import { classifyIntent } from "./intents";
 import { buildContext, retrieve } from "./retrieve.server";
+import { jevSecondOpinion } from "./jev-decision";
 import type { RetrieveResult } from "./retrieve-core";
 import { getStorageStatus } from "./storage";
 import { listDocuments, pendingEmbeddingCount, recordTrace } from "./store.server";
@@ -295,7 +296,15 @@ export async function runQueryStream(
     evidenceGate: retrieved.evidenceGate,
   });
 
-  const evidenceKind = retrieved.evidence;
+  let evidenceKind = retrieved.evidence;
+  // Optional Jev second opinion (JEV_DECISION=1 + TYPESAFE_API_KEY). Monotonic:
+  // can only tighten a "positive" gate to refuse/clarify, never loosen.
+  const jev = await jevSecondOpinion({
+    question,
+    passages: retrieved.chunks.slice(0, 5),
+    gate: retrieved.evidenceGate,
+  });
+  evidenceKind = jev.kind;
 
   if (evidenceKind === "insufficient" || retrieved.chunks.length === 0) {
     const answer = INSUFFICIENT_ANSWER;
