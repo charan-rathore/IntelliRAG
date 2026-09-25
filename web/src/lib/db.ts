@@ -1,4 +1,4 @@
-import { pendingMigrations } from "../../scripts/migration-plan.mjs";
+import { isMigrationFile, pendingMigrations } from "../../scripts/migration-plan.mjs";
 import { getDatabaseUrl, isServerlessRuntime, pgliteDataDir } from "./rag/storage";
 
 /** Which database backend is active. */
@@ -212,12 +212,31 @@ async function createPgliteSql(): Promise<Sql> {
   //. so an HMR reload after adding a migration file applies it live. with
   // passes serialized on a global chain so concurrent callers never
   // double-apply.
+  // Vite inlines migrations via import.meta.glob (no runtime fs). tsx/node
+  // (tests, scripts) has no glob, so read the same directory from disk. Keys
+  // keep the "/migrations/" shape; migrationName() keys by basename, so both
+  // appliers agree on what has been applied.
+  const loadMigrationSql = async (): Promise<Record<string, string>> => {
+    const meta = import.meta as ImportMeta & {
+      glob?: (pattern: string, options: { query: string; import: string; eager: boolean }) => Record<string, string>;
+    };
+    if (typeof meta.glob === "function") {
+      return meta.glob("/migrations/*.sql", { query: "?raw", import: "default", eager: true });
+    }
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const { join } = await import("node:path");
+    const dir = fileURLToPath(new URL("../../migrations/", import.meta.url));
+    const out: Record<string, string> = {};
+    for (const file of readdirSync(dir)) {
+      if (!isMigrationFile(file)) continue;
+      out[`/migrations/${file}`] = readFileSync(join(dir, file), "utf8");
+    }
+    return out;
+  };
+
   const migrate = async (): Promise<void> => {
-    const migrations = import.meta.glob("/migrations/*.sql", {
-      query: "?raw",
-      import: "default",
-      eager: true,
-    }) as Record<string, string>;
+    const migrations = await loadMigrationSql();
     const doneRows = await pg.query<{ name: string }>("select name from _migrations");
     const done = doneRows.rows.map((r) => r.name);
     for (const { name, path } of pendingMigrations(Object.keys(migrations), done)) {
@@ -233,7 +252,23 @@ async function createPgliteSql(): Promise<Sql> {
     .catch(() => undefined) // an earlier failed pass must not wedge the chain
     .then(migrate);
   globalRef.__pgliteMigrateChain__ = pass;
-  await pass;
+  try {
+    await pass;
+  } catch (err) {
+    // A failed bootstrap must not leak the WASM runtime - a live PGLite
+    // instance keeps the event loop held and the process never exits. Close
+    // it, drop the cached handles, and go ephemeral so callers fall back to
+    // the memory corpus instead of hanging.
+    globalRef.__pgliteInstance__ = undefined;
+    globalRef.__pgliteMigrateChain__ = undefined;
+    try {
+      await pg.close();
+    } catch {
+      // best effort
+    }
+    markEphemeral(err);
+    throw err;
+  }
 
   const sql = toSql(
     async <T>(text: string, params: unknown[]) => (await pg.query<T>(text, params)).rows,
