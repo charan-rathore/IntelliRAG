@@ -7,6 +7,7 @@ import {
   tokenSetMatches,
 } from "./text";
 import type { RetrievedChunk } from "./types";
+import { SEED_CORPUS_ID } from "./corpus-scope";
 import {
   CONTEXT_ABSOLUTE_FLOOR,
   CONTEXT_RELATIVE_FLOOR,
@@ -240,7 +241,8 @@ export function rerankCalibrated(opts: {
     const idfRecall = weightedRecall(opts.terms, `${c.title}\n${c.heading ?? ""}\n${c.text}`, opts.idf);
     const titleRecall = weightedRecall(opts.terms, `${c.title} ${c.heading ?? ""}`, opts.idf);
     const phrase = phraseBoost(opts.query, `${c.title}\n${c.text}`);
-    const topical = topicalBoost(opts.query, c.title, c.text);
+    // Demo-tuned topical boost applies only to the seed corpus it was tuned on.
+    const topical = (c.corpusId ?? SEED_CORPUS_ID) === SEED_CORPUS_ID ? topicalBoost(opts.query, c.title, c.text) : 0;
     let score = Math.min(
       1,
       calibratedScore({
@@ -253,7 +255,7 @@ export function rerankCalibrated(opts: {
     );
     const ents = entityTermsInQuery(opts.query);
     const titleTok = new Set(contentTokens(`${c.title} ${c.heading ?? ""}`));
-    if (ents.some((e) => tokenSetMatches(e, titleTok))) score = Math.min(1, score + 0.12);
+    if ((c.corpusId ?? SEED_CORPUS_ID) === SEED_CORPUS_ID && ents.some((e) => tokenSetMatches(e, titleTok))) score = Math.min(1, score + 0.12);
     if (opts.preferredSlugs?.includes(c.slug)) score = Math.min(1, score + 0.03);
     signals.set(c.chunkId, { idfRecall, titleRecall, phrase, topical, dense, bm25 });
     return { chunk: c, score };

@@ -143,8 +143,11 @@ export function retrieveFromRows(opts: {
   const idf = buildIdf(texts);
   const vocab = corpusVocab(texts);
   const query = payloadQuery(opts.query);
-  const terms = [...new Set([...queryTerms(query, vocab), ...expandQueryCues(query)])];
-  const bm25Query = `${retrievalQuery(query, vocab)} ${expandQueryCues(query).join(" ")}`.trim();
+  // Demo-tuned cue expansion is scoped to the seed corpus only; corpora the
+  // user ingests (GitHub repos, uploads) must compete on their own text.
+  const cues = scope.kind === "corpus" && scope.corpusId === SEED_CORPUS_ID ? expandQueryCues(query) : [];
+  const terms = [...new Set([...queryTerms(query, vocab), ...cues])];
+  const bm25Query = `${retrievalQuery(query, vocab)} ${cues.join(" ")}`.trim();
 
   const retrieveN = Math.min(80, Math.max(scopedRows.length, opts.topK * 4, 10));
   let dense: RetrievedChunk[] = [];
