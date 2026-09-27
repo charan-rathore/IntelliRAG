@@ -43,7 +43,7 @@ test('graph output respects small budgets and unrelated preferences do not spill
 });
 test('GitHub issue and PR URLs do not expand to repository roots',()=>{
  assert.equal(parseGithubUrl('https://github.com/charan-rathore/IntelliRAG/issues/2').kind,'issue');
- assert.equal(parseGithubUrl('https://github.com/charan-rathore/IntelliRAG/pull/1').kind,'issue');
+ assert.equal(parseGithubUrl('https://github.com/charan-rathore/IntelliRAG/pull/1').kind,'pull');
  assert.throws(()=>parseGithubUrl('https://github.com/charan-rathore/IntelliRAG/actions'));
 });
 test('browser keys remain request-local and GET never copies another visitor key',async()=>{
