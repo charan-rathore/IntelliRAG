@@ -1,0 +1,56 @@
+[
+  {
+    "number": 235,
+    "html_url": "https://github.com/sindresorhus/p-queue/pull/235",
+    "title": "Remove abort listener when operation completes",
+    "body": "The current implementation does not clean up the listeners it adds to the abortsignal.\r\nWhen doing many operations using a single abortcontroller, that is only eventually or never aborted, this results in memory-leak-like behaviour.",
+    "state": "closed",
+    "head_sha": "f444dce7a802cc76c4a80627b6aaafb284f9a27c",
+    "files": [
+      {
+        "filename": "source/index.ts",
+        "status": "modified",
+        "patch": "@@ -287,14 +287,6 @@ export default class PQueue<QueueType extends Queue<RunFunction, EnqueueOptionsT\n \t\tthis.#processQueue();\n \t}\n \n-\tasync #throwOnAbort(signal: AbortSignal): Promise<never> {\n-\t\treturn new Promise((_resolve, reject) => {\n-\t\t\tsignal.addEventListener('abort', () => {\n-\t\t\t\treject(signal.reason);\n-\t\t\t}, {once: true});\n-\t\t});\n-\t}\n-\n \t/**\n \tUpdates the priority of a promise function by its id, affecting its execution order. Requires a defined concurrency limit to take effect.\n \n@@ -367,6 +359,8 @@ export default class PQueue<QueueType extends Queue<RunFunction, EnqueueOptionsT\n \t\t\t\t\ttimeout: options.timeout,\n \t\t\t\t});\n \n+\t\t\t\tlet eventListener: (() => void) | undefined;\n+\n \t\t\t\ttry {\n \t\t\t\t\t// Check abort signal - if aborted, need to decrement the counter\n \t\t\t\t\t// that was incremented in tryToStartAnother\n@@ -394,7 +388,13 @@ export default class PQueue<QueueType extends Queue<RunFunction, EnqueueOptionsT\n \t\t\t\t\t}\n \n \t\t\t\t\tif (options.signal) {\n-\t\t\t\t\t\toperation = Promise.race([operation, this.#throwOnAbort(options.signal)]);\n+\t\t\t\t\t\toperation = Promise.race([operation, new Promise<never>((_resolve, reject) => {\n+\t\t\t\t\t\t\teventListener = () => {\n+\t\t\t\t\t\t\t\treject(options.signal!.reason);\n+\t\t\t\t\t\t\t};\n+\n+\t\t\t\t\t\t\toptions.signal!.addEventListener('abort', eventListener);\n+\t\t\t\t\t\t})]);\n \t\t\t\t\t}\n \n \t\t\t\t\tconst result = await operation;\n@@ -404,6 +404,11 @@ export default class PQueue<QueueType extends Queue<RunFunction, EnqueueOptionsT\n \t\t\t\t\treject(error);\n \t\t\t\t\tthis.emit('error', error);\n \t\t\t\t} finally {\n+\t\t\t\t\t// Clean up abort event listener\n+\t\t\t\t\tif (eventListener) {\n+\t\t\t\t\t\toptions.signal!.removeEventListener('abort', eventListener);\n+\t\t\t\t\t}\n+\n \t\t\t\t\t// Remove from running tasks\n \t\t\t\t\tthis.#runningTasks.delete(taskSymbol);\n ",
+        "raw_url": "https://github.com/sindresorhus/p-queue/raw/f444dce7a802cc76c4a80627b6aaafb284f9a27c/source%2Findex.ts"
+      },
+      {
+        "filename": "test/advanced.ts",
+        "status": "modified",
+        "patch": "@@ -342,6 +342,28 @@ test('aborting multiple jobs at the same time', async () => {\n \tassert.equal(queue.pending, 0);\n });\n \n+test('abort listener is removed when job is completed', async () => {\n+\tconst queue = new PQueue();\n+\tconst mockSignal = {\n+\t\taborted: false,\n+\t\tnumberOfListeners: 0,\n+\t\tthrowIfAborted() {\n+\t\t\tif (this.aborted) {\n+\t\t\t\tthrow new Error('Aborted');\n+\t\t\t}\n+\t\t},\n+\t\taddEventListener() {\n+\t\t\tthis.numberOfListeners++;\n+\t\t},\n+\t\tremoveEventListener() {\n+\t\t\tthis.numberOfListeners--;\n+\t\t},\n+\t};\n+\tawait queue.add(async () => delay(10), {signal: mockSignal as unknown as AbortSignal});\n+\tassert.equal(queue.size, 0);\n+\tassert.equal(mockSignal.numberOfListeners, 0);\n+});\n+\n test('pending promises counted fast enough', async () => {\n \tconst queue = new PQueue({autoStart: false, concurrency: 2});\n ",
+        "raw_url": "https://github.com/sindresorhus/p-queue/raw/f444dce7a802cc76c4a80627b6aaafb284f9a27c/test%2Fadvanced.ts"
+      }
+    ]
+  },
+  {
+    "number": 240,
+    "html_url": "https://github.com/sindresorhus/p-queue/pull/240",
+    "title": "docs: clarify autoStart README wording",
+    "body": "## Summary\n- clarify the autoStart sentence in the README\n\n## Related issue\n- N/A (trivial docs wording fix)\n\n## Guideline alignment\n- CONTRIBUTING: none found in the repo root or .github on main\n- PR template: none found in the repo root or .github on main\n\n## Validation\n- Not run (docs-only change)\n",
+    "state": "closed",
+    "head_sha": "379f8bc89a12c467fe0f841167f4d6ee51bdcfe8",
+    "files": [
+      {
+        "filename": "readme.md",
+        "status": "modified",
+        "patch": "@@ -109,7 +109,7 @@ await queue.add(() => slowTask(), {timeout: 10000});\n Type: `boolean`\\\n Default: `true`\n \n-Whether queue tasks within concurrency limit, are auto-executed as soon as they're added.\n+Whether queue tasks within the concurrency limit are auto-executed as soon as they're added.\n \n ##### queueClass\n ",
+        "raw_url": "https://github.com/sindresorhus/p-queue/raw/379f8bc89a12c467fe0f841167f4d6ee51bdcfe8/readme.md"
+      }
+    ]
+  },
+  {
+    "number": 243,
+    "html_url": "https://github.com/sindresorhus/p-queue/pull/243",
+    "title": "docs: fix duplicate `const results` declaration in readme example",
+    "body": "\n**Repo:** sindresorhus/p-queue (\u2b50 3000)\n**Type:** docs\n**Files changed:** 1\n**Lines:** +4/-1\n\n## What\nThe \"How do I get results in the order they were added?\" FAQ section in `readme.md` contained two consecutive `const results = ...` declarations within the same code block. In real JS that block would throw `SyntaxError: Identifier 'results' has already been declared`. Split the two examples into separate fenced code blocks so each stands on its own as a runnable snippet.\n\n## Why\nReadme examples double as copy-paste starter code; an example that cannot run undermines trust and confuses readers. The fix keeps both illustrations (direct mapping and URL mapping) but scopes each to its own block.\n\n## Testing\nPurely a docs/markdown change \u2014 no test surface. Verified by rendering the markdown and confirming the two code blocks are distinct and each is valid JS on its own.\n\n## Risk\nLow \u2014 documentation-only; no source, tests, or exports touched.\n",
+    "state": "closed",
+    "head_sha": "4911f399072d4bc4ffa50d136ccc4644d78b7d30",
+    "files": [
+      {
+        "filename": "readme.md",
+        "status": "modified",
+        "patch": "@@ -935,8 +935,11 @@ const results = await Promise.all(\n \ttasks.map(task => queue.add(task))\n );\n // results = [result1, result2, result3] \u2705 Always in input order\n+```\n+\n+Or more concisely:\n \n-// Or more concisely:\n+```js\n const urls = ['url1', 'url2', 'url3'];\n const results = await Promise.all(\n \turls.map(url => queue.add(() => fetch(url)))",
+        "raw_url": "https://github.com/sindresorhus/p-queue/raw/4911f399072d4bc4ffa50d136ccc4644d78b7d30/readme.md"
+      }
+    ]
+  }
+]

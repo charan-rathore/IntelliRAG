@@ -1,5 +1,6 @@
 export type GithubTarget =
   | { kind: "issue"; owner: string; repo: string; number: number }
+  | { kind: "pull"; owner: string; repo: string; number: number }
   | { kind: "blob"; owner: string; repo: string; ref: string; path: string }
   | { kind: "tree"; owner: string; repo: string; ref: string | null; path: string }
   | { kind: "repo"; owner: string; repo: string; ref: string | null };
@@ -81,8 +82,10 @@ export function parseGithubUrl(url: string): GithubTarget | null {
   const repo = m[2]!.replace(/\.git$/i, "");
   const rest = m[3] ?? "";
   if (!rest) return { kind: "repo", owner, repo, ref: null };
-  const issue = rest.match(/^(?:issues|pull)\/(\d+)$/);
+  const issue = rest.match(/^issues\/(\d+)$/);
   if (issue) return { kind: "issue", owner, repo, number: Number(issue[1]) };
+  const pull = rest.match(/^pull\/(\d+)$/);
+  if (pull) return { kind: "pull", owner, repo, number: Number(pull[1]) };
   const blob = rest.match(/^blob\/([^/]+)\/(.+)$/);
   if (blob) return { kind: "blob", owner, repo, ref: blob[1]!, path: blob[2]! };
   const tree = rest.match(/^tree\/([^/]+)(?:\/(.*))?$/);
@@ -200,4 +203,30 @@ export async function listGithubFiles(opts: {
     opts.token,
   );
   return { sha: tree.sha, files: filterGithubTree(tree.tree ?? [], opts.prefix ?? "") };
+}
+
+/** The PR endpoint exposes the discussion, not the changed files. Keep each
+ * patch with its own source URL and path so retrieval can cite what changed. */
+export type GithubPullSnapshot = {
+  number: number;
+  title: string;
+  body: string | null;
+  state: string;
+  html_url: string;
+  files: Array<{ filename: string; status: string; patch?: string | null; raw_url?: string }>;
+};
+
+export function githubPullDocuments(pr: GithubPullSnapshot, owner: string, repo: string) {
+  const header = `# ${owner}/${repo} PR #${pr.number}: ${pr.title}\nState: ${pr.state}\nSource: ${pr.html_url}`;
+  if (pr.files.some(file => !file.patch?.trim())) {
+    throw new Error(`PR #${pr.number} has a file without a readable patch; cannot claim complete PR ingestion.`);
+  }
+  const files = pr.files.map(file =>
+    `## ${file.filename} (${file.status})\n${file.patch!.trim()}`,
+  ).join('\n\n');
+  return [{
+    slug: `pr-${pr.number}`, title: `PR #${pr.number}: ${pr.title}`,
+    body: `${header}\n\n${pr.body ?? ''}\n\n# Changed files\n\n${files}`,
+    filepath: null, chunkKind: 'prose' as const, sourceUri: pr.html_url,
+  }];
 }

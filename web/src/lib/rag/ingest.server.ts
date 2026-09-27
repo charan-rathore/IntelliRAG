@@ -7,6 +7,7 @@ import { embedTexts, GeminiError } from "./gemini.server";
 import {
   GITHUB_MAX_TOTAL_BYTES,
   githubRawUrl,
+  githubPullDocuments,
   isCodePath,
   languageFromPath,
   listGithubFiles,
@@ -210,11 +211,31 @@ async function ingestGithubIssue(owner: string, repo: string, number: number) {
   return { ingested: result.skipped ? 0 : 1, skipped: result.skipped ? 1 : 0, titles: [result.slug], corpusId: urlCorpusId(issue.html_url) };
 }
 
+async function ingestGithubPull(owner: string, repo: string, number: number) {
+  const token = githubToken();
+  const headers: Record<string, string> = { Accept: "application/vnd.github+json", "User-Agent": "IntelliRAG" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const base = `https://api.github.com/repos/${owner}/${repo}/pulls/${number}`;
+  const detail = await fetch(base, { headers, signal: AbortSignal.timeout(15_000) });
+  if (!detail.ok) throw new Error(`GitHub PR fetch failed (${detail.status})`);
+  const pr = await detail.json() as { title: string; body: string | null; html_url: string; state: string; changed_files: number };
+  if (pr.changed_files > 100) throw new Error("PR has over 100 changed files; import a smaller PR instead of silently dropping files.");
+  const response = await fetch(`${base}/files?per_page=100`, { headers, signal: AbortSignal.timeout(15_000) });
+  if (!response.ok) throw new Error(`GitHub PR file fetch failed (${response.status})`);
+  const files = await response.json() as Array<{ filename: string; status: string; patch?: string | null }>;
+  if (files.length !== pr.changed_files) throw new Error("PR file list is incomplete; cannot claim complete PR ingestion.");
+  const [document] = githubPullDocuments({ ...pr, number, files }, owner, repo);
+  if (document!.body.length > MAX_BODY) throw new Error(TRUNCATION_ERROR);
+  const result = await ingestText({ title: document!.title, body: document!.body, sourceType: "url", sourceUri: pr.html_url, slugHint: `${owner}-${repo}-pr-${number}` });
+  return { ingested: result.skipped ? 0 : 1, skipped: result.skipped ? 1 : 0, titles: [result.slug], corpusId: result.corpusId };
+}
+
 export async function ingestFromUrl(url: string) {
   const trimmed = url.trim();
   if (!/^https?:\/\//i.test(trimmed)) throw new Error("Provide an http(s) URL");
   const gh = parseGithubUrl(trimmed);
   if (gh?.kind === "issue") return ingestGithubIssue(gh.owner, gh.repo, gh.number);
+  if (gh?.kind === "pull") return ingestGithubPull(gh.owner, gh.repo, gh.number);
   if (gh?.kind === "blob") {
     const body = await fetchText(githubRawUrl(gh.owner, gh.repo, gh.ref, gh.path));
     const code = isCodePath(gh.path);
@@ -268,7 +289,7 @@ export async function fetchRemoteDocument(url: string): Promise<{
 }> {
   const trimmed = url.trim();
   const gh = parseGithubUrl(trimmed);
-  if (gh?.kind === "repo" || gh?.kind === "tree" || gh?.kind === "issue") {
+  if (gh?.kind === "repo" || gh?.kind === "tree" || gh?.kind === "issue" || gh?.kind === "pull") {
     throw new Error("Repository URLs ingest via ingestFromUrl (tree enumeration), not a single README.");
   }
   const raw =

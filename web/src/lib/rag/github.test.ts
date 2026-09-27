@@ -73,3 +73,21 @@ export function classifyIntent(q: string) {
     assert.ok(chunks.every((c) => c.filepath === "src/lib/rag/retrieve.server.ts"));
   });
 });
+
+it('separates PR URLs from issue URLs and keeps their file patches with the discussion', async () => {
+  const { githubPullDocuments } = await import('./github.ts');
+  assert.deepEqual(parseGithubUrl('https://github.com/sindresorhus/p-queue/pull/235'), {
+    kind: 'pull', owner: 'sindresorhus', repo: 'p-queue', number: 235,
+  });
+  const documents = githubPullDocuments({
+    number: 235, title: 'Remove abort listener', state: 'closed', body: 'Prevent leaked listeners',
+    html_url: 'https://github.com/sindresorhus/p-queue/pull/235',
+    files: [{filename: 'source/index.ts', status: 'modified', patch: '@@ -1 +1 @@\n+signal.removeEventListener("abort", onAbort);'}],
+  }, 'sindresorhus', 'p-queue');
+  assert.equal(documents.length, 1);
+  assert.match(documents[0]!.body, /source\/index.ts[\s\S]*removeEventListener/);
+  assert.throws(() => githubPullDocuments({
+    number: 1, title: 'Big diff', state: 'open', body: null,
+    html_url: 'https://github.com/a/b/pull/1', files: [{ filename: 'a.txt', status: 'modified' }],
+  }, 'a', 'b'), /without a readable patch/);
+});
