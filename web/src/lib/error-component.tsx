@@ -6,7 +6,9 @@ function isDeployFsError(message: string) {
 }
 
 export function AppErrorComponent({ error }: ErrorComponentProps) {
-  const message = error.message || "An unexpected error occurred. Try reloading the page.";
+  const message = error instanceof Error && error.message
+    ? error.message
+    : "An unexpected error occurred. Try reloading the page.";
   const deployFs = isDeployFsError(message);
   return (
     <main
