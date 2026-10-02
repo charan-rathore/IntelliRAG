@@ -209,6 +209,14 @@ async function upsertDurable(input: UpsertInput, sql: Sql) {
   return { id, slug, version: 1, skipped: false, chunkCount, corpusId };
 }
 
+/** Cheap revision validation: document metadata only, no chunk counts or vector payloads. */
+export async function listGraphDocumentVersions(): Promise<Array<{slug:string;version:number;embeddingModel:string|null}>> {
+  if (vercelWithoutDatabase()) return memory.listGraphDocumentVersions();
+  const sql=await getSql();
+  const rows=await sql<{slug:string;version:number;embedding_model:string|null}>`select slug, version, embedding_model from documents order by slug`;
+  return rows.map(r=>({slug:r.slug,version:r.version,embeddingModel:r.embedding_model}));
+}
+
 export async function listDocuments(): Promise<DocumentHealth[]> {
   if (vercelWithoutDatabase()) return memory.listDocuments();
   try {
@@ -439,6 +447,19 @@ export async function loadSearchableChunks(scope?: CorpusScope): Promise<
     if (dbUnavailable(err)) return memory.loadSearchableChunks(parsed);
     throw err;
   }
+}
+
+/** Indexed primary-key fetch for graph candidates. Never loads the full chunk corpus. */
+export async function loadChunksByIds(ids: string[], scope: CorpusScope): Promise<import("./retrieve-core").SearchRow[]> {
+  if (!ids.length) return [];
+  if (ids.length > 256) throw new Error("Graph candidate limit exceeded");
+  if (vercelWithoutDatabase()) return memory.loadChunksByIds(ids, scope);
+  const sql = await getSql();
+  const rows = await sql.query<ChunkRow & {title:string;slug:string;indexed_at:string|null;doc_corpus:string}>(
+    `select c.*, d.title, d.slug, d.indexed_at, d.corpus_id as doc_corpus from chunks c
+     join documents d on d.id=c.document_id where c.id = any($1::text[])
+     and ($2::text = 'all' or d.corpus_id=$3::text)`, [ids,scope.kind,scope.kind==='corpus'?scope.corpusId:null]);
+  return rows.map(row=>({chunk:{...row, corpus_id:row.doc_corpus},title:row.title,slug:row.slug,indexedAt:row.indexed_at,corpusId:row.doc_corpus}));
 }
 
 export async function pendingEmbeddingCount(expectedModel = EMBEDDING_MODEL): Promise<number> {

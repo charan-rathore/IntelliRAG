@@ -232,6 +232,7 @@ export function rerankCalibrated(opts: {
   idf: IdF;
   terms: string[];
   preferredSlugs?: string[];
+  graphPathCosts?: Map<string, number>;
 }): { ranked: RetrievedChunk[]; scores: Map<string, number>; signals: Map<string, RerankSignals> } {
   const bm25Raw = opts.candidates.map((c) => opts.keywordScores.get(c.chunkId) ?? 0);
   const signals = new Map<string, RerankSignals>();
@@ -257,6 +258,8 @@ export function rerankCalibrated(opts: {
     const titleTok = new Set(contentTokens(`${c.title} ${c.heading ?? ""}`));
     if ((c.corpusId ?? SEED_CORPUS_ID) === SEED_CORPUS_ID && ents.some((e) => tokenSetMatches(e, titleTok))) score = Math.min(1, score + 0.12);
     if (opts.preferredSlugs?.includes(c.slug)) score = Math.min(1, score + 0.03);
+    const pathCost = opts.graphPathCosts?.get(c.chunkId);
+    if (pathCost !== undefined) score = Math.min(1, score + 0.04 / (1 + pathCost));
     signals.set(c.chunkId, { idfRecall, titleRecall, phrase, topical, dense, bm25 });
     return { chunk: c, score };
   });

@@ -1,0 +1,56 @@
+{
+  "scope": "Synthetic-vector in-process retrieval CPU benchmark. Includes graph lookup, candidate validation, rerank/gate. Excludes provider, SQL/network, graph persistence and server transport. 5 warmups plus 30 measured iterations each. Not an end-to-end speedup claim.",
+  "outputs": [
+    {
+      "size": 100,
+      "dimensions": 128,
+      "learned_vectors": 1,
+      "graph": {
+        "median_ms": 0.26057199999999625,
+        "p95_ms": 0.4131399999999985,
+        "n": 30
+      },
+      "full": {
+        "median_ms": 3.209181000000001,
+        "p95_ms": 4.4287780000000225,
+        "n": 30
+      },
+      "full_loader_calls": 0,
+      "candidate_rows_per_call": 1
+    },
+    {
+      "size": 1000,
+      "dimensions": 128,
+      "learned_vectors": 1,
+      "graph": {
+        "median_ms": 0.2120299999999702,
+        "p95_ms": 0.2704149999999572,
+        "n": 30
+      },
+      "full": {
+        "median_ms": 11.540287999999919,
+        "p95_ms": 12.744373999999993,
+        "n": 30
+      },
+      "full_loader_calls": 0,
+      "candidate_rows_per_call": 1
+    },
+    {
+      "size": 5000,
+      "dimensions": 128,
+      "learned_vectors": 1,
+      "graph": {
+        "median_ms": 0.24589399999990746,
+        "p95_ms": 1.1125980000001618,
+        "n": 30
+      },
+      "full": {
+        "median_ms": 56.78205600000001,
+        "p95_ms": 70.61563899999987,
+        "n": 30
+      },
+      "full_loader_calls": 0,
+      "candidate_rows_per_call": 1
+    }
+  ]
+}

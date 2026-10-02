@@ -4,12 +4,14 @@
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { listDocuments, getDocumentBySlug } from "../store.server";
+import { listGraphDocumentVersions, getDocumentBySlug, loadChunksByIds } from "../store.server";
 import { SEED_DOCUMENTS } from "../corpus";
 import { getSql, vercelWithoutDatabase } from "@/lib/db";
 import { extractCorpus, questionHash, GRAPH_EXTRACTOR_VERSION } from "./extract";
 import { lookupCache, preferredSlugs, queryGraph } from "./query";
 import { applyGraphEdits, scopeGraph, EMPTY_EDITS, type GraphEdits } from "./edits";
+import { emptyVectorMemory, learnVectors, lookupVectors } from "./vector";
+import { parseCorpusScope } from "../corpus-scope";
 import { reflect } from "./reflect";
 import type { CacheEntry, GraphOutcome, GraphState, MemoryDoc } from "./schema";
 
@@ -92,14 +94,15 @@ export async function ensureGraph(): Promise<GraphState> {
     }
   }
   const state = g.__intelliragGraph;
-  const documents = await listDocuments();
-  const fingerprint = GRAPH_EXTRACTOR_VERSION + ":answerability-v4:" + JSON.stringify(documents.map(d => [d.slug, d.version]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
+  const documents = await listGraphDocumentVersions();
+  const fingerprint = GRAPH_EXTRACTOR_VERSION + ":vector-graph-v1:answerability-v4:" + JSON.stringify(documents.map(d => [d.slug, d.version, d.embeddingModel]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
   if (state.corpusFingerprint !== fingerprint) {
     const rows = await Promise.all(documents.map(d => getDocumentBySlug(d.slug)));
     const docs = rows.filter((d): d is NonNullable<typeof d> => d !== null);
     state.graph = extractCorpus(docs);
     // A changed source invalidates cached answers and their embedded citation snapshots.
     state.cache = [];
+    state.vectorMemory = emptyVectorMemory();
     // Feedback also refers to a source revision; discard it until memory stores versions.
     state.memory = [];
     state.learning = reflect(state);
@@ -119,14 +122,15 @@ export async function graphSnapshot() {
   const state = await ensureGraph();
   const preferred = state.learning?.nodes.filter((n) => n.verdict === "preferred").length ?? 0;
   return {
-    nodeCount: state.graph.nodes.length,
-    edgeCount: state.graph.links.length,
+    nodeCount: state.graph.nodes.length + (state.vectorMemory?.nodes.length ?? 0),
+    edgeCount: state.graph.links.length + (state.vectorMemory?.edges.length ?? 0) + (state.vectorMemory?.nodes.length ?? 0),
     memoryCount: state.memory.length,
     cacheCount: state.cache.length,
     preferred,
     contested: state.learning?.nodes.filter((n) => n.verdict === "contested").length ?? 0,
-    nodes: state.graph.nodes,
-    links: state.graph.links,
+    nodes: [...state.graph.nodes, ...(state.vectorMemory?.nodes ?? []).map(n=>({id:n.id,label:n.label,kind:"chunk" as const,community:98,source_file:n.slug,source_location:n.chunkId,file_type:"vector",slug:n.slug,corpusId:n.corpusId,chunkId:n.chunkId,vectorModel:n.model,vectorDimension:n.dimension,contentHash:n.contentHash}))],
+    links: [...state.graph.links, ...(state.vectorMemory?.edges ?? []).map(e=>({...e,relation:"semantic_neighbor",confidence:"INFERRED" as const})),
+      ...(state.vectorMemory?.nodes ?? []).map(n=>({source:`doc:${n.slug}`,target:n.id,relation:"contains_vector_chunk",confidence:"EXTRACTED" as const}))],
     learning: state.learning,
   };
 }
@@ -270,3 +274,23 @@ export async function bumpCacheHit(hash: string, corpusId = "seed-lab", policy =
 }
 
 export { mem };
+
+export async function vectorGraphLookup(queryVector: number[], model: string, corpusId: string) {
+  const state=await ensureGraph();
+  const memory=state.vectorMemory ?? emptyVectorMemory();
+  const lookup=lookupVectors(memory,queryVector,model,corpusId);
+  const selected=new Set(lookup.paths.map(p=>p.id));
+  return {lookup,nodes:memory.nodes.filter(n=>selected.has(n.id)),edges:memory.edges.filter(e=>selected.has(e.source)&&selected.has(e.target))};
+}
+
+/** Learn only retrieved context chunks after a positive evidence gate, never answer text as vectors. */
+export async function rememberRetrievedVectors(ids: string[], model: string, dimension: number, corpusId: string) {
+  const state=await ensureGraph();const fingerprint=state.corpusFingerprint;
+  const rows=await loadChunksByIds(ids,parseCorpusScope(corpusId));
+  const current=await ensureGraph();
+  if (current.corpusFingerprint!==fingerprint) return;
+  const learned=learnVectors(current.vectorMemory ?? emptyVectorMemory(),rows,model,dimension);
+  if (learned===current.vectorMemory) return;
+  current.vectorMemory=learned;
+  await persist(current);
+}

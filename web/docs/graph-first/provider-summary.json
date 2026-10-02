@@ -1,0 +1,27 @@
+{
+  "scope": "Real provider embeddings, actual retrieval functions; tiny 3-chunk corpus, local CPU, no SQL/server/embedding latency comparison. Sequential learning; exact answer cache bypassed.",
+  "cases": 9,
+  "graph_hits": 2,
+  "repeated_hits": 1,
+  "repeated_n": 1,
+  "related_hits": 1,
+  "related_n": 2,
+  "citation_text_equal": true,
+  "groups": {
+    "graph": {
+      "unsupported_refusals": 3,
+      "unsupported_n": 3,
+      "supported_n": 6
+    },
+    "full": {
+      "unsupported_refusals": 3,
+      "unsupported_n": 3,
+      "supported_n": 6
+    }
+  },
+  "spend": 0.01680069,
+  "calls": 28,
+  "errors": 0,
+  "embedding_dimensions": 3072,
+  "real_provider_multihop_paths": 0
+}

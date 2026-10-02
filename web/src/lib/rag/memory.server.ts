@@ -370,6 +370,15 @@ export async function loadSearchableChunks(scope?: CorpusScope) {
     .filter((row) => parsed.kind === "all" || row.corpusId === parsed.corpusId);
 }
 
+export async function loadChunksByIds(ids: string[], scope: CorpusScope) {
+  const wanted=new Set(ids);const s=state();const documents=new Map(s.documents.map(d=>[d.id,d]));
+  return s.chunks.filter(c=>wanted.has(c.id)).flatMap(chunk=>{
+    const d=documents.get(chunk.document_id);
+    if (!d || (scope.kind==='corpus' && d.corpus_id!==scope.corpusId)) return [];
+    return [{chunk,title:d.title,slug:d.slug,indexedAt:d.indexed_at,corpusId:d.corpus_id}];
+  });
+}
+
 export async function pendingEmbeddingCount(expectedModel = EMBEDDING_MODEL): Promise<number> {
   return state().chunks.filter(
     (c) => !c.embedding || (c.embedding_model ?? "") !== expectedModel,
@@ -434,4 +443,9 @@ export function resetMemoryForTests() {
 
 export function memoryTmpPath() {
   return TMP_PATH;
+}
+
+export async function listGraphDocumentVersions() {
+  await ensureSeedDocuments();
+  return state().documents.map(d=>({slug:d.slug,version:d.version,embeddingModel:d.embedding_model}));
 }

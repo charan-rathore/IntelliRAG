@@ -5,12 +5,14 @@
  * evidence yields the deterministic string “Not in the indexed corpus.”
  */
 import { createHash } from "node:crypto";
+import { graphFirstRetrieve } from "./graph-first";
+import { loadChunksByIds } from "./store.server";
 import { EMPTY_EDITS, type GraphEdits, type GraphTrace } from "./graphify/edits";
 import { citedSourceSlugs } from "./graphify/story";
 import { EXAMPLE_QUESTIONS } from "./corpus";
 import { INSUFFICIENT_ANSWER, negativeAnswer } from "./evidence";
 import { embedQuery, GeminiError, generationModelLabel, streamGenerate } from "./gemini.server";
-import { bumpCacheHit, findCachedAnswer, saveQueryResult } from "./graphify/persist.server";
+import { bumpCacheHit, findCachedAnswer, saveQueryResult, vectorGraphLookup, rememberRetrievedVectors } from "./graphify/persist.server";
 import { resolveRuntime } from "./keys.server";
 import { classifyIntent } from "./intents";
 import { buildContext, retrieve } from "./retrieve.server";
@@ -202,7 +204,7 @@ export async function runQueryStream(
   const runtime = resolveRuntime();
   const edits = input.graphEdits ?? EMPTY_EDITS;
   // Source revisions are checked by ensureGraph. Settings and credentials isolate answer variants.
-  const policy = createHash("sha256").update(JSON.stringify({ version: 5, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
+  const policy = createHash("sha256").update(JSON.stringify({ version: 6, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
     model: runtime.generate ? generationModelLabel(runtime.generate.provider) : "extractive", runtime, edits })).digest("hex");
   const graphStart = performance.now();
   emit({ type: "stage", name: "graph-lookup" });
@@ -269,15 +271,14 @@ export async function runQueryStream(
   const embedMs = performance.now() - embedStart;
 
   const mode: RetrievalMode = queryVector && requested !== "keyword" ? requested : "keyword";
-  const retrieved = await retrieve({
-    query: question,
-    queryVector,
-    mode,
-    topK: input.topK ?? 5,
-    embeddingModel: embeddingModel ?? EMBEDDING_MODEL,
-    preferredSlugs: graphLook.preferred,
-    corpus: input.corpus ?? SEED_CORPUS_ID,
+  emit({type:"stage",name:"graph-vector-lookup"});
+  const retrievalOptions={query:question,queryVector,mode,topK:input.topK??5,embeddingModel:embeddingModel??EMBEDDING_MODEL,preferredSlugs:graphLook.preferred,corpus:input.corpus??SEED_CORPUS_ID};
+  const routed=await graphFirstRetrieve({...retrievalOptions,storage,scope:corpusScope},{
+    lookup:vectorGraphLookup,fetch:loadChunksByIds,full:()=>retrieve(retrievalOptions),
   });
+  const retrieved=routed.result;
+  emit({type:"graph",nodes:graphLook.subgraph.nodes,links:graphLook.subgraph.links,slugs:graphLook.preferred,
+    cache:input.skipCache?"bypass":"miss",durationMs:routed.vectorTrace.durationMs,vector:routed.vectorTrace});
   const pending = await pendingEmbeddingCount(EMBEDDING_MODEL);
   emit({
     type: "sources",
@@ -305,6 +306,11 @@ export async function runQueryStream(
     gate: retrieved.evidenceGate,
   });
   evidenceKind = jev.kind;
+  if (queryVector && embeddingModel && evidenceKind==="positive" && retrieved.chunks.length) {
+    try { await rememberRetrievedVectors(retrieved.chunks.map(c=>c.chunkId),embeddingModel,queryVector.length,corpusKey); }
+    catch { /* A learning-store failure must not break fresh source-grounded answers. */ }
+  }
+
 
   if (evidenceKind === "insufficient" || retrieved.chunks.length === 0) {
     const answer = INSUFFICIENT_ANSWER;

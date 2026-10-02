@@ -1,0 +1,18 @@
+{
+  "scope": "Local PGLite 1000 synthetic-vector chunk retrieval benchmark. Graph includes document-version validation SQL, primary-key candidate fetch, vector identity check, rerank/evidence. Full includes full row fetch/rerank. Excludes provider, SSE and post-retrieval learning persistence. Five warmups, 20 measured iterations.",
+  "chunks": 1000,
+  "dimensions": 128,
+  "resident_vectors": 1,
+  "graph": {
+    "median_ms": 2.8218500000002678,
+    "p95_ms": 11.16311799999994,
+    "n": 20
+  },
+  "full": {
+    "median_ms": 41.93435499999987,
+    "p95_ms": 61.32830899999999,
+    "n": 20
+  },
+  "candidateFetches": 25,
+  "fullLoads": 0
+}

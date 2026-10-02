@@ -45,6 +45,7 @@ export function applyGraphEdits(graph: GraphJson, edits: GraphEdits): GraphJson 
 }
 
 export type GraphTrace = {
+  vector?: import("../graph-first").VectorTrace;
   nodes: GraphJson["nodes"];
   links: GraphJson["links"];
   slugs: string[];

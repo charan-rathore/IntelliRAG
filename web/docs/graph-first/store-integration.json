@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "checks": [
+    "PGLite candidate-ID SQL fetch",
+    "graph hit without full loader",
+    "citation text equality",
+    "snapshot chunk nodes",
+    "model rejection",
+    "source-version invalidation"
+  ],
+  "storage": {
+    "backend": "pglite",
+    "durable": true,
+    "denseAvailable": true,
+    "warning": null
+  },
+  "graph_route": {
+    "roots": [
+      "chunk:integration-vector-graph:801d2658-0143-4047-9715-ba7462ab0883"
+    ],
+    "paths": [
+      {
+        "id": "chunk:integration-vector-graph:801d2658-0143-4047-9715-ba7462ab0883",
+        "cost": 0.001,
+        "path": [
+          "chunk:integration-vector-graph:801d2658-0143-4047-9715-ba7462ab0883"
+        ],
+        "chunkId": "801d2658-0143-4047-9715-ba7462ab0883",
+        "similarity": 1
+      }
+    ],
+    "compared": 1,
+    "model": "test-integration-model",
+    "dimension": 2,
+    "reason": "positive-evidence-and-80pct-query-support",
+    "nodes": [
+      {
+        "id": "chunk:integration-vector-graph:801d2658-0143-4047-9715-ba7462ab0883",
+        "chunkId": "801d2658-0143-4047-9715-ba7462ab0883",
+        "documentId": "ddd279eb-5767-4b9e-9002-2d1e4313c66c",
+        "slug": "vector-integration",
+        "corpusId": "integration-vector-graph",
+        "contentHash": "bc370760d6ee627b922c3af16d18539df233c90277434f5ffe8a6bb36a1bd714",
+        "model": "test-integration-model",
+        "dimension": 2,
+        "label": "Queue timeout guide: 0",
+        "learnedAt": "2026-10-02T15:10:13.354Z"
+      }
+    ],
+    "edges": [],
+    "route": "graph",
+    "fetched": 1,
+    "durationMs": 207.90073799999982
+  }
+}

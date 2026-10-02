@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { AnswerFeedback } from "@/components/rag/answer-feedback";
 import { CoverageChip } from "@/components/rag/coverage-chip";
 import { loadGraphEdits, type GraphTrace } from "@/lib/rag/graphify/edits";
+import { VectorPaths } from "@/components/rag/vector-paths";
 import { KnowledgeGraph } from "@/components/rag/knowledge-graph";
 import { LatencyWaterfall } from "@/components/rag/latency-waterfall";
 import { FirstRunCoach, RunPreview, SuggestedQuestions, WelcomeOnboarding } from "@/components/rag/onboarding";
@@ -1150,9 +1151,17 @@ function AuditPanel({
       {!last && <RunPreview onTour={onTour} />}
       {last?.graphTrace && <details className="rounded-md border border-border bg-raised p-3 text-xs">
         <summary className="min-h-11 cursor-pointer text-primary">Graph consulted · {last.graphTrace.cache === "hit" ? "cached answer · no model call" : `${last.graphTrace.slugs.length} source suggestions`} · {formatMs(last.graphTrace.durationMs)}</summary>
+        {last.graphTrace.vector && <div className="mt-3 space-y-2 border-y border-border py-3">
+          <p className="text-primary">Dense vector graph: {last.graphTrace.vector.route === "graph" ? "candidate-only retrieval" : "full-index fallback"}</p>
+          <p className="text-muted">{last.graphTrace.vector.compared} resident vectors compared · {last.graphTrace.vector.fetched} chunks fetched · {last.graphTrace.vector.reason}</p>
+          <p className="text-muted">Weighted Dijkstra. Edge cost = max(0.001, 1 - cosine similarity). Lower total path cost gives a bounded rerank boost, never permission to invent an answer.</p>
+          <VectorPaths trace={last.graphTrace.vector} />
+          <ol className="space-y-2">{last.graphTrace.vector.paths.map(p => <li key={p.id} className="break-words font-mono">{p.path.join(" → ")} · cost {p.cost.toFixed(3)} · query cosine {p.similarity.toFixed(3)}</li>)}</ol>
+          <p className="text-subtle">{last.graphTrace.vector.model} · {last.graphTrace.vector.dimension} dimensions. Related questions retrieve fresh evidence; they do not reuse a cached answer.</p>
+        </div>}
         <p className="mt-2 text-muted">Cache: {last.graphTrace.cache}. Graph suggestions guide ranking; cited passages determine what the answer can claim.</p>
         <ul className="mt-3 space-y-2">{last.graphTrace.nodes.map(n => <li key={n.id} className="break-words">{n.label} · {n.kind}{n.slug && <a className="ml-2 text-primary underline" href={`/sources/${encodeURIComponent(n.slug)}`}>source</a>}</li>)}</ul>
-        <p className="mt-3 text-muted">{last.graphTrace.links.length} connections traversed. {last.graphTrace.cache === "hit" ? "Embedding and generation skipped for this exact question and settings." : "No reusable answer found; source retrieval ran next."}</p>
+        <p className="mt-3 text-muted">{last.graphTrace.links.length} connections traversed. {last.graphTrace.cache === "hit" ? "Embedding and generation skipped for this exact question and settings." : "No reusable answer found; vector graph routing or full source retrieval ran next."}</p>
       </details>}
       <div data-tour="tour-feedback" className="rounded-md border border-border bg-raised p-3">
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Teach the graph</p>
