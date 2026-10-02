@@ -47,13 +47,13 @@ export function SuggestedQuestions({
     <div>
       <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">{title}</p>
       {hint ? <p className="mt-1 text-xs leading-relaxed text-subtle">{hint}</p> : null}
-      <div className="mt-3 flex flex-col gap-2">
+      <div className="mt-3 flex flex-col divide-y divide-border border-y border-border">
         {suggestions.slice(0, 6).map((item) => (
           <button
             key={item.question}
             type="button"
             onClick={() => onAsk(item.question)}
-            className="group flex min-h-11 items-start justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-raised"
+            className="group flex min-h-11 items-start justify-between gap-3 px-1 py-3 text-left transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:outline-primary"
           >
             <span className="text-sm leading-snug text-fg">{item.question}</span>
             <span className="flex shrink-0 items-center gap-2 pt-0.5">

@@ -114,11 +114,6 @@
   }
 }
 
-/* A quiet warm glow behind the reading area, never behind source text. */
-.ir-console-main {
-  background: radial-gradient(ellipse at 50% 0%, #b068300a, transparent 65%);
-}
-
 .ir-feature-card {
-  background: linear-gradient(135deg, var(--color-raised), var(--color-surface) 70%);
+  background: var(--color-surface);
 }
