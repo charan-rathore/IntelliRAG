@@ -602,7 +602,7 @@ export function Console({ initial }: { initial: Snapshot }) {
 
       <div className="mx-auto grid min-h-0 w-full max-w-[1600px] flex-1 grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
         {corpusOpen && desktop && <aside aria-label="Source management" className="hidden w-[280px] overflow-y-auto border-r border-border lg:col-start-1 lg:row-start-1 lg:block">{sourcePanel}</aside>}
-        <main className="flex min-h-0 min-w-0 flex-col lg:col-start-2 lg:row-start-1">
+        <main className="ir-console-main flex min-h-0 min-w-0 flex-col lg:col-start-2 lg:row-start-1">
           <div ref={threadRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
             {messages.length === 0 ? (
               <WelcomeOnboarding
@@ -690,7 +690,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             }}
             rows={1}
             maxLength={4000}
-            placeholder="Ask about your documents, or pick a suggestion above…"
+            placeholder="Ask about your documents…"
             className="max-h-36 min-h-11 flex-1 resize-none bg-transparent px-3 py-2 text-base text-fg outline-none placeholder:text-subtle"
           />
           <Button type="submit" size="icon" disabled={busy || !question.trim()} aria-label="Ask">

@@ -60,7 +60,7 @@ function Walkthrough() {
         </ol>
         <a className="mt-5 inline-flex min-h-11 items-center text-sm text-primary underline" href="https://github.com/brianc/node-postgres/issues/3745" target="_blank" rel="noreferrer">Read the original GitHub issue ↗</a>
       </details>
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6"><p className="text-sm text-muted">Try the same check on a source you know.</p><Link to="/" className="inline-flex min-h-12 items-center rounded-md bg-primary px-5 text-sm font-medium text-bg">Bring your own issue →</Link></div>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6"><p className="text-sm text-muted">Try the same check on a source you know.</p><Link to="/" className="inline-flex min-h-12 items-center rounded-md bg-action px-5 text-sm font-medium text-primary-fg hover:bg-action-hover">Bring your own issue →</Link></div>
     </div>
   </main>;
 }

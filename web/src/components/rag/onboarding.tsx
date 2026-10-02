@@ -116,8 +116,8 @@ export function WelcomeOnboarding({
         </p>
       </div>
 
-      <div className="rounded-lg border border-primary/35 bg-surface px-4 py-4">
-        <p className="text-xs uppercase tracking-[0.16em] text-muted">Ready to try</p>
+      <div className="ir-feature-card rounded-lg border border-primary/35 bg-surface px-4 py-4">
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Ready to try</p>
         <p className="mt-2 text-base font-medium text-fg">
           Change shared configuration while jobs are still queued
         </p>

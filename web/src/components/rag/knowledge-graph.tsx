@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 type Props = { nodes: GraphNode[]; links: GraphLink[]; learning?: LearningSidecar | null; nodeCount?: number; edgeCount?: number; cacheCount?: number; preferred?: number; durable?: boolean };
 const control = "min-h-11 rounded border border-border bg-bg px-3 text-xs text-fg";
-const colors: Record<GraphNode["kind"], string> = { document: "#b3a4ff", heading: "#64d8c0", term: "#e8bc75", query: "#79b9f5", symbol: "#f496b3" };
+const colors: Record<GraphNode["kind"], string> = { document: "#d7ab7f", heading: "#64d8c0", term: "#e8bc75", query: "#f2efe9", symbol: "#f496b3" };
 
 export function KnowledgeGraph(props: Props) {
   const [trail, setTrail] = useState<string[]>([]);
@@ -90,10 +90,10 @@ export function KnowledgeGraph(props: Props) {
     <nav aria-label="Evidence trail" className="mt-3 flex flex-wrap items-center gap-1 text-xs"><button className={control} onClick={clear}>All sources</button>{trail.map(id => { const n = byId.get(id); return n && <span key={id} className="inline-flex max-w-full items-center gap-1"><span aria-hidden="true">→</span><button className={cn(control, "max-w-56 truncate", id === selected && "border-primary text-primary")} aria-current={id === selected ? "step" : undefined} onClick={() => choose(n)}>{n.label}</button></span>; })}</nav>
     <div className={cn("mt-3 grid gap-4", expanded && "lg:grid-cols-[minmax(0,1.6fr)_minmax(300px,1fr)]")}>
       <div className={cn("min-w-0", expanded && "lg:sticky lg:top-0 lg:self-start")}>
-        <div className="relative overflow-hidden rounded-xl border border-border bg-bg" style={{ backgroundImage: "radial-gradient(ellipse at 50% 50%,#8170cc18,transparent 70%),radial-gradient(#94a3b81a 1px,transparent 1px)", backgroundSize: "auto,20px 20px" }}>
+        <div className="relative overflow-hidden rounded-xl border border-border bg-bg" style={{ backgroundImage: "radial-gradient(ellipse at 50% 50%,#b0683018,transparent 70%),radial-gradient(#d7ab7f1a 1px,transparent 1px)", backgroundSize: "auto,20px 20px" }}>
           <svg viewBox="0 0 800 490" className="w-full" role="group" aria-label="Corpus knowledge graph">
-            <circle cx="400" cy="245" r="160" fill="none" stroke="#94a3b81a" strokeDasharray="4 8" />
-            {(active ? connections : graph.links).map((e, i) => { const a = positions.get(e.source), b = positions.get(e.target); if (!a || !b) return null; return <g key={i}><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={e.confidence === "USER_EDITED" ? "#e8bc75" : "#a798df"} strokeWidth={e.confidence === "EXTRACTED" ? 3 : e.confidence === "USER_EDITED" ? 2 : 1} opacity={active ? .65 : .25} strokeDasharray={e.confidence === "EXTRACTED" ? undefined : "5 5"} /><title>{`${e.relation} · ${e.confidence.toLowerCase()}`}</title>{active && visible.length < 10 && <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2} fill="#bdb4d8" fontSize="11" textAnchor="middle">{e.relation}</text>}</g>; })}
+            <circle cx="400" cy="245" r="160" fill="none" stroke="#d7ab7f1a" strokeDasharray="4 8" />
+            {(active ? connections : graph.links).map((e, i) => { const a = positions.get(e.source), b = positions.get(e.target); if (!a || !b) return null; return <g key={i}><line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={e.confidence === "USER_EDITED" ? "#e8bc75" : "#b68e66"} strokeWidth={e.confidence === "EXTRACTED" ? 3 : e.confidence === "USER_EDITED" ? 2 : 1} opacity={active ? .65 : .25} strokeDasharray={e.confidence === "EXTRACTED" ? undefined : "5 5"} /><title>{`${e.relation} · ${e.confidence.toLowerCase()}`}</title>{active && visible.length < 10 && <text x={(a.x + b.x) / 2} y={(a.y + b.y) / 2} fill="#c8b8a5" fontSize="11" textAnchor="middle">{e.relation}</text>}</g>; })}
             {visible.map(n => { const p = positions.get(n.id)!; return <g key={n.id} transform={`translate(${p.x} ${p.y})`} role="button" tabIndex={0} aria-label={`${n.label}, ${n.kind}`} aria-pressed={selected === n.id} onClick={() => choose(n)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(n); } }} className="cursor-pointer outline-none focus:stroke-white">
               <title>{`${n.label} · ${n.source_file} ${n.source_location}`}</title><circle r="24" fill={colors[n.kind]} opacity=".1" /><circle r={n.kind === "document" ? 10 : 6} fill={colors[n.kind]} stroke={selected === n.id ? "white" : colors[n.kind]} strokeWidth="2" /><text y="35" textAnchor="middle" fill={colors[n.kind]} fontSize="12">{n.label.length > 25 ? n.label.slice(0, 23) + "…" : n.label}</text>
             </g>; })}

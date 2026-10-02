@@ -1,20 +1,25 @@
 @import "tailwindcss";
 
+/* Warm dark palette sampled from the owner's demo cut.
+ * Text accents are brighter than fills to keep small controls readable.
+ * Semantic good/warn/bad colors remain distinct from the brand accent. */
 @theme {
-  --color-bg: #0b0c0e;
-  --color-surface: #141518;
-  --color-raised: #1b1d21;
-  --color-fg: #ecece8;
-  --color-muted: #8b8d92;
-  --color-subtle: #6a6c72;
-  --color-primary: #c9d0d8;
-  --color-primary-fg: #0b0c0e;
-  --color-border: #26282c;
+  --color-bg: #0b0906;
+  --color-surface: #120e0a;
+  --color-raised: #1c150e;
+  --color-fg: #f2efe9;
+  --color-muted: #b3a99c;
+  --color-subtle: #978b7d;
+  --color-primary: #d7ab7f;
+  --color-primary-fg: #f2efe9;
+  --color-action: #895624;
+  --color-action-hover: #925b27;
+  --color-border: #403124;
   --color-good: #8aa38e;
   --color-warn: #c4b089;
   --color-bad: #c48989;
   --font-sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-display: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -31,6 +36,11 @@
     color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: var(--color-primary);
+    color: var(--color-bg);
   }
 
   button:not(:disabled),
@@ -102,4 +112,13 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* A quiet warm glow behind the reading area, never behind source text. */
+.ir-console-main {
+  background: radial-gradient(ellipse at 50% 0%, #b068300a, transparent 65%);
+}
+
+.ir-feature-card {
+  background: linear-gradient(135deg, var(--color-raised), var(--color-surface) 70%);
 }
