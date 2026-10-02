@@ -548,7 +548,7 @@ export function Console({ initial }: { initial: Snapshot }) {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg text-fg">
-      <header className="relative z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-bg/95 px-3 py-3 backdrop-blur-sm sm:gap-3 md:px-6">
+      <header className="relative z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-bg px-3 py-3 sm:gap-3 md:px-6">
         <div className="flex min-w-0 items-center gap-3" data-tour="tour-brand">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-raised">
             <Layers className="size-4 text-primary" />
@@ -602,7 +602,7 @@ export function Console({ initial }: { initial: Snapshot }) {
 
       <div className="mx-auto grid min-h-0 w-full max-w-[1600px] flex-1 grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
         {corpusOpen && desktop && <aside aria-label="Source management" className="hidden w-[280px] overflow-y-auto border-r border-border lg:col-start-1 lg:row-start-1 lg:block">{sourcePanel}</aside>}
-        <main className="ir-console-main flex min-h-0 min-w-0 flex-col lg:col-start-2 lg:row-start-1">
+        <main className="flex min-h-0 min-w-0 flex-col lg:col-start-2 lg:row-start-1">
           <div ref={threadRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
             {messages.length === 0 ? (
               <WelcomeOnboarding
@@ -668,7 +668,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         {auditOpen && desktop && <aside aria-label="Retrieval diagnostics" className="hidden w-[300px] overflow-y-auto border-l border-border lg:col-start-3 lg:row-start-1 lg:block">{auditPanel}</aside>}
       </div>
 
-      <footer className="relative z-20 shrink-0 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-sm md:px-6">
+      <footer className="relative z-20 shrink-0 border-t border-border bg-bg px-4 py-3 md:px-6">
         <form
           className="mx-auto flex max-w-3xl items-end gap-2 rounded-lg border border-border bg-surface p-2"
           data-tour="tour-composer"

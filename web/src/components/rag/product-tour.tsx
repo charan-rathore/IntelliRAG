@@ -86,8 +86,8 @@ export function ProductTour({
   const cardOnTop = spot ? spot.top + spot.height > window.innerHeight * 0.55 : false;
   const cardStyle = spot
     ? cardOnTop
-      ? { bottom: Math.max(16, window.innerHeight - spot.top + 16), left: Math.min(spot.left, window.innerWidth - 420) }
-      : { top: Math.min(window.innerHeight - 220, spot.top + spot.height + 16), left: Math.min(spot.left, window.innerWidth - 420) }
+      ? { bottom: Math.max(16, window.innerHeight - spot.top + 16), left: Math.max(16, Math.min(spot.left, window.innerWidth - 420)) }
+      : { top: Math.min(window.innerHeight - 220, spot.top + spot.height + 16), left: Math.max(16, Math.min(spot.left, window.innerWidth - 420)) }
     : { bottom: 24, left: 24 };
 
   return (
