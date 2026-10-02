@@ -62,7 +62,7 @@ test('graph lifecycle adds imports, invalidates edited evidence, scopes feedback
  const previousLoad=Module._load;
  Module._load=function(id,parent,...rest){
   if(parent?.filename?.endsWith('graphify/persist.server.ts')){
-   if(id==='../store.server')return {listDocuments:async()=>documents,getDocumentBySlug:async(slug)=>documents.find(d=>d.slug===slug)??null};
+   if(id==='../store.server')return {listGraphDocumentVersions:async()=>documents.map(d=>({slug:d.slug,version:d.version,embeddingModel:d.embeddingModel??null})),getDocumentBySlug:async(slug)=>documents.find(d=>d.slug===slug)??null,loadChunksByIds:async()=>[]};
    if(id==='@/lib/db')return {vercelWithoutDatabase:()=>true};
    if(id==='node:fs')return {mkdirSync:()=>{},writeFileSync:()=>{},readFileSync:()=>{throw new Error('isolated test: no disk state');}};
   }
@@ -78,8 +78,14 @@ test('graph lifecycle adds imports, invalidates edited evidence, scopes feedback
   await save('a');await save('b');await graph.recordOutcome({question:'Lyra retry budget?',outcome:'corrected',correction:'70',corpusId:'a'});
   assert.equal((await graph.findCachedAnswer('Lyra retry budget?','a')).hit,null);
   assert.equal((await graph.findCachedAnswer('Lyra retry budget?','b')).hit.answer,'7');
+  global.__intelliragGraph.vectorMemory={schema:1,nodes:[{id:'chunk:test',chunkId:'test',corpusId:'b',model:'old',dimension:2,vector:[1,0]}],edges:[]};
   documents[1]={...documents[1],body:'## Recovery\nRetry budget 9',version:2};
   assert.equal((await graph.findCachedAnswer('Lyra retry budget?','b')).hit,null);
+  assert.equal(global.__intelliragGraph.vectorMemory.nodes.length,0);
+  global.__intelliragGraph.vectorMemory.nodes.push({id:'stale-model'});
+  documents[1]={...documents[1],embeddingModel:'new-model'};
+  await graph.graphSnapshot();
+  assert.equal(global.__intelliragGraph.vectorMemory.nodes.length,0);
   documents=documents.filter(d=>d.slug!=='lyra');const deleted=await graph.graphSnapshot();
   assert.ok(!deleted.nodes.some(n=>n.slug==='lyra'));
   const ids=new Set(deleted.nodes.map(n=>n.id));assert.ok(deleted.links.every(e=>ids.has(e.source)&&ids.has(e.target)));
