@@ -1,0 +1,528 @@
+{
+  "results": [
+    {
+      "id": "timeout",
+      "arm": "graph",
+      "gate": "positive",
+      "answer": "The queue timeout for a task starts when it is dequeued and begins execution, not while it is waiting in the queue [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.8630862063791931,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "timeout",
+      "arm": "full",
+      "gate": "positive",
+      "answer": "The queue timeout starts when a task is dequeued and begins execution, rather than while it is waiting in the queue [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.8630862063791931,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "timeout-repeat",
+      "arm": "graph",
+      "gate": "positive",
+      "answer": "The queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.8992803736623854,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "timeout-repeat",
+      "arm": "full",
+      "gate": "positive",
+      "answer": "The queue timeout starts when a task is dequeued and begins execution, not while it is waiting in the queue [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.8630862063791931,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "timeout-related",
+      "arm": "graph",
+      "gate": "positive",
+      "answer": "A timeout begins when a task is dequeued and starts execution, not while it is waiting in the queue [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.7033884182178131,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "timeout-related",
+      "arm": "full",
+      "gate": "positive",
+      "answer": "A timeout begins when a task is dequeued and starts execution, rather than while it is waiting in the queue [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.7125936460403866,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "pause",
+      "arm": "graph",
+      "gate": "positive",
+      "answer": "To pause a queue and drain running tasks before changing the configuration, pause the queue and then await `queue.onPendingZero()` to drain running tasks while ignoring queued tasks. Afterward, resume the queue once the shared configuration has been changed [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-1",
+          "documentId": "doc-1",
+          "slug": "provider-1",
+          "title": "Queue pause guide",
+          "text": "Pause the queue then await queue.onPendingZero() to drain running tasks, ignoring queued tasks. Resume the queue after changing shared configuration.",
+          "heading": null,
+          "score": 0.8146180213875965,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "pause",
+      "arm": "full",
+      "gate": "positive",
+      "answer": "To pause a queue and drain running tasks before changing configuration, pause the queue and then await `queue.onPendingZero()`, which drains the running tasks while ignoring queued tasks. After the shared configuration is changed, resume the queue [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-1",
+          "documentId": "doc-1",
+          "slug": "provider-1",
+          "title": "Queue pause guide",
+          "text": "Pause the queue then await queue.onPendingZero() to drain running tasks, ignoring queued tasks. Resume the queue after changing shared configuration.",
+          "heading": null,
+          "score": 0.8146180213875965,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "pause-related",
+      "arm": "graph",
+      "gate": "ambiguous",
+      "answer": "To wait for running tasks without waiting for queued tasks, pause the queue and then await `queue.onPendingZero()` [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-1",
+          "documentId": "doc-1",
+          "slug": "provider-1",
+          "title": "Queue pause guide",
+          "text": "Pause the queue then await queue.onPendingZero() to drain running tasks, ignoring queued tasks. Resume the queue after changing shared configuration.",
+          "heading": null,
+          "score": 0.6240814091457685,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        },
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.6155137174897184,
+          "rank": 2,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "pause-related",
+      "arm": "full",
+      "gate": "ambiguous",
+      "answer": "To wait for running tasks without waiting for queued tasks, pause the queue and then await `queue.onPendingZero()` [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-1",
+          "documentId": "doc-1",
+          "slug": "provider-1",
+          "title": "Queue pause guide",
+          "text": "Pause the queue then await queue.onPendingZero() to drain running tasks, ignoring queued tasks. Resume the queue after changing shared configuration.",
+          "heading": null,
+          "score": 0.6240814091457685,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        },
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.6155137174897184,
+          "rank": 2,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "abort",
+      "arm": "graph",
+      "gate": "positive",
+      "answer": "The abort listener is removed using `removeEventListener` in the `finally` block after a job finishes [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-2",
+          "documentId": "doc-2",
+          "slug": "provider-2",
+          "title": "Abort cleanup guide",
+          "text": "The abort listener is saved in eventListener and removed with removeEventListener in the finally block after a job finishes.",
+          "heading": null,
+          "score": 0.8265404916342661,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "abort",
+      "arm": "full",
+      "gate": "positive",
+      "answer": "The abort listener is removed using `removeEventListener` in the `finally` block after a job finishes [Source 1].",
+      "contexts": [
+        {
+          "chunkId": "chunk-2",
+          "documentId": "doc-2",
+          "slug": "provider-2",
+          "title": "Abort cleanup guide",
+          "text": "The abort listener is saved in eventListener and removed with removeEventListener in the finally block after a job finishes.",
+          "heading": null,
+          "score": 0.8265404916342661,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "unsupported-password",
+      "arm": "graph",
+      "gate": "insufficient",
+      "answer": "Not in the indexed corpus. I only answer from indexed sources in grounded mode, and retrieval did not find supporting evidence.",
+      "contexts": []
+    },
+    {
+      "id": "unsupported-password",
+      "arm": "full",
+      "gate": "insufficient",
+      "answer": "Not in the indexed corpus. I only answer from indexed sources in grounded mode, and retrieval did not find supporting evidence.",
+      "contexts": []
+    },
+    {
+      "id": "unsupported-throughput",
+      "arm": "graph",
+      "gate": "positive",
+      "answer": "Not in the indexed corpus.",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.4712172444852931,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "unsupported-throughput",
+      "arm": "full",
+      "gate": "positive",
+      "answer": "Not in the indexed corpus.",
+      "contexts": [
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.4712172444852931,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "unsupported-postgres",
+      "arm": "graph",
+      "gate": "ambiguous",
+      "answer": "Not in the indexed corpus.",
+      "contexts": [
+        {
+          "chunkId": "chunk-1",
+          "documentId": "doc-1",
+          "slug": "provider-1",
+          "title": "Queue pause guide",
+          "text": "Pause the queue then await queue.onPendingZero() to drain running tasks, ignoring queued tasks. Resume the queue after changing shared configuration.",
+          "heading": null,
+          "score": 0.5011918788953885,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        },
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.47925056149376283,
+          "rank": 2,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    },
+    {
+      "id": "unsupported-postgres",
+      "arm": "full",
+      "gate": "ambiguous",
+      "answer": "Not in the indexed corpus.",
+      "contexts": [
+        {
+          "chunkId": "chunk-1",
+          "documentId": "doc-1",
+          "slug": "provider-1",
+          "title": "Queue pause guide",
+          "text": "Pause the queue then await queue.onPendingZero() to drain running tasks, ignoring queued tasks. Resume the queue after changing shared configuration.",
+          "heading": null,
+          "score": 0.5011918788953885,
+          "rank": 1,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        },
+        {
+          "chunkId": "chunk-0",
+          "documentId": "doc-0",
+          "slug": "provider-0",
+          "title": "Timeout guide",
+          "text": "Queue timeout starts when a task is dequeued and starts execution, not while it is waiting in the queue.",
+          "heading": null,
+          "score": 0.47925056149376283,
+          "rank": 2,
+          "retriever": "hybrid",
+          "tokenCount": 50,
+          "indexedAt": null,
+          "embeddingModel": "google/gemini-embedding-2",
+          "filepath": null,
+          "language": null,
+          "symbol": null,
+          "chunkKind": "prose",
+          "corpusId": "provider-test"
+        }
+      ]
+    }
+  ],
+  "spend": 0.01680069,
+  "calls": 28
+}

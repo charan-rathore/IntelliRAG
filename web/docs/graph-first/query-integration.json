@@ -1,0 +1,1763 @@
+{
+  "scope": "Actual local runQueryStream, SQL persistence, synthetic 768-dimension embeddings and synthetic streaming generator. Answer cache bypassed. Not real-provider correctness or timing.",
+  "passed": true,
+  "providerCalls": 6,
+  "runs": [
+    [
+      {
+        "type": "stage",
+        "name": "graph-lookup"
+      },
+      {
+        "type": "graph",
+        "nodes": [
+          {
+            "id": "doc:query-vector-test",
+            "label": "Queue timeout guide",
+            "excerpt": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "source_file": "query-vector-test.md",
+            "corpusId": "query-integration",
+            "source_location": "L1",
+            "file_type": "markdown",
+            "kind": "document",
+            "community": 12,
+            "slug": "query-vector-test"
+          },
+          {
+            "id": "term:tasks",
+            "label": "tasks",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 234
+          },
+          {
+            "id": "term:execution",
+            "label": "execution",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 247
+          },
+          {
+            "id": "term:timeout",
+            "label": "timeout",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 29
+          },
+          {
+            "id": "term:guide",
+            "label": "guide",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 73
+          },
+          {
+            "id": "term:queue",
+            "label": "queue",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 232
+          },
+          {
+            "id": "term:starts",
+            "label": "starts",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 246
+          },
+          {
+            "id": "term:waiting",
+            "label": "waiting",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 248
+          }
+        ],
+        "links": [
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:timeout",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:guide",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:queue",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:tasks",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:starts",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:execution",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:waiting",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          }
+        ],
+        "slugs": [
+          "query-vector-test"
+        ],
+        "cache": "bypass",
+        "durationMs": 54.05983500000002
+      },
+      {
+        "type": "stage",
+        "name": "retrieving"
+      },
+      {
+        "type": "stage",
+        "name": "graph-vector-lookup"
+      },
+      {
+        "type": "graph",
+        "nodes": [
+          {
+            "id": "doc:query-vector-test",
+            "label": "Queue timeout guide",
+            "excerpt": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "source_file": "query-vector-test.md",
+            "corpusId": "query-integration",
+            "source_location": "L1",
+            "file_type": "markdown",
+            "kind": "document",
+            "community": 12,
+            "slug": "query-vector-test"
+          },
+          {
+            "id": "term:tasks",
+            "label": "tasks",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 234
+          },
+          {
+            "id": "term:execution",
+            "label": "execution",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 247
+          },
+          {
+            "id": "term:timeout",
+            "label": "timeout",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 29
+          },
+          {
+            "id": "term:guide",
+            "label": "guide",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 73
+          },
+          {
+            "id": "term:queue",
+            "label": "queue",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 232
+          },
+          {
+            "id": "term:starts",
+            "label": "starts",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 246
+          },
+          {
+            "id": "term:waiting",
+            "label": "waiting",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 248
+          }
+        ],
+        "links": [
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:timeout",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:guide",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:queue",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:tasks",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:starts",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:execution",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:waiting",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          }
+        ],
+        "slugs": [
+          "query-vector-test"
+        ],
+        "cache": "bypass",
+        "durationMs": 7.481342000000041,
+        "vector": {
+          "roots": [],
+          "paths": [],
+          "compared": 0,
+          "model": "gemini-embedding-2",
+          "dimension": 768,
+          "reason": "no-compatible-learned-vectors",
+          "route": "full",
+          "fetched": 0,
+          "durationMs": 7.481342000000041
+        }
+      },
+      {
+        "type": "sources",
+        "chunks": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9257425742574259,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration"
+          }
+        ],
+        "candidates": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9257425742574259,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration",
+            "scores": {
+              "dense": 1,
+              "keyword": 1.7534907273251403,
+              "hybrid": 0.03278688524590164,
+              "rerank": 0.9257425742574259
+            },
+            "usedInContext": true,
+            "cited": false,
+            "overlapTerms": [
+              "queue",
+              "tasks",
+              "timeout",
+              "execution"
+            ],
+            "ranks": {
+              "dense": 1,
+              "keyword": 1,
+              "fused": 1,
+              "rerank": 1
+            }
+          }
+        ],
+        "pendingEmbeddings": 36,
+        "contextTokens": 18,
+        "dense": {
+          "queryEmbeddingProduced": true,
+          "compatibleStoredVectors": 1,
+          "denseCandidatesProduced": 1,
+          "embeddingModelMatch": true,
+          "embeddingModelExpected": "gemini-embedding-2",
+          "skippedReason": null
+        },
+        "evidence": "positive",
+        "storage": {
+          "backend": "pglite",
+          "durable": true,
+          "denseAvailable": true,
+          "warning": null
+        },
+        "scoreSemantics": "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.",
+        "actualMode": "hybrid",
+        "stages": {
+          "dense": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "keyword": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1.7534907273251403,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "fused": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.03278688524590164,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "rerank": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.9257425742574259,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ]
+        },
+        "corpusId": "query-integration",
+        "corpusScope": "corpus",
+        "evidenceGate": {
+          "kind": "positive",
+          "note": "Packed chunks have distinctive overlap with the question or a strong dense match.",
+          "supportTermCount": 4,
+          "supportHitCount": 4,
+          "packedTopDense": 1,
+          "packedTopLexical": 1.2574257425742574,
+          "clearedForInsufficient": false,
+          "denseRank1Slug": "query-vector-test",
+          "rerankRank1Slug": "query-vector-test",
+          "denseRerankDisagree": false
+        }
+      },
+      {
+        "type": "stage",
+        "name": "generating"
+      },
+      {
+        "type": "token",
+        "text": "Queue tasks timeout starts at execution [Source 1]."
+      },
+      {
+        "type": "done",
+        "answer": "Queue tasks timeout starts at execution [Source 1].",
+        "refused": false,
+        "citations": [
+          {
+            "sourceIndex": 1,
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "title": "Queue timeout guide",
+            "textSnippet": "Queue tasks timeout starts at execution, not while waiting in the queue."
+          }
+        ],
+        "latencies": {
+          "embed": 3.0567150000006222,
+          "dense": 0.3026559999998426,
+          "keyword": 0.2765369999997347,
+          "rerank": 0.5717189999995753,
+          "assemble": 0.5756400000000212,
+          "generate": 0.9911419999998543
+        },
+        "model": "google/gemini-3.7-flash",
+        "embeddingModel": "gemini-embedding-2",
+        "intent": "document",
+        "coverage": "grounded",
+        "candidates": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9257425742574259,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration",
+            "scores": {
+              "dense": 1,
+              "keyword": 1.7534907273251403,
+              "hybrid": 0.03278688524590164,
+              "rerank": 0.9257425742574259
+            },
+            "usedInContext": true,
+            "cited": true,
+            "overlapTerms": [
+              "queue",
+              "tasks",
+              "timeout",
+              "execution"
+            ],
+            "ranks": {
+              "dense": 1,
+              "keyword": 1,
+              "fused": 1,
+              "rerank": 1
+            }
+          }
+        ],
+        "contextTokens": 18,
+        "cacheHit": false,
+        "graphSlugs": [
+          "query-vector-test"
+        ],
+        "dense": {
+          "queryEmbeddingProduced": true,
+          "compatibleStoredVectors": 1,
+          "denseCandidatesProduced": 1,
+          "embeddingModelMatch": true,
+          "embeddingModelExpected": "gemini-embedding-2",
+          "skippedReason": null
+        },
+        "evidence": "positive",
+        "storage": {
+          "backend": "pglite",
+          "durable": true,
+          "denseAvailable": true,
+          "warning": null
+        },
+        "scoreSemantics": "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.",
+        "actualMode": "hybrid",
+        "stages": {
+          "dense": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "keyword": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1.7534907273251403,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "fused": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.03278688524590164,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "rerank": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.9257425742574259,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ]
+        },
+        "corpusId": "query-integration",
+        "corpusScope": "corpus",
+        "evidenceGate": {
+          "kind": "positive",
+          "note": "Packed chunks have distinctive overlap with the question or a strong dense match.",
+          "supportTermCount": 4,
+          "supportHitCount": 4,
+          "packedTopDense": 1,
+          "packedTopLexical": 1.2574257425742574,
+          "clearedForInsufficient": false,
+          "denseRank1Slug": "query-vector-test",
+          "rerankRank1Slug": "query-vector-test",
+          "denseRerankDisagree": false
+        }
+      }
+    ],
+    [
+      {
+        "type": "stage",
+        "name": "graph-lookup"
+      },
+      {
+        "type": "graph",
+        "nodes": [
+          {
+            "id": "doc:query-vector-test",
+            "label": "Queue timeout guide",
+            "excerpt": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "source_file": "query-vector-test.md",
+            "corpusId": "query-integration",
+            "source_location": "L1",
+            "file_type": "markdown",
+            "kind": "document",
+            "community": 12,
+            "slug": "query-vector-test"
+          },
+          {
+            "id": "term:tasks",
+            "label": "tasks",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 234
+          },
+          {
+            "id": "term:execution",
+            "label": "execution",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 247
+          },
+          {
+            "id": "term:timeout",
+            "label": "timeout",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 29
+          },
+          {
+            "id": "term:guide",
+            "label": "guide",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 73
+          },
+          {
+            "id": "term:queue",
+            "label": "queue",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 232
+          },
+          {
+            "id": "term:starts",
+            "label": "starts",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 246
+          },
+          {
+            "id": "term:waiting",
+            "label": "waiting",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 248
+          }
+        ],
+        "links": [
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:timeout",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:guide",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:queue",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:tasks",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:starts",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:execution",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:waiting",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          }
+        ],
+        "slugs": [
+          "query-vector-test"
+        ],
+        "cache": "bypass",
+        "durationMs": 2.0232850000002145
+      },
+      {
+        "type": "stage",
+        "name": "retrieving"
+      },
+      {
+        "type": "stage",
+        "name": "graph-vector-lookup"
+      },
+      {
+        "type": "graph",
+        "nodes": [
+          {
+            "id": "doc:query-vector-test",
+            "label": "Queue timeout guide",
+            "excerpt": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "source_file": "query-vector-test.md",
+            "corpusId": "query-integration",
+            "source_location": "L1",
+            "file_type": "markdown",
+            "kind": "document",
+            "community": 12,
+            "slug": "query-vector-test"
+          },
+          {
+            "id": "term:tasks",
+            "label": "tasks",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 234
+          },
+          {
+            "id": "term:execution",
+            "label": "execution",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 247
+          },
+          {
+            "id": "term:timeout",
+            "label": "timeout",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 29
+          },
+          {
+            "id": "term:guide",
+            "label": "guide",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 73
+          },
+          {
+            "id": "term:queue",
+            "label": "queue",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 232
+          },
+          {
+            "id": "term:starts",
+            "label": "starts",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 246
+          },
+          {
+            "id": "term:waiting",
+            "label": "waiting",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 248
+          }
+        ],
+        "links": [
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:timeout",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:guide",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:queue",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:tasks",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:starts",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:execution",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:waiting",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          }
+        ],
+        "slugs": [
+          "query-vector-test"
+        ],
+        "cache": "bypass",
+        "durationMs": 4.162532000000283,
+        "vector": {
+          "roots": [
+            "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9"
+          ],
+          "paths": [
+            {
+              "id": "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "cost": 0.001,
+              "path": [
+                "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9"
+              ],
+              "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "similarity": 1
+            }
+          ],
+          "compared": 1,
+          "model": "gemini-embedding-2",
+          "dimension": 768,
+          "reason": "positive-evidence-and-80pct-query-support",
+          "nodes": [
+            {
+              "id": "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+              "slug": "query-vector-test",
+              "corpusId": "query-integration",
+              "contentHash": "bc370760d6ee627b922c3af16d18539df233c90277434f5ffe8a6bb36a1bd714",
+              "model": "gemini-embedding-2",
+              "dimension": 768,
+              "label": "Queue timeout guide: 0",
+              "learnedAt": "2026-10-02T15:14:50.027Z"
+            }
+          ],
+          "edges": [],
+          "route": "graph",
+          "fetched": 1,
+          "durationMs": 4.162532000000283
+        }
+      },
+      {
+        "type": "sources",
+        "chunks": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9657026142174658,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration"
+          }
+        ],
+        "candidates": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9657026142174658,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration",
+            "scores": {
+              "dense": 1,
+              "keyword": 1.7534907273251403,
+              "hybrid": 0.03278688524590164,
+              "rerank": 0.9657026142174658
+            },
+            "usedInContext": true,
+            "cited": false,
+            "overlapTerms": [
+              "queue",
+              "tasks",
+              "timeout",
+              "execution"
+            ],
+            "ranks": {
+              "dense": 1,
+              "keyword": 1,
+              "fused": 1,
+              "rerank": 1
+            }
+          }
+        ],
+        "pendingEmbeddings": 36,
+        "contextTokens": 18,
+        "dense": {
+          "queryEmbeddingProduced": true,
+          "compatibleStoredVectors": 1,
+          "denseCandidatesProduced": 1,
+          "embeddingModelMatch": true,
+          "embeddingModelExpected": "gemini-embedding-2",
+          "skippedReason": null
+        },
+        "evidence": "positive",
+        "storage": {
+          "backend": "pglite",
+          "durable": true,
+          "denseAvailable": true,
+          "warning": null
+        },
+        "scoreSemantics": "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.",
+        "actualMode": "hybrid",
+        "stages": {
+          "dense": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "keyword": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1.7534907273251403,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "fused": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.03278688524590164,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "rerank": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.9657026142174658,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ]
+        },
+        "corpusId": "query-integration",
+        "corpusScope": "corpus",
+        "evidenceGate": {
+          "kind": "positive",
+          "note": "Packed chunks have distinctive overlap with the question or a strong dense match.",
+          "supportTermCount": 4,
+          "supportHitCount": 4,
+          "packedTopDense": 1,
+          "packedTopLexical": 1.2574257425742574,
+          "clearedForInsufficient": false,
+          "denseRank1Slug": "query-vector-test",
+          "rerankRank1Slug": "query-vector-test",
+          "denseRerankDisagree": false
+        }
+      },
+      {
+        "type": "stage",
+        "name": "generating"
+      },
+      {
+        "type": "token",
+        "text": "Queue tasks timeout starts at execution [Source 1]."
+      },
+      {
+        "type": "done",
+        "answer": "Queue tasks timeout starts at execution [Source 1].",
+        "refused": false,
+        "citations": [
+          {
+            "sourceIndex": 1,
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "title": "Queue timeout guide",
+            "textSnippet": "Queue tasks timeout starts at execution, not while waiting in the queue."
+          }
+        ],
+        "latencies": {
+          "embed": 0.5422859999998764,
+          "dense": 0.11676400000033027,
+          "keyword": 0.06582999999955064,
+          "rerank": 0.2053089999999429,
+          "assemble": 0.044050000000424916,
+          "generate": 0.4275289999995948
+        },
+        "model": "google/gemini-3.7-flash",
+        "embeddingModel": "gemini-embedding-2",
+        "intent": "document",
+        "coverage": "grounded",
+        "candidates": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9657026142174658,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration",
+            "scores": {
+              "dense": 1,
+              "keyword": 1.7534907273251403,
+              "hybrid": 0.03278688524590164,
+              "rerank": 0.9657026142174658
+            },
+            "usedInContext": true,
+            "cited": true,
+            "overlapTerms": [
+              "queue",
+              "tasks",
+              "timeout",
+              "execution"
+            ],
+            "ranks": {
+              "dense": 1,
+              "keyword": 1,
+              "fused": 1,
+              "rerank": 1
+            }
+          }
+        ],
+        "contextTokens": 18,
+        "cacheHit": false,
+        "graphSlugs": [
+          "query-vector-test"
+        ],
+        "dense": {
+          "queryEmbeddingProduced": true,
+          "compatibleStoredVectors": 1,
+          "denseCandidatesProduced": 1,
+          "embeddingModelMatch": true,
+          "embeddingModelExpected": "gemini-embedding-2",
+          "skippedReason": null
+        },
+        "evidence": "positive",
+        "storage": {
+          "backend": "pglite",
+          "durable": true,
+          "denseAvailable": true,
+          "warning": null
+        },
+        "scoreSemantics": "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.",
+        "actualMode": "hybrid",
+        "stages": {
+          "dense": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "keyword": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1.7534907273251403,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "fused": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.03278688524590164,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "rerank": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.9657026142174658,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ]
+        },
+        "corpusId": "query-integration",
+        "corpusScope": "corpus",
+        "evidenceGate": {
+          "kind": "positive",
+          "note": "Packed chunks have distinctive overlap with the question or a strong dense match.",
+          "supportTermCount": 4,
+          "supportHitCount": 4,
+          "packedTopDense": 1,
+          "packedTopLexical": 1.2574257425742574,
+          "clearedForInsufficient": false,
+          "denseRank1Slug": "query-vector-test",
+          "rerankRank1Slug": "query-vector-test",
+          "denseRerankDisagree": false
+        }
+      }
+    ],
+    [
+      {
+        "type": "stage",
+        "name": "graph-lookup"
+      },
+      {
+        "type": "graph",
+        "nodes": [
+          {
+            "id": "doc:query-vector-test",
+            "label": "Queue timeout guide",
+            "excerpt": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "source_file": "query-vector-test.md",
+            "corpusId": "query-integration",
+            "source_location": "L1",
+            "file_type": "markdown",
+            "kind": "document",
+            "community": 12,
+            "slug": "query-vector-test"
+          },
+          {
+            "id": "term:execution",
+            "label": "execution",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 247
+          },
+          {
+            "id": "term:timeout",
+            "label": "timeout",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 29
+          },
+          {
+            "id": "term:guide",
+            "label": "guide",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 73
+          },
+          {
+            "id": "term:queue",
+            "label": "queue",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 232
+          },
+          {
+            "id": "term:tasks",
+            "label": "tasks",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 234
+          },
+          {
+            "id": "term:starts",
+            "label": "starts",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 246
+          },
+          {
+            "id": "term:waiting",
+            "label": "waiting",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 248
+          }
+        ],
+        "links": [
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:timeout",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:guide",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:queue",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:tasks",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:starts",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:execution",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:waiting",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          }
+        ],
+        "slugs": [
+          "query-vector-test"
+        ],
+        "cache": "bypass",
+        "durationMs": 2.0507989999996425
+      },
+      {
+        "type": "stage",
+        "name": "retrieving"
+      },
+      {
+        "type": "stage",
+        "name": "graph-vector-lookup"
+      },
+      {
+        "type": "graph",
+        "nodes": [
+          {
+            "id": "doc:query-vector-test",
+            "label": "Queue timeout guide",
+            "excerpt": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "source_file": "query-vector-test.md",
+            "corpusId": "query-integration",
+            "source_location": "L1",
+            "file_type": "markdown",
+            "kind": "document",
+            "community": 12,
+            "slug": "query-vector-test"
+          },
+          {
+            "id": "term:execution",
+            "label": "execution",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 247
+          },
+          {
+            "id": "term:timeout",
+            "label": "timeout",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 29
+          },
+          {
+            "id": "term:guide",
+            "label": "guide",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 73
+          },
+          {
+            "id": "term:queue",
+            "label": "queue",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 232
+          },
+          {
+            "id": "term:tasks",
+            "label": "tasks",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 234
+          },
+          {
+            "id": "term:starts",
+            "label": "starts",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 246
+          },
+          {
+            "id": "term:waiting",
+            "label": "waiting",
+            "source_file": "shared",
+            "source_location": "",
+            "file_type": "term",
+            "kind": "term",
+            "community": 248
+          }
+        ],
+        "links": [
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:timeout",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:guide",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:queue",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:tasks",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:starts",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:execution",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          },
+          {
+            "source": "doc:query-vector-test",
+            "target": "term:waiting",
+            "relation": "uses",
+            "confidence": "INFERRED"
+          }
+        ],
+        "slugs": [
+          "query-vector-test"
+        ],
+        "cache": "bypass",
+        "durationMs": 2.4243329999999332,
+        "vector": {
+          "roots": [
+            "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9"
+          ],
+          "paths": [
+            {
+              "id": "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "cost": 0.001,
+              "path": [
+                "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9"
+              ],
+              "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "similarity": 1
+            }
+          ],
+          "compared": 1,
+          "model": "gemini-embedding-2",
+          "dimension": 768,
+          "reason": "positive-evidence-and-80pct-query-support",
+          "nodes": [
+            {
+              "id": "chunk:query-integration:f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+              "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+              "slug": "query-vector-test",
+              "corpusId": "query-integration",
+              "contentHash": "bc370760d6ee627b922c3af16d18539df233c90277434f5ffe8a6bb36a1bd714",
+              "model": "gemini-embedding-2",
+              "dimension": 768,
+              "label": "Queue timeout guide: 0",
+              "learnedAt": "2026-10-02T15:14:50.260Z"
+            }
+          ],
+          "edges": [],
+          "route": "graph",
+          "fetched": 1,
+          "durationMs": 2.4243329999999332
+        }
+      },
+      {
+        "type": "sources",
+        "chunks": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9441705662758295,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration"
+          }
+        ],
+        "candidates": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9441705662758295,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration",
+            "scores": {
+              "dense": 1,
+              "keyword": 1.4658086548733595,
+              "hybrid": 0.03278688524590164,
+              "rerank": 0.9441705662758295
+            },
+            "usedInContext": true,
+            "cited": false,
+            "overlapTerms": [
+              "queue",
+              "timeout",
+              "execution"
+            ],
+            "ranks": {
+              "dense": 1,
+              "keyword": 1,
+              "fused": 1,
+              "rerank": 1
+            }
+          }
+        ],
+        "pendingEmbeddings": 36,
+        "contextTokens": 18,
+        "dense": {
+          "queryEmbeddingProduced": true,
+          "compatibleStoredVectors": 1,
+          "denseCandidatesProduced": 1,
+          "embeddingModelMatch": true,
+          "embeddingModelExpected": "gemini-embedding-2",
+          "skippedReason": null
+        },
+        "evidence": "positive",
+        "storage": {
+          "backend": "pglite",
+          "durable": true,
+          "denseAvailable": true,
+          "warning": null
+        },
+        "scoreSemantics": "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.",
+        "actualMode": "hybrid",
+        "stages": {
+          "dense": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "keyword": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1.4658086548733595,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "fused": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.03278688524590164,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "rerank": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.9441705662758295,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ]
+        },
+        "corpusId": "query-integration",
+        "corpusScope": "corpus",
+        "evidenceGate": {
+          "kind": "positive",
+          "note": "Packed chunks have distinctive overlap with the question or a strong dense match.",
+          "supportTermCount": 3,
+          "supportHitCount": 3,
+          "packedTopDense": 1,
+          "packedTopLexical": 1.3421052631578947,
+          "clearedForInsufficient": false,
+          "denseRank1Slug": "query-vector-test",
+          "rerankRank1Slug": "query-vector-test",
+          "denseRerankDisagree": false
+        }
+      },
+      {
+        "type": "stage",
+        "name": "generating"
+      },
+      {
+        "type": "token",
+        "text": "Queue tasks timeout starts at execution [Source 1]."
+      },
+      {
+        "type": "done",
+        "answer": "Queue tasks timeout starts at execution [Source 1].",
+        "refused": false,
+        "citations": [
+          {
+            "sourceIndex": 1,
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "title": "Queue timeout guide",
+            "textSnippet": "Queue tasks timeout starts at execution, not while waiting in the queue."
+          }
+        ],
+        "latencies": {
+          "embed": 0.48362600000018574,
+          "dense": 0.06418000000030588,
+          "keyword": 0.11686900000040623,
+          "rerank": 0.0859600000003411,
+          "assemble": 0.03912800000034622,
+          "generate": 0.5199539999994158
+        },
+        "model": "google/gemini-3.7-flash",
+        "embeddingModel": "gemini-embedding-2",
+        "intent": "document",
+        "coverage": "grounded",
+        "candidates": [
+          {
+            "chunkId": "f5cd6a64-8b1d-4342-8605-5fa641e75ae9",
+            "documentId": "194359f9-4b1a-4166-963b-10293adf988d",
+            "slug": "query-vector-test",
+            "title": "Queue timeout guide",
+            "text": "Queue tasks timeout starts at execution, not while waiting in the queue.",
+            "heading": null,
+            "score": 0.9441705662758295,
+            "rank": 1,
+            "retriever": "hybrid",
+            "tokenCount": 18,
+            "indexedAt": "2026-10-02T15:14:49.673Z",
+            "embeddingModel": "gemini-embedding-2",
+            "filepath": null,
+            "language": null,
+            "symbol": null,
+            "chunkKind": "prose",
+            "corpusId": "query-integration",
+            "scores": {
+              "dense": 1,
+              "keyword": 1.4658086548733595,
+              "hybrid": 0.03278688524590164,
+              "rerank": 0.9441705662758295
+            },
+            "usedInContext": true,
+            "cited": true,
+            "overlapTerms": [
+              "queue",
+              "timeout",
+              "execution"
+            ],
+            "ranks": {
+              "dense": 1,
+              "keyword": 1,
+              "fused": 1,
+              "rerank": 1
+            }
+          }
+        ],
+        "contextTokens": 18,
+        "cacheHit": false,
+        "graphSlugs": [
+          "query-vector-test"
+        ],
+        "dense": {
+          "queryEmbeddingProduced": true,
+          "compatibleStoredVectors": 1,
+          "denseCandidatesProduced": 1,
+          "embeddingModelMatch": true,
+          "embeddingModelExpected": "gemini-embedding-2",
+          "skippedReason": null
+        },
+        "evidence": "positive",
+        "storage": {
+          "backend": "pglite",
+          "durable": true,
+          "denseAvailable": true,
+          "warning": null
+        },
+        "scoreSemantics": "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.",
+        "actualMode": "hybrid",
+        "stages": {
+          "dense": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "keyword": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 1.4658086548733595,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "fused": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.03278688524590164,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ],
+          "rerank": [
+            {
+              "slug": "query-vector-test",
+              "title": "Queue timeout guide",
+              "score": 0.9441705662758295,
+              "rank": 1,
+              "corpusId": "query-integration"
+            }
+          ]
+        },
+        "corpusId": "query-integration",
+        "corpusScope": "corpus",
+        "evidenceGate": {
+          "kind": "positive",
+          "note": "Packed chunks have distinctive overlap with the question or a strong dense match.",
+          "supportTermCount": 3,
+          "supportHitCount": 3,
+          "packedTopDense": 1,
+          "packedTopLexical": 1.3421052631578947,
+          "clearedForInsufficient": false,
+          "denseRank1Slug": "query-vector-test",
+          "rerankRank1Slug": "query-vector-test",
+          "denseRerankDisagree": false
+        }
+      }
+    ]
+  ]
+}

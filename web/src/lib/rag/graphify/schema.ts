@@ -4,7 +4,7 @@ export type GraphConfidence = "EXTRACTED" | "INFERRED" | "AMBIGUOUS" | "USER_EDI
 
 export type GraphOutcome = "useful" | "dead_end" | "corrected";
 
-export type GraphNodeKind = "document" | "heading" | "term" | "query" | "symbol";
+export type GraphNodeKind = "document" | "heading" | "term" | "query" | "symbol" | "chunk";
 
 export type GraphNode = {
   id: string;
@@ -18,6 +18,10 @@ export type GraphNode = {
   corpusId?: string;
   sourceUri?: string;
   excerpt?: string;
+  chunkId?: string;
+  vectorModel?: string;
+  vectorDimension?: number;
+  contentHash?: string;
 };
 
 export type GraphLink = {
@@ -25,6 +29,8 @@ export type GraphLink = {
   target: string;
   relation: string;
   confidence: GraphConfidence;
+  cost?: number;
+  similarity?: number;
 };
 
 /** NetworkX node-link JSON, the same shape graphify export.to_json writes. */
@@ -88,6 +94,7 @@ export type LearningSidecar = {
 };
 
 export type GraphState = {
+  vectorMemory?: import("./vector").VectorMemory;
   corpusFingerprint?: string;
   graph: GraphJson;
   memory: MemoryDoc[];

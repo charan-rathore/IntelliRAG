@@ -129,6 +129,7 @@ export function retrieveFromRows(opts: {
   rows: SearchRow[];
   storage: StorageStatus;
   preferredSlugs?: string[];
+  graphPathCosts?: Map<string, number>;
   corpusScope?: CorpusScope;
 }): RetrieveResult {
   const scope = opts.corpusScope ?? { kind: "corpus", corpusId: SEED_CORPUS_ID };
@@ -232,6 +233,7 @@ export function retrieveFromRows(opts: {
     idf,
     terms,
     preferredSlugs: opts.preferredSlugs,
+    graphPathCosts: opts.graphPathCosts,
   });
   const rerankMs = performance.now() - rerankStart;
 
