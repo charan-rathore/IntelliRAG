@@ -1,3 +1,4 @@
+import { GenerationError } from "./generation-result";
 /**
  * Query orchestration. classifyIntent only routes greetings and capability
  * questions. Off-topic / ungrounded questions are decided after retrieval via
@@ -480,7 +481,8 @@ export async function runQueryStream(
       onToken: (text) => emit({ type: "token", text }),
     });
   } catch (err) {
-    const message = err instanceof GeminiError ? err.message : "Generation failed";
+    const message = err instanceof GeminiError || err instanceof GenerationError ? err.message : "Generation failed";
+    if (err instanceof GenerationError) console.info("[generation]", JSON.stringify({ outcome: err.reason, usage: err.usage ?? null }));
     emit({ type: "error", message });
     return;
   }

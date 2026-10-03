@@ -1,3 +1,4 @@
+import { decodeCompletion, validateCompletion, readGenerationStream } from "./generation-result";
 import { localModel, streamLocal } from "./ollama.server";
 import {
   EMBEDDING_DIMENSIONS,
@@ -218,15 +219,7 @@ async function generateGoogle(opts: {
         : AbortSignal.timeout(45000),
     });
     if (!res.ok) throw new GeminiError(await readError(res), res.status);
-    const body = (await res.json()) as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    };
-    return (
-      body.candidates?.[0]?.content?.parts
-        ?.map((p) => p.text ?? "")
-        .join("")
-        .trim() ?? ""
-    );
+    return validateCompletion(decodeCompletion(await res.json(), "google"));
   };
   try {
     return await run(true);
@@ -266,10 +259,7 @@ async function generateOpenRouter(opts: {
   let res = await send(true);
   if (!res.ok && (res.status === 400 || res.status === 404)) res = await send(false);
   if (!res.ok) throw new GeminiError(await readError(res), res.status);
-  const body = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return body.choices?.[0]?.message?.content?.trim() ?? "";
+  return validateCompletion(decodeCompletion(await res.json(), "openai"));
 }
 
 async function streamGoogle(opts: {
@@ -294,39 +284,7 @@ async function streamGoogle(opts: {
     if (!res.ok) throw new GeminiError(await readError(res), res.status);
     if (!res.body) return generateGoogle(opts);
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let full = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const events = buffer.split("\n\n");
-      buffer = events.pop() ?? "";
-      for (const event of events) {
-        const line = event
-          .split("\n")
-          .filter((l) => l.startsWith("data:"))
-          .map((l) => l.slice(5).trim())
-          .join("");
-        if (!line || line === "[DONE]") continue;
-        try {
-          const json = JSON.parse(line) as {
-            candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-          };
-          const piece =
-            json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-          if (piece) {
-            full += piece;
-            opts.onToken(piece);
-          }
-        } catch {
-          // ignore keepalives
-        }
-      }
-    }
-    return full.trim();
+    return readGenerationStream(res.body, "google", opts.onToken);
   };
   try {
     return await run(true);
@@ -349,6 +307,7 @@ async function streamOpenRouter(opts: {
       temperature: 0.1,
       max_tokens: 1536,
       stream: true,
+      stream_options: { include_usage: true },
       messages: [
         { role: "system", content: opts.system },
         { role: "user", content: opts.user },
@@ -384,39 +343,7 @@ async function streamOpenRouter(opts: {
     return text;
   }
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let full = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-    for (const event of events) {
-      const line = event
-        .split("\n")
-        .filter((l) => l.startsWith("data:"))
-        .map((l) => l.slice(5).trim())
-        .join("");
-      if (!line || line === "[DONE]") continue;
-      try {
-        const json = JSON.parse(line) as {
-          choices?: Array<{ delta?: { content?: string | null }; message?: { content?: string } }>;
-        };
-        const piece =
-          json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
-        if (piece) {
-          full += piece;
-          opts.onToken(piece);
-        }
-      } catch {
-        // ignore keepalives
-      }
-    }
-  }
-  return full.trim();
+  return readGenerationStream(res.body, "openai", opts.onToken);
 }
 
 async function generateXai(opts: {
@@ -446,10 +373,7 @@ async function generateXai(opts: {
       : AbortSignal.timeout(45000),
   });
   if (!res.ok) throw new GeminiError(await readError(res), res.status);
-  const body = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return body.choices?.[0]?.message?.content?.trim() ?? "";
+  return validateCompletion(decodeCompletion(await res.json(), "openai"));
 }
 
 async function streamXai(opts: {
@@ -470,6 +394,7 @@ async function streamXai(opts: {
       temperature: 0.1,
       max_tokens: 1024,
       stream: true,
+      stream_options: { include_usage: true },
       messages: [
         { role: "system", content: opts.system },
         { role: "user", content: opts.user },
@@ -493,39 +418,7 @@ async function streamXai(opts: {
     return text;
   }
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let full = "";
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-    for (const event of events) {
-      const line = event
-        .split("\n")
-        .filter((l) => l.startsWith("data:"))
-        .map((l) => l.slice(5).trim())
-        .join("");
-      if (!line || line === "[DONE]") continue;
-      try {
-        const json = JSON.parse(line) as {
-          choices?: Array<{ delta?: { content?: string | null }; message?: { content?: string } }>;
-        };
-        const piece =
-          json.choices?.[0]?.delta?.content ?? json.choices?.[0]?.message?.content ?? "";
-        if (piece) {
-          full += piece;
-          opts.onToken(piece);
-        }
-      } catch {
-        // ignore keepalives
-      }
-    }
-  }
-  return full.trim();
+  return readGenerationStream(res.body, "openai", opts.onToken);
 }
 
 export async function streamGenerate(opts: {
