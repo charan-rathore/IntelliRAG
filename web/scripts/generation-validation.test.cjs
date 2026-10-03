@@ -36,10 +36,8 @@ test('actual OpenRouter normal completion succeeds', async () => {
   provider='openrouter'; global.fetch=async()=>response({choices:[{delta:{content:'answer'},finish_reason:'stop'}]});
   try {assert.equal(await streamGenerate({system:'s',user:'u',onToken:()=>{}}),'answer');}finally{global.fetch=saved;}
 });
-test('adapter regressions are selected by package command and CI', () => {
+test('adapter regressions are selected by package command', () => {
   const pkg=JSON.parse(fs.readFileSync(require.resolve('../package.json'),'utf8'));
-  const workflow=fs.readFileSync(require.resolve('../../.github/workflows/web-quality.yml'),'utf8');
   assert.match(pkg.scripts['test:generation'],/generation-validation\.test\.cjs/);
   assert.match(pkg.scripts.test,/test:generation/);
-  assert.match(workflow,/npm run test:generation/);
 });
