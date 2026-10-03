@@ -37,3 +37,9 @@ test("abort stays an abort rather than becoming a successful completion", async 
   const body = new ReadableStream<Uint8Array>({ start(c) { c.error(new DOMException("cancelled","AbortError")); } });
   await assert.rejects(readGenerationStream(body,"openai",()=>{}),e => e instanceof Error && e.name === "AbortError");
 });
+for (const stop of ["LANGUAGE", "ESCALATION"]) test(`Google ${stop} is a filtered completion`, () => {
+  assert.throws(() => validateCompletion(decodeCompletion({ candidates: [{ finishReason: stop }], usageMetadata: { totalTokenCount: 8 } }, "google")), e => e instanceof GenerationError && e.reason === "content_filtered" && e.usage?.totalTokenCount === 8);
+});
+test("OpenRouter choice-level error is a provider response failure with usage", () => {
+  assert.throws(() => decodeCompletion({ choices: [{ finish_reason: "error", error: { code: 502, message: "upstream failed" } }], usage: { total_tokens: 9 } },"openai",true), e => e instanceof GenerationError && e.reason === "invalid_response" && e.usage?.total_tokens === 9);
+});

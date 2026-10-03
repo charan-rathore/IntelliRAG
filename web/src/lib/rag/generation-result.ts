@@ -17,7 +17,7 @@ export type Completion = { text: string; stopReason?: string | null; usage?: Rec
 export function validateCompletion(result: Completion): string {
   const stop = result.stopReason?.toLowerCase();
   if (stop === "length" || stop === "max_tokens") throw new GenerationError("output_budget_exhausted", result.usage);
-  if (["content_filter", "safety", "recitation", "blocklist", "prohibited_content", "spii"].includes(stop ?? "")) throw new GenerationError("content_filtered", result.usage);
+  if (["content_filter", "safety", "recitation", "blocklist", "prohibited_content", "spii", "language", "escalation"].includes(stop ?? "")) throw new GenerationError("content_filtered", result.usage);
   if (!stop) throw new GenerationError("incomplete_stream", result.usage);
   if (stop !== "stop") throw new GenerationError("unexpected_stop", result.usage);
   if (!result.text.trim()) throw new GenerationError("empty_output", result.usage);
@@ -34,7 +34,8 @@ export function decodeCompletion(value: unknown, provider: "google" | "openai", 
     if (feedback?.blockReason) throw new GenerationError("content_filtered", usage);
     return { text: candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => p.text ?? "").join("") ?? "", stopReason: candidates?.[0]?.finishReason, usage };
   }
-  const choices = body.choices as Array<{ finish_reason?: string | null; delta?: { content?: string | null }; message?: { content?: string } }> | undefined;
+  const choices = body.choices as Array<{ error?: unknown; finish_reason?: string | null; delta?: { content?: string | null }; message?: { content?: string } }> | undefined;
+  if (choices?.[0]?.error) throw new GenerationError("invalid_response", usage);
   return { text: streaming ? choices?.[0]?.delta?.content ?? choices?.[0]?.message?.content ?? "" : choices?.[0]?.message?.content ?? "", stopReason: choices?.[0]?.finish_reason, usage };
 }
 /** SSE framing handles split chunks, CRLF and an unterminated final event. */
