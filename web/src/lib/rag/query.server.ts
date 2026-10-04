@@ -258,10 +258,11 @@ export async function runQueryStream(
 
   if (canDense && runtime.embed) {
     try {
-      const embedded = await embedQuery(question);
+      const embedded = await embedQuery(question, signal);
       queryVector = embedded.vector;
       embeddingModel = embedded.model;
     } catch (err) {
+      signal?.throwIfAborted();
       if (requested === "dense") {
         const message = err instanceof GeminiError ? err.message : "Embedding failed";
         emit({ type: "error", message });
@@ -269,6 +270,7 @@ export async function runQueryStream(
       }
     }
   }
+  signal?.throwIfAborted();
   const embedMs = performance.now() - embedStart;
 
   const mode: RetrievalMode = queryVector && requested !== "keyword" ? requested : "keyword";

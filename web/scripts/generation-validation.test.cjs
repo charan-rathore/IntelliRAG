@@ -8,10 +8,10 @@ require.extensions['.ts'] = (mod, file) => mod._compile(ts.transpileModule(fs.re
 let provider='openrouter';
 const original=Module._load;
 Module._load=function(id,...args) {
-  if (id==='./keys.server') return {resolveRuntime:()=>({generate:{provider,apiKey:'test'},embed:null})};
+  if (id==='./keys.server') return {resolveRuntime:()=>({generate:{provider,apiKey:'test'},embed:{provider,apiKey:'test'}})};
   return original.call(this,id,...args);
 };
-const {streamGenerate,completeOnce}=require('../src/lib/rag/gemini.server.ts');
+const {streamGenerate,completeOnce,embedQuery}=require('../src/lib/rag/gemini.server.ts');
 const {GenerationError}=require('../src/lib/rag/generation-result.ts');
 const saved=global.fetch;
 function response(event) {return new Response(`data: ${JSON.stringify(event)}\n\ndata: [DONE]\n\n`,{headers:{'Content-Type':'text/event-stream'}});}
@@ -40,4 +40,19 @@ test('adapter regressions are selected by package command', () => {
   const pkg=JSON.parse(fs.readFileSync(require.resolve('../package.json'),'utf8'));
   assert.match(pkg.scripts['test:generation'],/generation-validation\.test\.cjs/);
   assert.match(pkg.scripts.test,/test:generation/);
+});
+
+for(const p of ['google','openrouter']) test(`${p} query embedding receives owner abort`,async()=>{
+ provider=p;const c=new AbortController();let wired;
+ global.fetch=async(_url,opts)=>{wired=opts.signal;c.abort();if(opts.signal.aborted)throw new DOMException('aborted','AbortError');return Response.json({embeddings:[{values:Array(768).fill(1)}],data:[{embedding:Array(768).fill(1)}]});};
+ try {await assert.rejects(embedQuery('question',c.signal),e=>e.name==='AbortError');assert.equal(wired.aborted,true);}finally{global.fetch=saved}
+});
+for(const p of ['google','openrouter']) test(`${p} pre-canceled embedding performs no provider calls`,async()=>{
+ provider=p;const c=new AbortController();c.abort();let calls=0;global.fetch=async()=>{calls++;throw Error('provider called')};
+ try{await assert.rejects(embedQuery('question',c.signal),e=>e.name==='AbortError');assert.equal(calls,0)}finally{global.fetch=saved}
+});
+for(const p of ['google','openrouter']) test(`${p} abort after batch response prevents fallback calls`,async()=>{
+ provider=p;const c=new AbortController();let calls=0;
+ global.fetch=async()=>{calls++;c.abort();return new Response('{}',{status:400})};
+ try{await assert.rejects(embedQuery('question',c.signal),e=>e.name==='AbortError');assert.equal(calls,1)}finally{global.fetch=saved}
 });
