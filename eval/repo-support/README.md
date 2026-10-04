@@ -10,6 +10,8 @@ The corpus is **one README**, pinned to `180ab9e25cd10b6f548767d7176076b50d25e18
 
 The first eight cases are marked development and the remaining twelve evaluation. Both splits are now inspected: these are **exploratory diagnostic results, not a blind held-out test**. Future tuning requires a new locked holdout, preferably split by repository and version, not merely by paraphrase.
 
+> **Update:** the table below is the September run. After passage-level context packing the same p-queue set gives 87.2% for IntelliRAG against 73.3% for plain BM25 (rerun, mean evidence recall). Cross-repository evidence with a held-out split is in [`../multi-repo`](../multi-repo/README.md).
+
 ## What actually happened
 
 ![Evidence retention by method and question](retrieval-results.svg)
