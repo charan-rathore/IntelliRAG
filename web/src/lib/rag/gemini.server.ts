@@ -78,7 +78,7 @@ function assertDimension(values: number[]) {
   return l2Normalize(values);
 }
 
-async function embedOneGoogle(apiKey: string, item: EmbedRequest): Promise<number[]> {
+async function embedOneGoogle(apiKey: string, item: EmbedRequest, signal?: AbortSignal): Promise<number[]> {
   const res = await fetch(geminiUrl(`${EMBEDDING_MODEL}:embedContent`, apiKey), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -87,14 +87,14 @@ async function embedOneGoogle(apiKey: string, item: EmbedRequest): Promise<numbe
       content: { parts: [{ text: formattedText(item) }] },
       outputDimensionality: EMBEDDING_DIMENSIONS,
     }),
-    signal: AbortSignal.timeout(20000),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
   });
   if (!res.ok) throw new GeminiError(await readError(res), res.status);
   const body = (await res.json()) as { embedding?: { values?: number[] } };
   return assertDimension(body.embedding?.values ?? []);
 }
 
-async function embedBatchGoogle(apiKey: string, items: EmbedRequest[]): Promise<number[][]> {
+async function embedBatchGoogle(apiKey: string, items: EmbedRequest[], signal?: AbortSignal): Promise<number[][]> {
   const requests = items.map((item) => ({
     model: `models/${EMBEDDING_MODEL}`,
     content: { parts: [{ text: formattedText(item) }] },
@@ -104,12 +104,13 @@ async function embedBatchGoogle(apiKey: string, items: EmbedRequest[]): Promise<
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ requests }),
-    signal: AbortSignal.timeout(20000),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
   });
+  signal?.throwIfAborted();
   if (!res.ok) {
     if (items.length <= 8) {
       const out: number[][] = [];
-      for (const item of items) out.push(await embedOneGoogle(apiKey, item));
+      for (const item of items) out.push(await embedOneGoogle(apiKey, item, signal));
       return out;
     }
     throw new GeminiError(await readError(res), res.status);
@@ -127,7 +128,7 @@ const OPENROUTER_EMBED_PROVIDER = {
   allow_fallbacks: false,
 };
 
-async function embedBatchOpenRouter(apiKey: string, items: EmbedRequest[]): Promise<number[][]> {
+async function embedBatchOpenRouter(apiKey: string, items: EmbedRequest[], signal?: AbortSignal): Promise<number[][]> {
   const input = items.map(formattedText);
   const run = async (pinProvider: boolean) => {
     const res = await fetch(`${OPENROUTER_ROOT}/embeddings`, {
@@ -140,19 +141,22 @@ async function embedBatchOpenRouter(apiKey: string, items: EmbedRequest[]): Prom
         encoding_format: "float",
         ...(pinProvider ? { provider: OPENROUTER_EMBED_PROVIDER } : {}),
       }),
-      signal: AbortSignal.timeout(20000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
     });
     return res;
   };
+  signal?.throwIfAborted();
   let res = await run(true);
+  signal?.throwIfAborted();
   if (!res.ok && (res.status === 400 || res.status === 404)) {
     res = await run(false);
+    signal?.throwIfAborted();
   }
   if (!res.ok) {
     if (items.length > 1 && items.length <= 8) {
       const out: number[][] = [];
       for (const item of items) {
-        const one = await embedBatchOpenRouter(apiKey, [item]);
+        const one = await embedBatchOpenRouter(apiKey, [item], signal);
         out.push(one[0] ?? []);
       }
       return out;
@@ -171,7 +175,9 @@ async function embedBatchOpenRouter(apiKey: string, items: EmbedRequest[]): Prom
 
 export async function embedTexts(
   items: EmbedRequest[],
+  signal?: AbortSignal,
 ): Promise<{ model: string; vectors: number[][]; provider: KeyProvider }> {
+  signal?.throwIfAborted();
   const runtime = resolveRuntime();
   if (!runtime.embed) {
     throw new GeminiError("Add a Gemini or OpenRouter API key to embed documents", 401);
@@ -181,13 +187,13 @@ export async function embedTexts(
   }
   const vectors =
     runtime.embed.provider === "google"
-      ? await embedBatchGoogle(runtime.embed.apiKey, items)
-      : await embedBatchOpenRouter(runtime.embed.apiKey, items);
+      ? await embedBatchGoogle(runtime.embed.apiKey, items, signal)
+      : await embedBatchOpenRouter(runtime.embed.apiKey, items, signal);
   return { model: EMBEDDING_MODEL, vectors, provider: runtime.embed.provider };
 }
 
-export async function embedQuery(query: string) {
-  const { model, vectors, provider } = await embedTexts([{ text: query, task: "query" }]);
+export async function embedQuery(query: string, signal?: AbortSignal) {
+  const { model, vectors, provider } = await embedTexts([{ text: query, task: "query" }], signal);
   return { model, vector: vectors[0] ?? [], provider };
 }
 
