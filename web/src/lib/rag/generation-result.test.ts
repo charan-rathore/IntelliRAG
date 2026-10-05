@@ -43,3 +43,12 @@ for (const stop of ["LANGUAGE", "ESCALATION"]) test(`Google ${stop} is a filtere
 test("OpenRouter choice-level error is a provider response failure with usage", () => {
   assert.throws(() => decodeCompletion({ choices: [{ finish_reason: "error", error: { code: 502, message: "upstream failed" } }], usage: { total_tokens: 9 } },"openai",true), e => e instanceof GenerationError && e.reason === "invalid_response" && e.usage?.total_tokens === 9);
 });
+test("SSE CRLF delimiter split across chunks is framed without merging events",async()=>{
+ const first='data: {"choices":[{"delta":{"content":"answer"}}]}\r\n\r';
+ const last='\ndata: {"choices":[{"finish_reason":"stop"}]}\r\n\r\n';
+ assert.equal(await readGenerationStream(stream([first,last]),"openai",()=>{}),"answer");
+});
+test("provider error after billed usage retains that usage",async()=>{
+ const data=event({usage:{total_tokens:12}})+event({error:{message:"failed"}});
+ await assert.rejects(readGenerationStream(stream([data]),"openai",()=>{}),e=>e instanceof GenerationError&&e.reason==="invalid_response"&&e.usage?.total_tokens===12);
+});
