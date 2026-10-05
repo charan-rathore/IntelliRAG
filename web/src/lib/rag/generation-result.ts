@@ -68,7 +68,7 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
     if (buffer.trim()) consume(buffer.replace(/\r\n/g, "\n"));
     return validateCompletion(result);
   } catch (error) {
-    if (error instanceof GenerationError) throw error;
+    if (error instanceof GenerationError) { error.usage ??= result.usage; throw error; }
     if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) throw error;
     throw new GenerationError("incomplete_stream", result.usage);
   } finally {
