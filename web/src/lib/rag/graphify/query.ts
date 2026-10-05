@@ -36,8 +36,10 @@ export function queryGraph(graph: GraphJson, question: string, budget = 24) {
   const startIds = new Set(start.map((n) => n.id));
   const seen = new Set(startIds);
   const order = [...start.map((n) => n.id)];
+  const validIds = new Set(graph.nodes.map(n => n.id));
   const adjacency = new Map<string, string[]>();
   for (const e of graph.links) {
+    if (!validIds.has(e.source) || !validIds.has(e.target)) continue;
     if (!adjacency.has(e.source)) adjacency.set(e.source, []);
     if (!adjacency.has(e.target)) adjacency.set(e.target, []);
     adjacency.get(e.source)!.push(e.target);

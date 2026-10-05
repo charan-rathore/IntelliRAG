@@ -82,3 +82,8 @@ test("answer provenance excludes inspected but uncited sources and includes verb
   assert.equal(graph.nodes.find(n => n.kind === 'heading')?.excerpt, '## Retries\nOrion queue uses backoff and retries.');
   assert.match(explainConnection({ source: 'x', target: 'y', relation: 'caused', confidence: 'USER_EDITED' }, graph.nodes[0], graph.nodes[1]), /does not establish a source fact/);
 });
+test("dangling graph edges do not consume the traversal budget",()=>{
+ const fixture={...graph,nodes:graph.nodes.filter(n=>n.id==='doc:alpha'||n.id==='doc:beta'),links:[{source:'doc:alpha',target:'missing',relation:'bad',confidence:'EXTRACTED' as const},{source:'doc:alpha',target:'doc:beta',relation:'good',confidence:'EXTRACTED' as const}]};
+ fixture.nodes=fixture.nodes.map(n=>({...n,label:n.id==='doc:alpha'?'unique-start':'other'}));
+ assert.deepEqual(queryGraph(fixture,'unique-start',2).nodes.map(n=>n.id),['doc:alpha','doc:beta']);
+});
