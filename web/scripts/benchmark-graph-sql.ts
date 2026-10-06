@@ -70,11 +70,11 @@ for (let i = 0; i < 25; i++) {
       });
     },
   });
-  let g = performance.now() - start;
+  const g = performance.now() - start;
   if (r.vectorTrace.route !== "graph") throw new Error("graph miss");
   start = performance.now();
   retrieveFromRows({ ...opts, rows: await loadSearchableChunks(scope), corpusScope: scope });
-  let f = performance.now() - start;
+  const f = performance.now() - start;
   if (i >= 5) {
     graph.push(g);
     full.push(f);

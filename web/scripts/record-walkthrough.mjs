@@ -149,7 +149,7 @@ try {
   run('record', 'stop'); recording = false;
   console.log(JSON.stringify({ raw: rawPath, contentDuration, report: `${out}/capture.json` }));
 } catch (error) {
-  try { run('screenshot', `${out}/failure.png`); writeFileSync(`${out}/failure.json`, JSON.stringify({ error: error.message, text: evaluate(() => document.body.innerText), responses: evaluate(() => window.__demoResponses) }, null, 2)); } catch {}
+  try { run('screenshot', `${out}/failure.png`); writeFileSync(`${out}/failure.json`, JSON.stringify({ error: error.message, text: evaluate(() => document.body.innerText), responses: evaluate(() => window.__demoResponses) }, null, 2)); } catch { /* Recording cleanup is best-effort. */ }
   throw error;
 } finally {
   if (recording) run('record', 'stop');

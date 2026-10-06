@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Existing CommonJS source-transpile test harness. */
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

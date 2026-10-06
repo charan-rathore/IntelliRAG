@@ -29,12 +29,12 @@ const CODE_BOUNDARY: Record<string, RegExp> = {
   python: /^(?:async\s+)?(?:def|class)\s+(\w+)/m,
   go: /^(?:func|type)\s+(\w+)/m,
   rust: /^(?:pub\s+)?(?:async\s+)?(?:fn|struct|enum|impl|trait)\s+(\w+)/m,
-  java: /^\s*(?:(?:public|private|protected|static|final|abstract|synchronized)\s+)*(?:class|interface|enum|record)\s+(\w+)|^\s*(?:(?:public|private|protected|static|final|abstract|synchronized)\s+)+[\w<>\[\]]+\s+(\w+)\s*\(/m,
-  c: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\* ]*?[\*\s]\s*(\w+)\s*\(/m,
-  h: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\* ]*?[\*\s]\s*(\w+)\s*\(/m,
-  cpp: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\*: ]*?[\*\s]\s*(\w+)\s*\(/m,
-  cc: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\*: ]*?[\*\s]\s*(\w+)\s*\(/m,
-  hpp: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w\*: ]*?[\*\s]\s*(\w+)\s*\(/m,
+  java: /^\s*(?:(?:public|private|protected|static|final|abstract|synchronized)\s+)*(?:class|interface|enum|record)\s+(\w+)|^\s*(?:(?:public|private|protected|static|final|abstract|synchronized)\s+)+[\w<>[\]]+\s+(\w+)\s*\(/m,
+  c: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w* ]*?[*\s]\s*(\w+)\s*\(/m,
+  h: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w* ]*?[*\s]\s*(\w+)\s*\(/m,
+  cpp: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w*: ]*?[*\s]\s*(\w+)\s*\(/m,
+  cc: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w*: ]*?[*\s]\s*(\w+)\s*\(/m,
+  hpp: /^\s*(?!\s*(?:return|if|else|while|for|switch|sizeof)\b)(?:static\s+|inline\s+|extern\s+)*[A-Za-z_][\w*: ]*?[*\s]\s*(\w+)\s*\(/m,
 };
 
 function splitOnce(text: string, separator: string): string[] {
