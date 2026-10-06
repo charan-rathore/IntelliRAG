@@ -164,9 +164,14 @@ test("cli: relative paths follow the script's root, not the caller's cwd", () =>
   assert.equal(existsSync(join(root, "public/og.jpg")), false);
 });
 
-test("every hand-over the og skill prints is one this script accepts", () => {
+test("synthetic asset hand-over recipe fixtures are accepted by the CLI", () => {
   // The card and banner recipes live in the skill's references/, not SKILL.md.
-  const skillDir = join(TEMPLATE_ROOT, ".grok/skills/og");
+  // Public synthetic examples only, never depend on ignored workspace files.
+  const skillDir = mkdtempSync(join(tmpdir(), "handover-doc-contract-"));
+  mkdirSync(join(skillDir, "references"));
+  writeFileSync(join(skillDir, "SKILL.md"), "node scripts/write-atomic.mjs /workspace/.grok/site.json.tmp /workspace/src/lib/og/site.json\n");
+  writeFileSync(join(skillDir, "references/card.md"), "node scripts/write-atomic.mjs /workspace/.grok/og.jpg.tmp /workspace/public/og.jpg\n");
+  writeFileSync(join(skillDir, "references/banner.md"), "node scripts/write-atomic.mjs /workspace/.grok/x-banner.jpg.tmp /workspace/public/x-banner.jpg\n");
   const docs = [
     join(skillDir, "SKILL.md"),
     ...readdirSync(join(skillDir, "references")).map((f) => join(skillDir, "references", f)),
