@@ -44,7 +44,7 @@ for (const q of data.queries) {
     storage,
     scope,
   };
-  let start = performance.now();
+  const start = performance.now();
   const full = retrieveFromRows({ ...opts, rows, corpusScope: scope });
   const fullMs = performance.now() - start;
   const graph = await graphFirstRetrieve(opts, {

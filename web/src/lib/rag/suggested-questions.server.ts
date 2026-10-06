@@ -147,7 +147,7 @@ export async function ensureSuggestionsForDocuments(
   documents: Array<{ slug: string; title: string; body: string }>,
   min = 3,
 ): Promise<SuggestedQuestion[]> {
-  let current = await listSuggestedQuestions(corpusId, min);
+  const current = await listSuggestedQuestions(corpusId, min);
   if (current.length >= min) return current;
   for (const doc of documents) {
     if (!doc.body?.trim()) continue;

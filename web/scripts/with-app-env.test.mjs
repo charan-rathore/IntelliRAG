@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -14,7 +14,10 @@ import {
 } from "./with-app-env.mjs";
 
 const execFileAsync = promisify(execFile);
-const WRAPPER = join(projectRoot(), "scripts/with-app-env.mjs");
+const fixtureRoot = makeWorkspace('{"VITE_AUTH_ENABLED":"false"}');
+mkdirSync(join(fixtureRoot, "scripts"));
+copyFileSync(join(projectRoot(), "scripts/with-app-env.mjs"), join(fixtureRoot, "scripts/with-app-env.mjs"));
+const WRAPPER = join(fixtureRoot, "scripts/with-app-env.mjs");
 const PRINT_FLAG = "process.stdout.write(String(process.env.VITE_AUTH_ENABLED));";
 
 function makeWorkspace(appEnvJson) {
@@ -59,8 +62,8 @@ test("an explicit process-env override wins over the file", () => {
   assert.equal(merged.PATH, "/usr/bin");
 });
 
-test("the template ships auth off", () => {
-  assert.deepEqual(readAppEnv(projectRoot()), { VITE_AUTH_ENABLED: "false" });
+test("the configured fixture ships auth off", () => {
+  assert.deepEqual(readAppEnv(fixtureRoot), { VITE_AUTH_ENABLED: "false" });
 });
 
 test("vite loadEnv resolves the wrapped value", () => {
@@ -117,7 +120,7 @@ test("the CLI still runs when invoked through a symlinked path", async () => {
   // node realpaths import.meta.url but not process.argv[1], so a raw comparison
   // turns the wrapper into a no-op that exits 0 without starting anything.
   const link = join(mkdtempSync(join(tmpdir(), "app-env-link-")), "scripts");
-  symlinkSync(join(projectRoot(), "scripts"), link);
+  symlinkSync(join(fixtureRoot, "scripts"), link);
   const { stdout } = await execFileAsync(process.execPath, [
     join(link, "with-app-env.mjs"),
     process.execPath,
