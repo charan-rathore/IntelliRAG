@@ -22,6 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run typecheck
+      - run: npm run test:generation
       - run: npm run test:hardening
       - run: npm run test:persistence
       - run: npx --yes tsx --test src/lib/rag/*.test.ts
