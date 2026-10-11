@@ -1,0 +1,278 @@
+{
+  "at": "2026-09-27T16:55:04.825Z",
+  "baseline": false,
+  "corpus": "p-queue README at 180ab9e25cd10b6f548767d7176076b50d25e188 + PRs 235, 240, 243",
+  "sourceHashes": [
+    {
+      "source": "readme",
+      "sha256": "5b553a992bc1cd3ebb675384f89ea39d9bf6e75e5b448691d7f3c30affd9aadc"
+    },
+    {
+      "source": "pr-235",
+      "sha256": "9d7aeb135e3fe36739fb054066df79be9377fa31eee1d7322cd77759ddf4a815"
+    },
+    {
+      "source": "pr-240",
+      "sha256": "34e2908018d529734e6633494b4cfefa28b3b482621fd72a80c9702c7053f4ad"
+    },
+    {
+      "source": "pr-243",
+      "sha256": "bd435ad2b264f38372fbb8f4805c73f4ae2e4db18eef7249627070f4dc4f3dca"
+    }
+  ],
+  "offline": [
+    {
+      "source": "readme",
+      "chars": 31015,
+      "chunks": 19,
+      "ms": 1.8201980000000049
+    },
+    {
+      "source": "pr-235",
+      "chars": 3020,
+      "chunks": 2,
+      "ms": 0.134964999999994
+    },
+    {
+      "source": "pr-240",
+      "chars": 802,
+      "chunks": 1,
+      "ms": 0.020376999999996315
+    },
+    {
+      "source": "pr-243",
+      "chars": 1510,
+      "chunks": 1,
+      "ms": 0.014160000000003947
+    }
+  ],
+  "rows": 23,
+  "results": [
+    {
+      "id": "readme-pause",
+      "query": "How can I pause p-queue and wait for running tasks, but not queued tasks, before changing config?",
+      "oracleChunks": 1,
+      "offlinePreserved": 1,
+      "packedEvidence": 1,
+      "bm25Evidence": 1,
+      "gate": "positive",
+      "actualMode": "keyword",
+      "packed": [
+        "readme:4",
+        "readme:7",
+        "readme:3"
+      ],
+      "candidate": [
+        {
+          "id": "readme:4",
+          "score": 0.5301416592482849
+        },
+        {
+          "id": "readme:7",
+          "score": 0.486076080931742
+        },
+        {
+          "id": "readme:3",
+          "score": 0.42693606487539865
+        },
+        {
+          "id": "readme:5",
+          "score": 0.33481604195254766,
+          "reason": "Outside the packed context window (max 3 supported chunks)."
+        },
+        {
+          "id": "readme:10",
+          "score": 0.2720707826724627,
+          "reason": "Below relative floor: 0.27 < 0.62 × rank-1 0.53 (0.33). Not an absolute 0.55 cosine cut. Inspect only."
+        },
+        {
+          "id": "readme:15",
+          "score": 0.25062485475336715,
+          "reason": "Below relative floor: 0.25 < 0.62 × rank-1 0.53 (0.33). Not an absolute 0.55 cosine cut. Inspect only."
+        },
+        {
+          "id": "pr-243:0",
+          "score": 0.2246764259463103,
+          "reason": "Rejected: calibrated 0.22 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "pr-235:1",
+          "score": 0.22398650159315203,
+          "reason": "Rejected: calibrated 0.22 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        }
+      ],
+      "ms": 28.088676000000007
+    },
+    {
+      "id": "pr235-abort",
+      "query": "In PR 235, how is the abort listener cleaned up after a job finishes?",
+      "oracleChunks": 2,
+      "offlinePreserved": 1,
+      "packedEvidence": 1,
+      "bm25Evidence": 1,
+      "gate": "positive",
+      "actualMode": "keyword",
+      "packed": [
+        "pr-235:0",
+        "pr-235:1"
+      ],
+      "candidate": [
+        {
+          "id": "pr-235:0",
+          "score": 0.7060940637582009
+        },
+        {
+          "id": "pr-235:1",
+          "score": 0.6517158855538192
+        },
+        {
+          "id": "readme:6",
+          "score": 0.13804174655071783,
+          "reason": "Rejected: calibrated 0.14 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "pr-240:0",
+          "score": 0.13037935846115278,
+          "reason": "Rejected: calibrated 0.13 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:9",
+          "score": 0.12318679830222883,
+          "reason": "Rejected: calibrated 0.12 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:0",
+          "score": 0.1181170660448626,
+          "reason": "Rejected: calibrated 0.12 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:16",
+          "score": 0.11314969962442395,
+          "reason": "Rejected: calibrated 0.11 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "pr-243:0",
+          "score": 0.11220584755554168,
+          "reason": "Rejected: calibrated 0.11 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        }
+      ],
+      "ms": 14.648048000000003
+    },
+    {
+      "id": "pr240-autostart",
+      "query": "What did PR 240 change in the autoStart README sentence?",
+      "oracleChunks": 1,
+      "offlinePreserved": 1,
+      "packedEvidence": 1,
+      "bm25Evidence": 1,
+      "gate": "positive",
+      "actualMode": "keyword",
+      "packed": [
+        "pr-240:0"
+      ],
+      "candidate": [
+        {
+          "id": "pr-240:0",
+          "score": 0.8311130259423511
+        },
+        {
+          "id": "pr-235:1",
+          "score": 0.2893982593512917,
+          "reason": "Below relative floor: 0.29 < 0.62 × rank-1 0.83 (0.52). Not an absolute 0.55 cosine cut. Inspect only."
+        },
+        {
+          "id": "pr-243:0",
+          "score": 0.24327760994750053,
+          "reason": "Below relative floor: 0.24 < 0.62 × rank-1 0.83 (0.52). Not an absolute 0.55 cosine cut. Inspect only."
+        },
+        {
+          "id": "pr-235:0",
+          "score": 0.20782975413723498,
+          "reason": "Rejected: calibrated 0.21 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:7",
+          "score": 0.1068560126880585,
+          "reason": "Rejected: calibrated 0.11 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:3",
+          "score": 0.08066141115241271,
+          "reason": "Rejected: calibrated 0.08 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:4",
+          "score": 0.07871224075766031,
+          "reason": "Rejected: calibrated 0.08 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:1",
+          "score": 0.07742322624452572,
+          "reason": "Rejected: calibrated 0.08 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        }
+      ],
+      "ms": 11.38565699999998
+    },
+    {
+      "id": "pr243-results",
+      "query": "How did PR 243 fix duplicate const results in the README example?",
+      "oracleChunks": 1,
+      "offlinePreserved": 1,
+      "packedEvidence": 1,
+      "bm25Evidence": 1,
+      "gate": "positive",
+      "actualMode": "keyword",
+      "packed": [
+        "pr-243:0"
+      ],
+      "candidate": [
+        {
+          "id": "pr-243:0",
+          "score": 0.9600000000000001
+        },
+        {
+          "id": "pr-240:0",
+          "score": 0.24685284523720477,
+          "reason": "Below relative floor: 0.25 < 0.62 × rank-1 0.96 (0.60). Not an absolute 0.55 cosine cut. Inspect only."
+        },
+        {
+          "id": "pr-235:0",
+          "score": 0.2033887331706358,
+          "reason": "Rejected: calibrated 0.20 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:16",
+          "score": 0.1417617109848912,
+          "reason": "Rejected: calibrated 0.14 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:9",
+          "score": 0.11979931047364806,
+          "reason": "Rejected: calibrated 0.12 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "pr-235:1",
+          "score": 0.11734379352073915,
+          "reason": "Rejected: calibrated 0.12 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:17",
+          "score": 0.10749106667476045,
+          "reason": "Rejected: calibrated 0.11 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        },
+        {
+          "id": "readme:2",
+          "score": 0.10719307495566414,
+          "reason": "Rejected: calibrated 0.11 failed the support gate (absolute floor 0.24, need distinctive overlap or strong cosine). Inspect only."
+        }
+      ],
+      "ms": 11.44057699999999
+    }
+  ],
+  "summary": {
+    "offlinePreserved": 4,
+    "packedEvidence": 4,
+    "bm25Evidence": 4,
+    "total": 4
+  }
+}
