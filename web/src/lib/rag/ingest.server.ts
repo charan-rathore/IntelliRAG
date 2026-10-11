@@ -66,24 +66,97 @@ function githubToken() {
   return process.env.GITHUB_TOKEN?.trim() || undefined;
 }
 
-async function fetchText(url: string): Promise<string> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
+const MAX_REDIRECTS = 3;
+const PRIVATE_HOST_ERROR = "This URL points at a private or local address and cannot be imported";
+
+/** True for loopback, private, link-local, and otherwise non-public IPs (v4 and v6). */
+export function isPrivateIp(address: string): boolean {
+  const normalized = address.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const mapped = normalized.match(/::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mapped) return isPrivateIp(mapped[1]);
+  if (normalized.includes(":")) {
+    if (normalized === "::1" || normalized === "::") return true;
+    const first = Number.parseInt(normalized.split(":")[0] || "0", 16);
+    if (Number.isNaN(first)) return false;
+    if ((first & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
+    if ((first & 0xfe00) === 0xfc00) return true; // fc00::/7 unique local
+    return false;
+  }
+  const parts = normalized.split(".").map((p) => Number.parseInt(p, 10));
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
+  const [a, b] = parts;
+  return (
+    a === 0 || // "this" network
+    a === 10 || // RFC 1918
+    a === 127 || // loopback
+    (a === 100 && b >= 64 && b <= 127) || // carrier-grade NAT
+    (a === 169 && b === 254) || // link-local (incl. cloud metadata 169.254.169.254)
+    (a === 172 && b >= 16 && b <= 31) || // RFC 1918
+    (a === 192 && b === 168) // RFC 1918
+  );
+}
+
+/**
+ * Fail closed on URLs that could reach internal infrastructure: reject
+ * non-http(s) schemes, well-known local hostnames, private IP literals, and
+ * hostnames that resolve to a private address.
+ */
+export async function assertPublicUrl(raw: string | URL): Promise<URL> {
+  const url = typeof raw === "string" ? new URL(raw) : raw;
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("Provide an http(s) URL");
+  }
+  const hostname = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".internal")) {
+    throw new Error(PRIVATE_HOST_ERROR);
+  }
+  const isIpLiteral = /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname) || hostname.includes(":");
+  if (isIpLiteral) {
+    if (isPrivateIp(hostname)) throw new Error(PRIVATE_HOST_ERROR);
+    return url;
+  }
+  const { lookup } = await import("node:dns/promises");
+  let records: Array<{ address: string }>;
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: { Accept: "text/plain, text/markdown, text/html;q=0.2", "User-Agent": "IntelliRAG" },
-    });
-    if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
-    let body = await res.text();
-    assertNotPdf(body);
-    const contentType = res.headers.get("content-type") ?? "";
-    if (contentType.includes("text/html") || looksLikeHtml(body)) body = htmlToText(body);
-    if (!body.trim()) throw new Error("Remote document was empty");
-    if (body.length > MAX_BODY) throw new Error(TRUNCATION_ERROR);
-    return body;
-  } finally {
-    clearTimeout(timer);
+    records = await lookup(hostname, { all: true, verbatim: true });
+  } catch {
+    throw new Error(`Could not resolve host: ${hostname}`);
+  }
+  if (records.length === 0 || records.some((r) => isPrivateIp(r.address))) {
+    throw new Error(PRIVATE_HOST_ERROR);
+  }
+  return url;
+}
+
+async function fetchText(url: string): Promise<string> {
+  let current = await assertPublicUrl(url);
+  for (let redirectCount = 0; ; redirectCount += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    try {
+      const res = await fetch(current, {
+        // Redirects are followed manually so every hop is re-validated
+        // against the private-address rules above.
+        redirect: "manual",
+        signal: controller.signal,
+        headers: { Accept: "text/plain, text/markdown, text/html;q=0.2", "User-Agent": "IntelliRAG" },
+      });
+      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+        if (redirectCount >= MAX_REDIRECTS) throw new Error("Too many redirects");
+        current = await assertPublicUrl(new URL(res.headers.get("location")!, current));
+        continue;
+      }
+      if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
+        let body = await res.text();
+      assertNotPdf(body);
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("text/html") || looksLikeHtml(body)) body = htmlToText(body);
+      if (!body.trim()) throw new Error("Remote document was empty");
+      if (body.length > MAX_BODY) throw new Error(TRUNCATION_ERROR);
+      return body;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
 
