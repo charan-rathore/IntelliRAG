@@ -79,3 +79,13 @@ test("request abort mid-run closes the stream without an error frame", async () 
   }
   assert.equal(rest.includes("after"), false);
 });
+
+test("a thrown run surfaces a generic error frame, never its internals", async () => {
+  const stream = createQuerySseStream(async () => {
+    throw new Error("connect ECONNREFUSED 10.0.0.4:5432 in /srv/app/.env");
+  });
+  const text = await drain(stream);
+  assert.ok(text.includes('event: error\ndata: {"type":"error","message":"Query failed"}'));
+  assert.equal(text.includes("10.0.0.4"), false);
+  assert.equal(text.includes(".env"), false);
+});

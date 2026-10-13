@@ -45,11 +45,10 @@ export function createQuerySseStream(
       };
       try {
         await run(send, abort.signal);
-      } catch (err) {
-        send({
-          type: "error",
-          message: err instanceof Error ? err.message : "Query failed",
-        });
+      } catch {
+        // The raw error can carry internals (hosts, paths, SQL); the client
+        // only learns that the query failed.
+        send({ type: "error", message: "Query failed" });
       } finally {
         detach();
         if (!closed) {
