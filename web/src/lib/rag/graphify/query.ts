@@ -10,7 +10,7 @@ function idfVocab(graph: GraphJson): Map<string, number> {
   }
   const n = Math.max(1, graph.nodes.length);
   const idf = new Map<string, number>();
-  for (const [t, c] of df) idf.set(t, Math.log(n / c));
+  for (const [t, c] of df) idf.set(t, Math.log(n / c) + 1);
   return idf;
 }
 
