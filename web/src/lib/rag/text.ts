@@ -264,7 +264,10 @@ export function parseEmbedding(raw: string | null): number[] | null {
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed) || parsed.length === 0) return null;
-    return parsed.map((n) => Number(n));
+    for (const n of parsed) {
+      if (typeof n !== "number" || !Number.isFinite(n)) return null;
+    }
+    return parsed as number[];
   } catch {
     return null;
   }
