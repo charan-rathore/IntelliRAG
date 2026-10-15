@@ -393,3 +393,67 @@ describe("table edges, post-merge review round", () => {
     assert.ok(proseChunk && !proseChunk.text.includes("| Name |"), "the prose copy must not gain the header");
   });
 });
+
+describe("table edges, fourth round", () => {
+  it("keeps the header on a table nested under a padded list marker", () => {
+    const doc = [
+      "-   Details",
+      "    | H1 | H2 |",
+      "    | --- | --- |",
+      ...Array.from({ length: 25 }, (_, i) => `    | r${i} | v${i} with a longer cell value ${i} |`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const tableChunks = chunks.filter((c) => /\| r\d+ \|/.test(c.text));
+    assert.ok(tableChunks.length > 1);
+    for (const c of tableChunks) assert.ok(c.text.includes("| H1 |"), "table chunk lost its header");
+  });
+
+  it("does not parse a table out of a tilde fence with tildes in the info string", () => {
+    const doc = [
+      "intro text",
+      "~~~ lang ~~~",
+      "| not | a table |",
+      "| --- | --- |",
+      ...Array.from({ length: 25 }, (_, i) => `| x${i} | y${i} with a longer cell content ${i} |`),
+      "~~~",
+      ...Array.from({ length: 10 }, (_, i) => `trailing prose line ${i} extends the document`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const rowChunks = chunks.filter((c) => /\| x\d+ \|/.test(c.text));
+    assert.ok(rowChunks.length > 1);
+    for (const c of rowChunks) {
+      assert.ok(!c.text.trimStart().startsWith("| not | a table |"), "fenced code gained a synthetic table header");
+    }
+  });
+
+  it("keeps the header on table rows carried into the next chunk by overlap", () => {
+    const rows = Array.from({ length: 13 }, (_, i) => `| r${i} | value ${i} |`);
+    const doc = ["| H | V |", "| --- | --- |", ...rows, "", "Prose after the table. " + "word ".repeat(60)].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 8 });
+    const rowChunks = chunks.filter((c) => c.text.split("\n").some((l) => /^\| r\d+ \| value \d+ \|$/.test(l)));
+    assert.ok(rowChunks.length > 1);
+    for (const c of rowChunks) assert.ok(c.text.includes("| H |"), "overlap row chunk lost its header");
+  });
+
+  it("gives identical fragments in different tables their own table's header", () => {
+    const big = (w: string) => Array.from({ length: 38 }, (_, i) => `${w}${i}`).join(" ") + " boundary aligned phrase";
+    const doc = [
+      "| A | B |",
+      "| --- | --- |",
+      `| a0 | ${big("x")} |`,
+      "",
+      "| C | D |",
+      "| --- | --- |",
+      `| c0 | ${big("y")} |`,
+      "",
+      "boundary aligned phrase",
+      "",
+      ...Array.from({ length: 30 }, (_, i) => `trailing prose line ${i} to extend the document length.`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const fragments = chunks.filter((c) => c.text.includes("boundary aligned phrase |"));
+    assert.strictEqual(fragments.length, 2, "expected one tail fragment per table");
+    assert.ok(fragments[0]!.text.startsWith("| A | B |"), "first table's fragment lost its own header");
+    assert.ok(fragments[1]!.text.startsWith("| C | D |"), "second table's fragment borrowed the first table's header");
+  });
+});
