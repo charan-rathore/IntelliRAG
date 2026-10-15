@@ -291,3 +291,105 @@ describe("table edges, final round", () => {
     );
   });
 });
+
+describe("table edges, post-merge review round", () => {
+  it("binds a short tail fragment to the row where it is boundary-aligned", () => {
+    const padA = Array.from({ length: 30 }, (_, i) => `qa${i}`).join(" ");
+    const padB = Array.from({ length: 33 }, (_, i) => `pb${i}`).join(" ");
+    const doc = [
+      "| T1 | V |",
+      "| --- | --- |",
+      `| alpha | xpb32 common |x ${padA} |`,
+      ...Array.from({ length: 8 }, (_, i) => `| a${i} | x${i} |`),
+      "",
+      "| T2 | W |",
+      "| --- | --- |",
+      `| beta | ${padB} common |`,
+      ...Array.from({ length: 8 }, (_, i) => `| b${i} | y${i} |`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const frag = chunks.find((c) => c.text.trim().split("\n").some((l) => l === "pb32 common |"));
+    assert.ok(frag, "expected the second table's over-long row to split off the tail fragment");
+    assert.ok(
+      frag.text.startsWith("| T2 |"),
+      "the fragment text occurs in the first table's row but not boundary-aligned; it must inherit the second table's header",
+    );
+  });
+
+  it("detects a table nested under a list item's content indentation", () => {
+    const doc = [
+      "9. Previous",
+      "    lead in text",
+      "10. Details",
+      "    | H1 | H2 |",
+      "    | --- | --- |",
+      ...Array.from({ length: 25 }, (_, i) => `    | r${i} | v${i} with a longer cell value ${i} |`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const tableChunks = chunks.filter((c) => c.text.includes("| r"));
+    assert.ok(tableChunks.length > 1, "expected the nested table to split into several chunks");
+    assert.ok(
+      tableChunks.every((c) => c.text.includes("| H1 |")),
+      "every continuation chunk of a list-nested table must keep its column labels",
+    );
+  });
+
+  it("does not end a table on a pipeless row that only looks like a block opener", () => {
+    const doc = [
+      "| Svc | State |",
+      "| --- | --- |",
+      ...Array.from({ length: 5 }, (_, i) => `| s${i} | on |`),
+      "1234567890. account | active",
+      ...Array.from({ length: 20 }, (_, i) => `| t${i} | off with longer value ${i} |`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const later = chunks.filter((c) => /t1\d \|/.test(c.text));
+    assert.ok(later.length >= 1);
+    assert.ok(
+      later.every((c) => c.text.includes("| Svc |")),
+      "a 10-digit ordered-list marker is not a valid block opener; the table must survive it",
+    );
+  });
+
+  it("does not treat a closed inline code span as a fence boundary", () => {
+    const doc = [
+      "| Cmd | Why |",
+      "| --- | --- |",
+      ...Array.from({ length: 5 }, (_, i) => `| c${i} | note${i} |`),
+      "```npm run build``` output | noisy",
+      ...Array.from({ length: 20 }, (_, i) => `| d${i} | more detail ${i} here |`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const later = chunks.filter((c) => /d1\d \|/.test(c.text));
+    assert.ok(later.length >= 1);
+    assert.ok(
+      later.every((c) => c.text.includes("| Cmd |")),
+      "a row starting with a closed inline code span is still table content",
+    );
+  });
+
+  it("keeps the header on a table-side fragment even when the text repeats as prose", () => {
+    const rep = "boundary aligned phrase";
+    const words = Array.from({ length: 38 }, (_, i) => `w${i}`).join(" ");
+    const doc = [
+      "| Name | Desc |",
+      "| --- | --- |",
+      ...Array.from({ length: 6 }, (_, i) => `| i${i} | s${i} |`),
+      `| Big | ${words} ${rep}`,
+      ...Array.from({ length: 6 }, (_, i) => `| t${i} | u${i} |`),
+      "",
+      rep,
+      "",
+      ...Array.from({ length: 15 }, (_, i) => `trailing prose line ${i} to extend the document length.`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const bare = chunks.filter((c) => c.text.trim() === rep || c.text.trim() === `| Name | Desc |\n| --- | --- |\n${rep}`);
+    assert.ok(bare.length >= 1, "expected the over-long row to split off a bare tail fragment");
+    assert.ok(
+      bare.every((c) => c.text.includes("| Name |")),
+      "the table continuation fragment must keep its header even though the same text exists as prose",
+    );
+    const proseChunk = chunks.find((c) => c.text.includes("trailing prose line 0"));
+    assert.ok(proseChunk && !proseChunk.text.includes("| Name |"), "the prose copy must not gain the header");
+  });
+});
