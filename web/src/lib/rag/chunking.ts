@@ -150,21 +150,31 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
   const lines = body.split("\n");
   const tableHeadersByRow = new Map<string, string>();
   const separatorRow = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/;
-  let inFence = false;
+  // Track the actual opening fence: marker char and run length. A fence
+  // closes only on the same marker with a run at least as long, so a tilde
+  // run inside a backtick fence (or vice versa) stays code.
+  let fenceRun: string | null = null;
   for (let i = 0; i < lines.length - 2; i += 1) {
     const line = lines[i] ?? "";
-    if (/^(`{3,}|~{3,})/.test(line.trim())) {
-      inFence = !inFence;
+    const fenceMatch = /^(`{3,}|~{3,})/.exec(line.trim());
+    if (fenceMatch) {
+      const run = fenceMatch[1]!;
+      if (fenceRun === null) fenceRun = run;
+      else if (run[0] === fenceRun![0] && run.length >= fenceRun!.length) fenceRun = null;
       continue;
     }
-    if (inFence) continue;
+    if (fenceRun !== null) continue;
     const header = line;
     const separator = lines[i + 1] ?? "";
+    if (/^( {4}|\t)/.test(line)) continue;  // indented code block, not a table
     if (!header.includes("|") || !separatorRow.test(separator.trim())) continue;
     const tableHeader = `${header}\n${separator}`;
     let row = i + 2;
     for (; row < lines.length && (lines[row] ?? "").includes("|"); row += 1) {
       const rowText = lines[row] ?? "";
+      // A heading, list item, quote or fence that follows the table without a
+      // blank line starts a new block; it is not a table row.
+      if (/^(#{1,6}\s|>\s?|[-*+]\s|\d+[.)]\s|(`{3,})|(~{3,}))/.test(rowText.trim())) break;
       const existing = tableHeadersByRow.get(rowText);
       // A row string shared by two tables is ambiguous: poison it rather than
       // let the later table's header overwrite the earlier one's.
@@ -176,6 +186,10 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     i = row - 1;
   }
   const longRows = [...tableHeadersByRow.keys()].filter((row) => row.length > targetChars);
+  // A line that appears verbatim as its own line anywhere in the document is
+  // prose, not a row fragment: never reconstruct provenance for it. This
+  // stops quoted sentences from inheriting a table header.
+  const standaloneLines = new Set(body.split("\n"));
   const raw = recursiveSplit(body, SEPARATORS, targetChars);
   const merged: string[] = [];
   for (const piece of raw) {
@@ -221,7 +235,15 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
               tableHeadersByRow.get(line) ??
               // Fragments of an over-long row no longer equal the stored row;
               // a long enough fragment matches as a substring of the full row.
-              (line.length >= 20
+              (!standaloneLines.has(line) &&
+              (line.length >= 20 ||
+                // Short tail fragments: require word-boundary alignment inside
+                // the row so arbitrary text slices cannot match by luck.
+                (line.length >= 6 &&
+                  longRows.some(
+                    (row) =>
+                      row.includes(` ${line} `) || row.startsWith(`${line} `) || row.endsWith(` ${line}`),
+                  )))
                 ? longRows.map((row) => (row.includes(line) ? tableHeadersByRow.get(row) : undefined)).find(Boolean)
                 : undefined),
           )
