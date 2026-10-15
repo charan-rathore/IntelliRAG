@@ -154,38 +154,97 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
   // closes only on the same marker with a run at least as long, so a tilde
   // run inside a backtick fence (or vice versa) stays code.
   let fenceRun: string | null = null;
+  const listIndents: number[] = [];
+  const tableSpans: Array<[number, number]> = [];
+  const lineOffsets: number[] = [];
+  {
+    let off = 0;
+    for (const l of lines) {
+      lineOffsets.push(off);
+      off += l.length + 1;
+    }
+  }
   for (let i = 0; i < lines.length - 2; i += 1) {
     const line = lines[i] ?? "";
-    const fenceMatch = /^(`{3,}|~{3,})/.exec(line.trim());
+    const indentWidth = line.charCodeAt(0) === 32 ? /^ */.exec(line)![0].length : 0;
+    if (fenceRun === null && indentWidth < line.length) {
+      while (listIndents.length && indentWidth < listIndents[listIndents.length - 1]!) listIndents.pop();
+      // Cheap first-char gate before the marker regex.
+      const fc = line.charAt(indentWidth);
+      if (fc === "-" || fc === "*" || fc === "+" || (fc >= "0" && fc <= "9")) {
+        const listMarker = /^( *)(?:[-*+]|\d{1,9}[.)]) /.exec(line);
+        if (listMarker) listIndents.push(indentWidth + (listMarker[0].length - listMarker[1]!.length));
+      }
+    }
+    // Cheap gate: only lines starting with ` or ~ can be fences, so the
+    // trim+regex only runs for them.
+    const firstNonWs = line.charAt(indentWidth);
+    const fenceMatch =
+      firstNonWs === "`" || firstNonWs === "~" ? /^(`{3,}|~{3,})/.exec(line.trim()) : null;
     if (fenceMatch) {
       const run = fenceMatch[1]!;
-      if (fenceRun === null) fenceRun = run;
-      else if (run[0] === fenceRun![0] && run.length >= fenceRun!.length) fenceRun = null;
-      continue;
+      // A run that opens and closes on the same line is an inline code span,
+      // not a fence: leave the fence state alone. A closing fence must also
+      // carry nothing after the run (CommonMark).
+      const rest = line.trim().slice(run.length);
+      if (fenceRun === null) {
+        if (!rest.includes(run)) {
+          fenceRun = run;
+          continue;
+        }
+      } else {
+        if (run[0] === fenceRun[0] && run.length >= fenceRun.length && !rest.trim()) fenceRun = null;
+        continue;
+      }
     }
     if (fenceRun !== null) continue;
     const header = line;
     const separator = lines[i + 1] ?? "";
-    if (/^( {4}|\t)/.test(line)) continue;  // indented code block, not a table
+    // Indented code block only when deeper than the surrounding list content;
+    // a table nested at a list item's content indent is list content.
+    const activeListIndent = listIndents[listIndents.length - 1];
+    if (/^\t/.test(line) || (indentWidth >= 4 && (activeListIndent === undefined || indentWidth > activeListIndent))) continue;
     if (!header.includes("|") || !separatorRow.test(separator.trim())) continue;
     const tableHeader = `${header}\n${separator}`;
     let row = i + 2;
     for (; row < lines.length && (lines[row] ?? "").includes("|"); row += 1) {
       const rowText = lines[row] ?? "";
+      const trimmedRow = rowText.trim();
       // A heading, list item, quote or fence that follows the table without a
-      // blank line starts a new block; it is not a table row.
-      if (/^(#{1,6}\s|>\s?|[-*+]\s|\d+[.)]\s|(`{3,})|(~{3,}))/.test(rowText.trim())) break;
-      const existing = tableHeadersByRow.get(rowText);
+      // blank line starts a new block; it is not a table row. Ordered-list
+      // markers cap at nine digits (CommonMark), and a fence run that closes
+      // on the same line is an inline code span, not a fence.
+      if (/^(#{1,6}\s|>\s?|[-*+]\s|\d{1,9}[.)]\s)/.test(trimmedRow)) break;
+      if (trimmedRow.charCodeAt(0) === 96 || trimmedRow.charCodeAt(0) === 126) {
+        const fenceStart = /^(`{3,}|~{3,})/.exec(trimmedRow);
+        if (fenceStart && !trimmedRow.slice(fenceStart[1].length).includes(fenceStart[1])) break;
+      }
+      // Keys are indent-normalized: a chunk's first line loses its leading
+      // whitespace to the chunk-level trim, and list-nested rows carry the
+      // list's content indent in the source.
+      const rowKey = rowText.trimStart();
+      const existing = tableHeadersByRow.get(rowKey);
       // A row string shared by two tables is ambiguous: poison it rather than
       // let the later table's header overwrite the earlier one's.
-      if (existing === undefined) tableHeadersByRow.set(rowText, tableHeader);
-      else if (existing !== tableHeader) tableHeadersByRow.set(rowText, "");
+      if (existing === undefined) tableHeadersByRow.set(rowKey, tableHeader);
+      else if (existing !== tableHeader) tableHeadersByRow.set(rowKey, "");
+    }
+    if (row > i + 2) {
+      const lastRow = row - 1;
+      tableSpans.push([lineOffsets[i]!, (lineOffsets[lastRow] ?? body.length) + (lines[lastRow] ?? "").length]);
     }
     // Advance past the whole table so a delimiter-shaped data row inside it
     // cannot be re-read as a separator starting a new table.
     i = row - 1;
   }
   const longRows = [...tableHeadersByRow.keys()].filter((row) => row.length > targetChars);
+  // One predicate for both the guard and the row selection below, so the
+  // chosen row is always the one where the fragment is boundary-aligned.
+  const rowMatchesFragment = (row: string, line: string): boolean =>
+    line.length >= 20
+      ? row.includes(line)
+      : line.length >= 6 &&
+        (row.includes(` ${line} `) || row.startsWith(`${line} `) || row.endsWith(` ${line}`));
   // A line that appears verbatim as its own line anywhere in the document is
   // prose, not a row fragment: never reconstruct provenance for it. This
   // stops quoted sentences from inheriting a table header.
@@ -225,26 +284,48 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     const text = (overlapText && i > 0 ? `${overlapText}\n${merged[i]}` : merged[i]).trim();
     if (text) withOverlap.push(text);
   }
-  const withTableHeaders = withOverlap.map((text) => {
+  const pieceStarts: number[] = [];
+  {
+    let off = 0;
+    for (const p of merged) {
+      pieceStarts.push(off);
+      off += p.length;
+    }
+  }
+  // Line-level table-span membership is only needed when over-long rows can
+  // split into fragments; skip the offset walk otherwise.
+  const needSpans = tableSpans.length > 0 && longRows.length > 0;
+  const withTableHeaders = withOverlap.map((text, pieceIndex) => {
+    // Classify each line by where it sits in the source document: a fragment
+    // line that comes from inside a table span is table content even when the
+    // same text also exists as standalone prose elsewhere.
+    const pieceText = merged[pieceIndex] ?? "";
+    const lines = pieceText.split("\n");
+    let lineInSpan: boolean[] | null = null;
+    if (needSpans) {
+      lineInSpan = new Array<boolean>(lines.length).fill(false);
+      const pieceStart = pieceStarts[pieceIndex] ?? -1;
+      let cursor = 0;
+      for (let li = 0; li < lines.length; li += 1) {
+        const line = lines[li]!;
+        const at = pieceText.indexOf(line, cursor);
+        if (at !== -1) cursor = at + line.length;
+        const absStart = pieceStart + (at === -1 ? 0 : at);
+        lineInSpan[li] = tableSpans.some(([s, e]) => absStart >= s && absStart <= e);
+      }
+    }
     const missingHeaders = Array.from(
       new Set(
-        text
-          .split("\n")
+        lines
           .map(
-            (line) =>
-              tableHeadersByRow.get(line) ??
+            (line, li) =>
+              // trimStart allocates; only lines with leading whitespace need it.
+              tableHeadersByRow.get(line.charCodeAt(0) <= 32 && line.length ? line.trimStart() : line) ??
               // Fragments of an over-long row no longer equal the stored row;
-              // a long enough fragment matches as a substring of the full row.
-              (!standaloneLines.has(line) &&
-              (line.length >= 20 ||
-                // Short tail fragments: require word-boundary alignment inside
-                // the row so arbitrary text slices cannot match by luck.
-                (line.length >= 6 &&
-                  longRows.some(
-                    (row) =>
-                      row.includes(` ${line} `) || row.startsWith(`${line} `) || row.endsWith(` ${line}`),
-                  )))
-                ? longRows.map((row) => (row.includes(line) ? tableHeadersByRow.get(row) : undefined)).find(Boolean)
+              // match them against the row with the shared boundary predicate.
+              ((!standaloneLines.has(line) || (lineInSpan ? lineInSpan[li]! : false)) &&
+              longRows.some((row) => rowMatchesFragment(row, line))
+                ? longRows.map((row) => (rowMatchesFragment(row, line) ? tableHeadersByRow.get(row) : undefined)).find(Boolean)
                 : undefined),
           )
           .filter((header): header is string => Boolean(header && !text.includes(header))),
