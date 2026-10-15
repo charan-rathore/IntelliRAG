@@ -379,7 +379,13 @@ export async function fetchRemoteDocument(url: string): Promise<{
   const raw =
     gh?.kind === "blob" ? githubRawUrl(gh.owner, gh.repo, gh.ref, gh.path) : trimmed;
   const body = await fetchText(raw);
-  const name = decodeURIComponent(raw.split("/").pop() || "document");
+  const rawName = raw.split("/").pop() || "document";
+  let name: string;
+  try {
+    name = decodeURIComponent(rawName);
+  } catch {
+    name = rawName;
+  }
   return {
     title: titleFromMarkdown(body, name.replace(/\.[a-z]+$/i, "")),
     body,
