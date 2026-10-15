@@ -416,4 +416,4 @@ export async function embedPendingBatch() {
   );
   const remaining = await pendingEmbeddingCount(EMBEDDING_MODEL);
   return { embedded: pending.length, remaining, model };
-    }
+}
