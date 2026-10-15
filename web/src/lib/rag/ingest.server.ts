@@ -315,6 +315,16 @@ async function ingestGithubIssue(owner: string, repo: string, number: number) {
   return { ingested: result.skipped ? 0 : 1, skipped: result.skipped ? 1 : 0, titles: [result.slug], corpusId: urlCorpusId(issue.html_url) };
 }
 
+/** Filename segment of a URL, percent-decoded when the escapes are valid. */
+export function safeUrlBasename(url: string): string {
+  const raw = url.split("/").pop() || "document";
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export async function ingestFromUrl(url: string) {
   const trimmed = url.trim();
   if (!/^https?:\/\//i.test(trimmed)) throw new Error("Provide an http(s) URL");
@@ -349,7 +359,7 @@ export async function ingestFromUrl(url: string) {
     return ingestGithubRepo({ owner: gh.owner, repo: gh.repo, ref: gh.ref });
   }
   const body = await fetchText(trimmed);
-  const name = decodeURIComponent(trimmed.split("/").pop() || "document");
+  const name = safeUrlBasename(trimmed);
   const result = await ingestText({
     title: titleFromMarkdown(body, name.replace(/\.[a-z]+$/i, "")),
     body,
@@ -379,13 +389,7 @@ export async function fetchRemoteDocument(url: string): Promise<{
   const raw =
     gh?.kind === "blob" ? githubRawUrl(gh.owner, gh.repo, gh.ref, gh.path) : trimmed;
   const body = await fetchText(raw);
-  const rawName = raw.split("/").pop() || "document";
-  let name: string;
-  try {
-    name = decodeURIComponent(rawName);
-  } catch {
-    name = rawName;
-  }
+  const name = safeUrlBasename(raw);
   return {
     title: titleFromMarkdown(body, name.replace(/\.[a-z]+$/i, "")),
     body,
