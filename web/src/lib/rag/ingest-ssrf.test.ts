@@ -82,6 +82,11 @@ describe("remote URL fetching (SSRF guard)", () => {
     assert.equal(calls.length, 1);
   });
 
+  it("handles filenames with invalid UTF-8 percent escapes", async () => {
+    const doc = await fetchRemoteDocument("http://93.184.216.34/%FF-guide.txt");
+    assert.equal(doc.title, "%FF-guide");
+  });
+
   it("rejects redirects that point at private addresses", async () => {
     handler = (url) => {
       if (url.includes("93.184.216.34")) {
