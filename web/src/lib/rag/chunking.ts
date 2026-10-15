@@ -150,19 +150,32 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
   const lines = body.split("\n");
   const tableHeadersByRow = new Map<string, string>();
   const separatorRow = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/;
+  let inFence = false;
   for (let i = 0; i < lines.length - 2; i += 1) {
-    const header = lines[i] ?? "";
-    const separator = lines[i + 1] ?? "";
-    if (!header.trim().startsWith("|") || !separatorRow.test(separator.trim())) continue;
-    const tableHeader = `${header}\n${separator}`;
-    for (
-      let row = i + 2;
-      row < lines.length && (lines[row] ?? "").trim().startsWith("|");
-      row += 1
-    ) {
-      tableHeadersByRow.set(lines[row] ?? "", tableHeader);
+    const line = lines[i] ?? "";
+    if (/^(`{3,}|~{3,})/.test(line.trim())) {
+      inFence = !inFence;
+      continue;
     }
+    if (inFence) continue;
+    const header = line;
+    const separator = lines[i + 1] ?? "";
+    if (!header.includes("|") || !separatorRow.test(separator.trim())) continue;
+    const tableHeader = `${header}\n${separator}`;
+    let row = i + 2;
+    for (; row < lines.length && (lines[row] ?? "").includes("|"); row += 1) {
+      const rowText = lines[row] ?? "";
+      const existing = tableHeadersByRow.get(rowText);
+      // A row string shared by two tables is ambiguous: poison it rather than
+      // let the later table's header overwrite the earlier one's.
+      if (existing === undefined) tableHeadersByRow.set(rowText, tableHeader);
+      else if (existing !== tableHeader) tableHeadersByRow.set(rowText, "");
+    }
+    // Advance past the whole table so a delimiter-shaped data row inside it
+    // cannot be re-read as a separator starting a new table.
+    i = row - 1;
   }
+  const longRows = [...tableHeadersByRow.keys()].filter((row) => row.length > targetChars);
   const raw = recursiveSplit(body, SEPARATORS, targetChars);
   const merged: string[] = [];
   for (const piece of raw) {
@@ -203,7 +216,15 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
       new Set(
         text
           .split("\n")
-          .map((line) => tableHeadersByRow.get(line))
+          .map(
+            (line) =>
+              tableHeadersByRow.get(line) ??
+              // Fragments of an over-long row no longer equal the stored row;
+              // a long enough fragment matches as a substring of the full row.
+              (line.length >= 20
+                ? longRows.map((row) => (row.includes(line) ? tableHeadersByRow.get(row) : undefined)).find(Boolean)
+                : undefined),
+          )
           .filter((header): header is string => Boolean(header && !text.includes(header))),
       ),
     );
