@@ -78,6 +78,105 @@ describe("large markdown tables", () => {
   });
 });
 
+describe("table header propagation edge cases", () => {
+  it("does not borrow another table's header for an identical row", () => {
+    const doc = [
+      "| Name | Value |",
+      "| --- | --- |",
+      "| Status | Active |",
+      ...Array.from({ length: 12 }, (_, i) => `| Alpha ${i} | ${i} |`),
+      "",
+      ...Array.from({ length: 30 }, (_, i) => `Filler prose line ${i} to push the second table into later chunks.`),
+      "| City | State |",
+      "| --- | --- |",
+      ...Array.from({ length: 12 }, (_, i) => `| Beta ${i} | ${i} |`),
+      "| Status | Active |",
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const first = chunks.filter((c) => c.text.includes("| Alpha"));
+    assert.ok(first.length >= 1);
+    assert.ok(
+      first.every((c) => !c.text.includes("| City | State |")),
+      "rows in the first table must not inherit the second table's header",
+    );
+  });
+
+  it("detects tables written without outer pipes", () => {
+    const doc = [
+      "Name | Value",
+      "--- | ---",
+      ...Array.from({ length: 20 }, (_, i) => `Item ${i} | Value ${i}`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const rows = chunks.filter((c) => /Item \d+ \|/.test(c.text));
+    assert.ok(rows.length > 1, "the pipeless table should span multiple chunks");
+    assert.ok(
+      rows.every((c) => c.text.includes("Name | Value")),
+      "each chunk should retain the pipeless header",
+    );
+  });
+
+  it("carries headers onto fragments of an over-long row", () => {
+    const longCell = Array.from({ length: 60 }, (_, i) => `word${i}`).join(" ");
+    const doc = [
+      "| Name | Description |",
+      "| --- | --- |",
+      ...Array.from({ length: 10 }, (_, i) => `| Item ${i} | short ${i} |`),
+      `| Big | ${longCell} |`,
+      ...Array.from({ length: 10 }, (_, i) => `| Tail ${i} | short ${i} |`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const frags = chunks.filter((c) => /word\d+/.test(c.text));
+    assert.ok(frags.length > 1, "the long row should split into fragments");
+    assert.ok(
+      frags.every((c) => c.text.includes("| Name | Description |")),
+      "every fragment of the long row should carry the header",
+    );
+  });
+
+  it("ignores table-shaped lines inside fenced code", () => {
+    const doc = [
+      "Some prose to start the document body.",
+      "",
+      "```",
+      "| key | value |",
+      "| --- | --- |",
+      ...Array.from({ length: 20 }, (_, i) => `| cfg_${i} | ${i} |`),
+      "```",
+      "",
+      ...Array.from({ length: 25 }, (_, i) => `Trailing prose line ${i} keeps the document long enough to split.`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const codeChunks = chunks.filter((c) => c.text.includes("| cfg_"));
+    assert.ok(codeChunks.length >= 1);
+    assert.ok(
+      codeChunks.every((c) => !c.text.startsWith("| key | value |")),
+      "fenced code rows must not gain a prepended table header",
+    );
+  });
+
+  it("does not restart a table at a delimiter-shaped data row", () => {
+    const doc = [
+      "| Name | Value |",
+      "| --- | --- |",
+      ...Array.from({ length: 8 }, (_, i) => `| Item ${i} | ${i} |`),
+      "| --- | --- |",
+      ...Array.from({ length: 20 }, (_, i) => `| After ${i} | ${i} |`),
+    ].join("\n");
+    const chunks = chunkDocument(doc, { chunkSize: 20, overlap: 0 });
+    const after = chunks.filter((c) => c.text.includes("| After"));
+    assert.ok(after.length >= 1);
+    assert.ok(
+      after.every((c) => c.text.includes("| Name | Value |")),
+      "rows after a delimiter-shaped data row keep the real header",
+    );
+    assert.ok(
+      after.every((c) => !c.text.includes(`| Item 7 | 7 |\n| --- | --- |`) || c.text.indexOf("| Name | Value |") < c.text.indexOf("| Item 7 | 7 |")),
+      "the delimiter data row must not turn the previous row into a header",
+    );
+  });
+});
+
 describe("unicode tokenizer", () => {
   it("keeps non-ASCII letters as tokens", () => {
     const tokens = contentTokens("Déploiement café 日本語 réseau");
