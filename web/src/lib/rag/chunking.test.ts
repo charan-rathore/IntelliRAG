@@ -60,6 +60,24 @@ describe("heading paths", () => {
   });
 });
 
+describe("large markdown tables", () => {
+  it("keeps column headers with table rows in every chunk", () => {
+    const table = [
+      "| Name | Value |",
+      "| --- | --- |",
+      ...Array.from({ length: 20 }, (_, index) => `| Item ${index} | Value ${index} |`),
+    ].join("\n");
+    const chunks = chunkDocument(table, { chunkSize: 20, overlap: 0 });
+    const tableChunks = chunks.filter((chunk) => /\| Item \d+ \|/.test(chunk.text));
+
+    assert.ok(tableChunks.length > 1, "the test table should span multiple chunks");
+    assert.ok(
+      tableChunks.every((chunk) => chunk.text.includes("| Name | Value |")),
+      "each table chunk should retain its column labels",
+    );
+  });
+});
+
 describe("unicode tokenizer", () => {
   it("keeps non-ASCII letters as tokens", () => {
     const tokens = contentTokens("Déploiement café 日本語 réseau");
