@@ -30,8 +30,14 @@ const MAX_BODY = 60_000;
 const PDF_ERROR = "PDF ingestion is not supported yet. Convert the document to text or markdown and import that instead.";
 const TRUNCATION_ERROR = "Document exceeds the supported import size (60KB); import a smaller document instead of silently truncating it.";
 
-function assertNotPdf(body: string) {
-  if (body.startsWith("%PDF-")) throw new Error(PDF_ERROR);
+export function assertNotPdf(body: string) {
+  // PDF readers accept a header anywhere in the first 1024 bytes, so a
+  // prefixed file is still a PDF; a marker past that window is ordinary text.
+  const prefix = body.slice(0, 1024);
+  const headerIndex = prefix.indexOf("%PDF-");
+  if (headerIndex !== -1 && Buffer.byteLength(prefix.slice(0, headerIndex)) < 1024) {
+    throw new Error(PDF_ERROR);
+  }
 }
 
 export function htmlToText(html: string): string {
