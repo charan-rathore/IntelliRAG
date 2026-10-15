@@ -26,6 +26,7 @@ import { seedPredictedQuestions } from "./suggested-questions.server";
 import { EMBEDDING_MODEL } from "./types";
 
 const MAX_BODY = 60_000;
+const MAX_FETCH_BYTES = MAX_BODY * 4;
 
 const PDF_ERROR = "PDF ingestion is not supported yet. Convert the document to text or markdown and import that instead.";
 const TRUNCATION_ERROR = "Document exceeds the supported import size (60KB); import a smaller document instead of silently truncating it.";
@@ -153,7 +154,7 @@ async function fetchText(url: string): Promise<string> {
         continue;
       }
       if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
-        let body = await res.text();
+      let body = await readResponseText(res);
       assertNotPdf(body);
       const contentType = res.headers.get("content-type") ?? "";
       if (contentType.includes("text/html") || looksLikeHtml(body)) body = htmlToText(body);
@@ -163,6 +164,31 @@ async function fetchText(url: string): Promise<string> {
     } finally {
       clearTimeout(timer);
     }
+  }
+}
+
+async function readResponseText(res: Response): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) return "";
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let bytesRead = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.byteLength > MAX_FETCH_BYTES - bytesRead) {
+        await reader.cancel().catch(() => undefined);
+        throw new Error(TRUNCATION_ERROR);
+      }
+      bytesRead += value.byteLength;
+      const chunk = decoder.decode(value, { stream: true });
+      if (chunk) chunks.push(chunk);
+    }
+    chunks.push(decoder.decode());
+    return chunks.join("");
+  } finally {
+    reader.releaseLock();
   }
 }
 
@@ -390,4 +416,4 @@ export async function embedPendingBatch() {
   );
   const remaining = await pendingEmbeddingCount(EMBEDDING_MODEL);
   return { embedded: pending.length, remaining, model };
-}
+    }
