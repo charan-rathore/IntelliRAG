@@ -156,6 +156,7 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
   let fenceRun: string | null = null;
   const listIndents: number[] = [];
   const tableSpans: Array<[number, number]> = [];
+  const rowSpanIdx = new Map<string, number>();
   const lineOffsets: number[] = [];
   {
     let off = 0;
@@ -172,8 +173,13 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
       // Cheap first-char gate before the marker regex.
       const fc = line.charAt(indentWidth);
       if (fc === "-" || fc === "*" || fc === "+" || (fc >= "0" && fc <= "9")) {
-        const listMarker = /^( *)(?:[-*+]|\d{1,9}[.)]) /.exec(line);
-        if (listMarker) listIndents.push(indentWidth + (listMarker[0].length - listMarker[1]!.length));
+        // CommonMark allows one to four spaces (or a tab) between the marker
+        // and the content; the content indent follows the actual padding.
+        const listMarker = /^( *)([-*+]|\d{1,9}[.)])( {1,4}|\t)/.exec(line);
+        if (listMarker) {
+          const padding = listMarker[3] === "\t" ? 4 : listMarker[3]!.length;
+          listIndents.push(indentWidth + listMarker[2]!.length + padding);
+        }
       }
     }
     // Cheap gate: only lines starting with ` or ~ can be fences, so the
@@ -188,7 +194,9 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
       // carry nothing after the run (CommonMark).
       const rest = line.trim().slice(run.length);
       if (fenceRun === null) {
-        if (!rest.includes(run)) {
+        // Only backtick runs can close on the same line (inline code span);
+        // tilde fences may legally carry tildes in their info string.
+        if (run[0] !== "`" || !rest.includes(run)) {
           fenceRun = run;
           continue;
         }
@@ -217,7 +225,12 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
       if (/^(#{1,6}\s|>\s?|[-*+]\s|\d{1,9}[.)]\s)/.test(trimmedRow)) break;
       if (trimmedRow.charCodeAt(0) === 96 || trimmedRow.charCodeAt(0) === 126) {
         const fenceStart = /^(`{3,}|~{3,})/.exec(trimmedRow);
-        if (fenceStart && !trimmedRow.slice(fenceStart[1].length).includes(fenceStart[1])) break;
+        // Only backtick runs can be same-line inline code; a tilde run is a fence.
+        if (
+          fenceStart &&
+          (fenceStart[1]![0] !== "`" || !trimmedRow.slice(fenceStart[1]!.length).includes(fenceStart[1]!))
+        )
+          break;
       }
       // Keys are indent-normalized: a chunk's first line loses its leading
       // whitespace to the chunk-level trim, and list-nested rows carry the
@@ -231,7 +244,9 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     }
     if (row > i + 2) {
       const lastRow = row - 1;
+      const spanIdx = tableSpans.length;
       tableSpans.push([lineOffsets[i]!, (lineOffsets[lastRow] ?? body.length) + (lines[lastRow] ?? "").length]);
+      for (let r = i + 2; r <= lastRow; r += 1) rowSpanIdx.set((lines[r] ?? "").trimStart(), spanIdx);
     }
     // Advance past the whole table so a delimiter-shaped data row inside it
     // cannot be re-read as a separator starting a new table.
@@ -298,36 +313,48 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
   const withTableHeaders = withOverlap.map((text, pieceIndex) => {
     // Classify each line by where it sits in the source document: a fragment
     // line that comes from inside a table span is table content even when the
-    // same text also exists as standalone prose elsewhere.
+    // same text also exists as standalone prose elsewhere. Overlap lines come
+    // from the previous piece's tail, so anchor the walk there.
+    const pieceStart = pieceStarts[pieceIndex] ?? -1;
+    const prev = merged[pieceIndex - 1] ?? "";
+    const overlapText = pieceIndex > 0 ? prev.slice(Math.max(0, prev.length - overlapChars)).trim() : "";
+    // Analyze the untrimmed assembly so line offsets stay exact; the chunk
+    // text itself is trimmed, which would shift the first line's offset.
     const pieceText = merged[pieceIndex] ?? "";
-    const lines = pieceText.split("\n");
-    let lineInSpan: boolean[] | null = null;
+    const analysisText = (overlapText ? `${overlapText}\n` : "") + pieceText;
+    const lines = analysisText.split("\n");
+    let lineSpanIdx: Array<number | null> | null = null;
     if (needSpans) {
-      lineInSpan = new Array<boolean>(lines.length).fill(false);
-      const pieceStart = pieceStarts[pieceIndex] ?? -1;
+      lineSpanIdx = new Array<number | null>(lines.length).fill(null);
+      const textStartAbs = pieceStart - (overlapText ? overlapText.length + 1 : 0);
       let cursor = 0;
       for (let li = 0; li < lines.length; li += 1) {
         const line = lines[li]!;
-        const at = pieceText.indexOf(line, cursor);
+        const at = text.indexOf(line, cursor);
         if (at !== -1) cursor = at + line.length;
-        const absStart = pieceStart + (at === -1 ? 0 : at);
-        lineInSpan[li] = tableSpans.some(([s, e]) => absStart >= s && absStart <= e);
+        const absStart = textStartAbs + (at === -1 ? 0 : at);
+        const idx = tableSpans.findIndex(([s, e]) => absStart >= s && absStart < e);
+        lineSpanIdx[li] = idx === -1 ? null : idx;
       }
     }
     const missingHeaders = Array.from(
       new Set(
         lines
-          .map(
-            (line, li) =>
-              // trimStart allocates; only lines with leading whitespace need it.
-              tableHeadersByRow.get(line.charCodeAt(0) <= 32 && line.length ? line.trimStart() : line) ??
-              // Fragments of an over-long row no longer equal the stored row;
-              // match them against the row with the shared boundary predicate.
-              ((!standaloneLines.has(line) || (lineInSpan ? lineInSpan[li]! : false)) &&
-              longRows.some((row) => rowMatchesFragment(row, line))
-                ? longRows.map((row) => (rowMatchesFragment(row, line) ? tableHeadersByRow.get(row) : undefined)).find(Boolean)
-                : undefined),
-          )
+          .map((line, li) => {
+            const rowKey = line.charCodeAt(0) <= 32 && line.length ? line.trimStart() : line;
+            const exact = tableHeadersByRow.get(rowKey);
+            if (exact !== undefined) return exact;
+            // Fragments of an over-long row no longer equal the stored row;
+            // match them against the row with the shared boundary predicate,
+            // and when the line's source span is known, only against the rows
+            // of that table.
+            const spanIdx = lineSpanIdx ? lineSpanIdx[li]! : null;
+            if (standaloneLines.has(line) && spanIdx === null) return undefined;
+            const candidates = spanIdx === null ? longRows : longRows.filter((row) => rowSpanIdx.get(row) === spanIdx);
+            return candidates.find((row) => rowMatchesFragment(row, line))
+              ? tableHeadersByRow.get(candidates.find((row) => rowMatchesFragment(row, line))!) ?? undefined
+              : undefined;
+          })
           .filter((header): header is string => Boolean(header && !text.includes(header))),
       ),
     );
