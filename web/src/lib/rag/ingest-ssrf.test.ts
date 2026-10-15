@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { fetchRemoteDocument, isPrivateIp, assertPublicUrl } from "./ingest.server.ts";
+import { fetchRemoteDocument, ingestFromUrl, isPrivateIp, assertPublicUrl, safeUrlBasename } from "./ingest.server.ts";
 
 type FetchCall = string;
 let calls: FetchCall[] = [];
@@ -85,6 +85,19 @@ describe("remote URL fetching (SSRF guard)", () => {
   it("handles filenames with invalid UTF-8 percent escapes", async () => {
     const doc = await fetchRemoteDocument("http://93.184.216.34/%FF-guide.txt");
     assert.equal(doc.title, "%FF-guide");
+  });
+
+  it("safeUrlBasename keeps the raw segment on invalid escapes", () => {
+    assert.equal(safeUrlBasename("http://93.184.216.34/%FF-guide.txt"), "%FF-guide.txt");
+    assert.equal(safeUrlBasename("http://93.184.216.34/my%20guide.txt"), "my guide.txt");
+    assert.equal(safeUrlBasename("http://93.184.216.34/"), "document");
+  });
+
+  it("ingestFromUrl tolerates invalid percent escapes in the filename", async () => {
+    // Short body stops the pipeline before storage; a URIError here means the
+    // production ingester still decodes without a guard.
+    handler = () => new Response("short", { status: 200, headers: { "content-type": "text/plain" } });
+    await assert.rejects(ingestFromUrl("http://93.184.216.34/%FF-guide.txt"), /too short/);
   });
 
   it("rejects redirects that point at private addresses", async () => {
