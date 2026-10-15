@@ -147,6 +147,22 @@ function splitCodeUnits(body: string, language: string | null, targetChars: numb
 function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omit<DraftChunk, "ordinal" | "text" | "tokenCount" | "heading"> & { heading?: string | null }): DraftChunk[] {
   const targetChars = chunkSize * 4;
   const overlapChars = overlap * 4;
+  const lines = body.split("\n");
+  const tableHeadersByRow = new Map<string, string>();
+  const separatorRow = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/;
+  for (let i = 0; i < lines.length - 2; i += 1) {
+    const header = lines[i] ?? "";
+    const separator = lines[i + 1] ?? "";
+    if (!header.trim().startsWith("|") || !separatorRow.test(separator.trim())) continue;
+    const tableHeader = `${header}\n${separator}`;
+    for (
+      let row = i + 2;
+      row < lines.length && (lines[row] ?? "").trim().startsWith("|");
+      row += 1
+    ) {
+      tableHeadersByRow.set(lines[row] ?? "", tableHeader);
+    }
+  }
   const raw = recursiveSplit(body, SEPARATORS, targetChars);
   const merged: string[] = [];
   for (const piece of raw) {
@@ -182,7 +198,18 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     const text = (overlapText && i > 0 ? `${overlapText}\n${merged[i]}` : merged[i]).trim();
     if (text) withOverlap.push(text);
   }
-  return withOverlap.map((text, ordinal) => ({
+  const withTableHeaders = withOverlap.map((text) => {
+    const missingHeaders = Array.from(
+      new Set(
+        text
+          .split("\n")
+          .map((line) => tableHeadersByRow.get(line))
+          .filter((header): header is string => Boolean(header && !text.includes(header))),
+      ),
+    );
+    return missingHeaders.length ? `${missingHeaders.join("\n")}\n${text}` : text;
+  });
+  return withTableHeaders.map((text, ordinal) => ({
     ordinal,
     text,
     tokenCount: estimateTokens(text),
