@@ -42,6 +42,11 @@ class ClaimEvaluation:
     entailment: EntailmentLabel
     confidence: float = 0.0
     supporting_source: str = ""
+    #: Which judge produced the verdict: "llm", "lexical", or
+    #: "llm-fallback-lexical" when the LLM judge failed or returned an
+    #: unparseable verdict and the deterministic proxy answered instead.
+    #: "none" when no judge ran (claim had no citation).
+    judge: str = "none"
 
 
 @dataclass
@@ -154,16 +159,28 @@ Respond with ONLY one word: SUPPORTS, CONTRADICTS, or NEUTRAL.
             raise RuntimeError(f"Judge call failed: {response.status_code}")
         return response.json().get("message", {}).get("content", "").strip()
 
-    def judge_entailment(self, claim: str, source_text: str) -> EntailmentLabel:
+    def judge_entailment_with_origin(
+        self, claim: str, source_text: str
+    ) -> tuple[EntailmentLabel, str]:
+        """Verdict plus which judge actually produced it.
+
+        A fallback verdict must never wear the LLM judge's authority: when the
+        judge call fails or answers something unparseable, the lexical proxy
+        decides and the origin says so.
+        """
         prompt = self.JUDGE_PROMPT.format(source=source_text[:1500], claim=claim)
         try:
             raw = self.judge(prompt).upper()
             for label in EntailmentLabel:
                 if label.value in raw:
-                    return label
+                    return label, "llm"
+            logger.warning("LLM judge returned an unparseable verdict; using lexical fallback")
         except Exception as e:
             logger.warning(f"LLM judge failed, using lexical fallback: {e}")
-        return LexicalJudge().judge_entailment(claim, source_text)
+        return LexicalJudge().judge_entailment(claim, source_text), "llm-fallback-lexical"
+
+    def judge_entailment(self, claim: str, source_text: str) -> EntailmentLabel:
+        return self.judge_entailment_with_origin(claim, source_text)[0]
 
 
 class FaithfulnessEvaluator:
@@ -203,6 +220,7 @@ class FaithfulnessEvaluator:
 
         claims_text = extract_claims(generation.answer)
         claim_evals: List[ClaimEvaluation] = []
+        judge_fallbacks = 0
 
         for claim in claims_text:
             claim_citations = citations_for_claim(
@@ -222,18 +240,25 @@ class FaithfulnessEvaluator:
 
             best_label = EntailmentLabel.NEUTRAL
             best_source = ""
+            best_judge = "lexical" if self._llm_judge is None else "llm"
+            fallback_used = False
             for citation in claim_citations:
-                label = self._judge_entailment(claim, citation.source_text)
+                label, origin = self._judge_entailment(claim, citation.source_text)
+                if origin == "llm-fallback-lexical":
+                    fallback_used = True
                 if label == EntailmentLabel.SUPPORTS:
                     best_label = EntailmentLabel.SUPPORTS
                     best_source = citation.source_text[:200]
+                    best_judge = origin
                     break
                 if label == EntailmentLabel.CONTRADICTS:
                     best_label = EntailmentLabel.CONTRADICTS
                     best_source = citation.source_text[:200]
+                    best_judge = origin
                 elif best_label == EntailmentLabel.NEUTRAL:
                     best_label = label
                     best_source = citation.source_text[:200]
+                    best_judge = origin
 
             claim_evals.append(
                 ClaimEvaluation(
@@ -241,10 +266,16 @@ class FaithfulnessEvaluator:
                     citations=[c.label for c in claim_citations],
                     entailment=best_label,
                     supporting_source=best_source,
+                    judge=best_judge,
                 )
             )
+            if fallback_used:
+                judge_fallbacks += 1
 
-        return self._aggregate(generation, claim_evals)
+        result = self._aggregate(generation, claim_evals)
+        if self._llm_judge is not None:
+            result.metadata["judge_fallbacks"] = judge_fallbacks
+        return result
 
     def evaluate_batch(
         self,
@@ -258,10 +289,10 @@ class FaithfulnessEvaluator:
             for gen, ctx in zip(generations, contexts)
         ]
 
-    def _judge_entailment(self, claim: str, source_text: str) -> EntailmentLabel:
+    def _judge_entailment(self, claim: str, source_text: str) -> tuple[EntailmentLabel, str]:
         if self._llm_judge is not None:
-            return self._llm_judge.judge_entailment(claim, source_text)
-        return self._lexical_judge.judge_entailment(claim, source_text)
+            return self._llm_judge.judge_entailment_with_origin(claim, source_text)
+        return self._lexical_judge.judge_entailment(claim, source_text), "lexical"
 
     def _aggregate(
         self,
