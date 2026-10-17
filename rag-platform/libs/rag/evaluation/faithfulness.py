@@ -171,8 +171,12 @@ Respond with ONLY one word: SUPPORTS, CONTRADICTS, or NEUTRAL.
         prompt = self.JUDGE_PROMPT.format(source=source_text[:1500], claim=claim)
         try:
             raw = self.judge(prompt).upper()
+            # The verdict is the first word. Scanning the whole reply for a
+            # label substring lets an explanation ("NEUTRAL - the source
+            # neither SUPPORTS nor ...") outrank the verdict by enum order.
+            first_word = re.split(r"[^A-Z_]+", raw, maxsplit=1)[0] if raw else ""
             for label in EntailmentLabel:
-                if label.value in raw:
+                if label.value == first_word:
                     return label, "llm"
             logger.warning("LLM judge returned an unparseable verdict; using lexical fallback")
         except Exception as e:
