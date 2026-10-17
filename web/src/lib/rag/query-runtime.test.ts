@@ -1,38 +1,57 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync, rmSync } from "node:fs";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import type { CacheEntry } from "./graphify/schema";
 import type { QueryEvent } from "./query.server";
 
-// Exercise the real server wrappers with the ephemeral corpus, never a live DB
-// or paid provider. Restore process state and the sidecar files after the test.
+// Exercise real server wrappers with a private in-memory sidecar store.
+// Other test workers and developer sidecars are never read or overwritten.
 test("query runtime promises", async (t) => {
-  const env = { ...process.env };
+  const env = process.env;
   const globals = globalThis as typeof globalThis & {
     __intelliragMemory?: unknown;
     __intelliragGraph?: unknown;
+    __intelliragSuggestions?: unknown;
   };
-  const memory = globals.__intelliragMemory;
-  const graph = globals.__intelliragGraph;
-  const paths = ["/tmp/intellirag-memory.json", "/tmp/intellirag-graphify.json"];
-  const backups = paths.map((path) => {
-    try { return readFileSync(path); } catch { return null; }
-  });
+  const previous = {
+    memory: globals.__intelliragMemory,
+    graph: globals.__intelliragGraph,
+    suggestions: globals.__intelliragSuggestions,
+  };
+  const paths = new Set([
+    "/tmp/intellirag-memory.json",
+    "/tmp/intellirag-graphify.json",
+    "/tmp/intellirag-suggested-questions.json",
+  ]);
+  const sidecars = new Map<string, string>();
+  const read = fs.readFileSync;
+  const write = fs.writeFileSync;
+  const readSpy = t.mock.method(fs, "readFileSync", ((path, ...args) => {
+    if (!paths.has(String(path))) return read(path, ...args);
+    const value = sidecars.get(String(path));
+    if (value === undefined) throw new Error("No test sidecar");
+    return value;
+  }) as typeof fs.readFileSync);
+  const writeSpy = t.mock.method(fs, "writeFileSync", ((path, data, ...args) => {
+    if (!paths.has(String(path))) return write(path, data, ...args);
+    sidecars.set(String(path), String(data));
+  }) as typeof fs.writeFileSync);
+  syncBuiltinESMExports();
   t.after(() => {
     process.env = env;
-    globals.__intelliragMemory = memory;
-    globals.__intelliragGraph = graph;
-    paths.forEach((path, index) => {
-      const bytes = backups[index];
-      if (bytes) writeFileSync(path, bytes, { mode: 0o600 });
-      else rmSync(path, { force: true });
-    });
+    globals.__intelliragMemory = previous.memory;
+    globals.__intelliragGraph = previous.graph;
+    globals.__intelliragSuggestions = previous.suggestions;
+    readSpy.mock.restore();
+    writeSpy.mock.restore();
+    syncBuiltinESMExports();
   });
-  for (const key of ["DATABASE_URL", "GEMINI_API_KEY", "OPENROUTER_API_KEY", "XAI_API_KEY", "OLLAMA_GENERATION"]) {
-    delete process.env[key];
-  }
-  process.env.VERCEL = "1";
+  // An allowlist prevents ambient provider credentials and optional flags
+  // from changing this no-provider scenario.
+  process.env = { VERCEL: "1" };
   globals.__intelliragMemory = { documents: [], chunks: [], traces: [] };
+  globals.__intelliragSuggestions = { rows: [] };
   delete globals.__intelliragGraph;
   const { ensureSeedDocuments } = await import("./store.server");
   const { ensureGraph, findCachedAnswer } = await import("./graphify/persist.server");
@@ -55,6 +74,35 @@ test("query runtime promises", async (t) => {
     assert.equal((await findCachedAnswer(entry.question, "seed-lab", options)).hit, entry);
     assert.equal((await findCachedAnswer(entry.question, "seed-lab", { ...options, skipCache: true })).hit, null);
     assert.equal((await findCachedAnswer(entry.question, "seed-lab", options)).hit, entry);
+    state.cache = [];
+  });
+
+  await t.test("runQueryStream forwards bypass while preserving a matching runtime cache entry", async () => {
+    const input = { question: "What caused the Kubernetes pod scheduling failures?", retrievalMode: "keyword" as const };
+    const run = async (skipCache: boolean) => {
+      const events: QueryEvent[] = [];
+      await runQueryStream({ ...input, skipCache }, (event) => events.push(event));
+      const done = events.find((event) => event.type === "done");
+      assert.ok(done?.type === "done");
+      return { done, events };
+    };
+    const initial = await run(false);
+    assert.equal(initial.done.model, "extractive");
+    const state = await ensureGraph();
+    const entry = state.cache.find((entry) => entry.question === input.question);
+    assert.ok(entry, "a real fresh query populates the runtime policy/corpus cache");
+    entry.answer = "Cached answer sentinel";
+    const cached = await run(false);
+    assert.equal(cached.done.cacheHit, true);
+    assert.equal(cached.done.answer, entry.answer);
+    const bypassed = await run(true);
+    assert.equal(bypassed.done.cacheHit, false);
+    assert.equal(bypassed.done.model, "extractive");
+    assert.equal(bypassed.done.answer, initial.done.answer);
+    assert.ok(bypassed.events.some((event) => event.type === "graph" && event.cache === "bypass"));
+    const cachedAgain = await run(false);
+    assert.equal(cachedAgain.done.cacheHit, true);
+    assert.equal(cachedAgain.done.answer, entry.answer);
     state.cache = [];
   });
 
@@ -85,4 +133,5 @@ test("query runtime promises", async (t) => {
       network.mock.restore();
     }
   });
+  assert.deepEqual([...sidecars.keys()].sort(), [...paths].sort(), "all three sidecars stay in the private store");
 });
