@@ -1,3 +1,4 @@
+import "./testing/close-database.mjs";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { ingestText, htmlToText, assertNotPdf, fetchRemoteDocument } from "./ingest.server.ts";
