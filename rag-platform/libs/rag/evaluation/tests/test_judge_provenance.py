@@ -112,3 +112,20 @@ def test_llm_judge_plain_verdict_with_punctuation_still_parses(monkeypatch) -> N
     label, origin = judge.judge_entailment_with_origin("The sky is blue.", "The sky is blue.")
     assert label == EntailmentLabel.SUPPORTS
     assert origin == "llm"
+
+
+def test_llm_judge_verdict_wrapped_in_markdown_or_quotes(monkeypatch) -> None:
+    """Models often wrap the one-word verdict: **SUPPORTS**, "NEUTRAL".
+
+    Leading delimiters are not the verdict; the first actual word is.
+    """
+    judge = OllamaJudge()
+    for raw, want in [
+        ("**SUPPORTS**", EntailmentLabel.SUPPORTS),
+        ('"NEUTRAL"', EntailmentLabel.NEUTRAL),
+        ("(CONTRADICTS)", EntailmentLabel.CONTRADICTS),
+    ]:
+        monkeypatch.setattr(OllamaJudge, "judge", lambda self, prompt, r=raw: r)
+        label, origin = judge.judge_entailment_with_origin("c", "s")
+        assert label == want, raw
+        assert origin == "llm", raw

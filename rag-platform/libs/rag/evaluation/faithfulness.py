@@ -174,7 +174,8 @@ Respond with ONLY one word: SUPPORTS, CONTRADICTS, or NEUTRAL.
             # The verdict is the first word. Scanning the whole reply for a
             # label substring lets an explanation ("NEUTRAL - the source
             # neither SUPPORTS nor ...") outrank the verdict by enum order.
-            first_word = re.split(r"[^A-Z_]+", raw, maxsplit=1)[0] if raw else ""
+            word = re.search(r"[A-Z_]+", raw)  # skip markdown/quote delimiters
+            first_word = word.group(0) if word else ""
             for label in EntailmentLabel:
                 if label.value == first_word:
                     return label, "llm"
