@@ -74,3 +74,41 @@ def test_plain_lexical_evaluator_marks_verdicts_lexical() -> None:
     result = FaithfulnessEvaluator(use_llm_judge=False).evaluate(_generation(), _context())
     assert result.claims[0].judge == "lexical"
     assert "judge_fallbacks" not in result.metadata
+
+
+def test_llm_judge_verdict_word_wins_over_its_explanation(monkeypatch) -> None:
+    """The judge answers one word, but models append explanations.
+
+    "NEUTRAL - the source neither supports nor contradicts the claim" must
+    parse as NEUTRAL: the verdict is the first word, not whichever label
+    happens to appear first in enum order inside the explanation.
+    """
+    monkeypatch.setattr(
+        OllamaJudge,
+        "judge",
+        lambda self, prompt: "NEUTRAL - the source neither SUPPORTS nor CONTRADICTS the claim",
+    )
+    judge = OllamaJudge()
+    label, origin = judge.judge_entailment_with_origin("The sky is green.", "The sky is blue.")
+    assert label == EntailmentLabel.NEUTRAL
+    assert origin == "llm"
+
+
+def test_llm_judge_leading_verdict_with_trailing_label_words(monkeypatch) -> None:
+    monkeypatch.setattr(
+        OllamaJudge,
+        "judge",
+        lambda self, prompt: "CONTRADICTS: the passage never SUPPORTS this claim",
+    )
+    judge = OllamaJudge()
+    label, origin = judge.judge_entailment_with_origin("The sky is green.", "The sky is blue.")
+    assert label == EntailmentLabel.CONTRADICTS
+    assert origin == "llm"
+
+
+def test_llm_judge_plain_verdict_with_punctuation_still_parses(monkeypatch) -> None:
+    monkeypatch.setattr(OllamaJudge, "judge", lambda self, prompt: "Supports.")
+    judge = OllamaJudge()
+    label, origin = judge.judge_entailment_with_origin("The sky is blue.", "The sky is blue.")
+    assert label == EntailmentLabel.SUPPORTS
+    assert origin == "llm"
