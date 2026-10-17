@@ -16,6 +16,12 @@ Repository support answers you can trace back to evidence.
 
 **Pilot proposal:** [10-slide deck and PDF](https://intellirag-live-own-track.vercel.app/pilot/index.html) · [research, evidence and interview guide](docs/sales/research-and-pilot.md). Focus: technical support answers with inspectable evidence; proposed pilot targets are explicitly separate from measured results.
 
+## Follow the web pipeline
+
+[![IntelliRAG web architecture: import, retrieve, check evidence and answer](docs/architecture/web-pipeline.svg)](docs/architecture/interactive.html)
+
+[Interactive stage guide](docs/architecture/interactive.html): expand each stage for its source files and failure boundaries. Clone or download the repository and open the HTML locally so its relative code links keep working; GitHub shows HTML as source. The optional second-opinion gate can only tighten the evidence gate. Model judging belongs to the separate evaluation runner, not the live answer path.
+
 ## Measured repository-support diagnostic
 
 ![Actual evidence-retention measurements](eval/repo-support/retrieval-results.svg)
