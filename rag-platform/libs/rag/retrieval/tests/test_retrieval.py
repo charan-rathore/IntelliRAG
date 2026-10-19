@@ -122,6 +122,15 @@ class TestTokenizeUnicode:
             tokens.update(tokenize(word))
         assert tokens == {"की", "का", "कि", "कु"}
 
+    def test_digit_runs_next_to_cjk_stay_whole(self):
+        tokens = tokenize("東京2026年")
+        assert "2026" in tokens
+
+    def test_spaceless_thai_matches_via_ngrams(self):
+        doc_tokens = set(tokenize("กรุงเทพมหานครเป็นเมืองหลวงของประเทศไทย"))
+        query_tokens = set(tokenize("ประเทศไทย"))
+        assert query_tokens <= doc_tokens
+
     def test_digits_stay_inside_words(self):
         assert tokenize("BM25 k1=1.5") == ["bm25", "k1", "1", "5"]
 
