@@ -151,6 +151,28 @@ class PostgresDocumentRepository:
             cur.execute(query, {"document_id": str(document_id)})
             return cur.fetchone()
 
+    def get_version_by_hash(
+        self,
+        document_id: UUID,
+        hash_payload: str,
+        conn: psycopg.Connection | None = None,
+    ) -> dict | None:
+        """Fetch the version row for an exact payload hash, active or not."""
+        query = """
+        SELECT * FROM document_versions
+        WHERE document_id = %(document_id)s AND hash_payload = %(hash_payload)s
+        LIMIT 1
+        """
+        params = {"document_id": str(document_id), "hash_payload": hash_payload}
+        if conn is None:
+            with self._conn() as owned_conn:
+                with owned_conn.cursor() as cur:
+                    cur.execute(query, params)
+                    return cur.fetchone()
+        with conn.cursor() as cur:
+            cur.execute(query, params)
+            return cur.fetchone()
+
     def get_document_id_by_source_uri(
         self,
         source_uri: str,
