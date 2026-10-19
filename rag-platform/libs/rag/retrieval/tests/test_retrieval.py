@@ -122,6 +122,19 @@ class TestTokenizeUnicode:
             tokens.update(tokenize(word))
         assert tokens == {"की", "का", "कि", "कु"}
 
+    def test_thai_ngrams_keep_marks_attached(self):
+        tokens = tokenize("กิ")
+        assert tokens == ["กิ"]
+        # A bare vowel mark must never be a shared term.
+        idx = BM25Index([("c1", "มิ")])
+        assert idx.search("กิ") == []
+
+    def test_japanese_iteration_marks_keep_adjacency(self):
+        tokens = tokenize("人々")
+        assert "人々" in tokens
+        kana = tokenize("ユーザー")
+        assert "ユー" in kana and "ザー" in kana
+
     def test_detached_combining_marks_form_no_token(self):
         # Emoji variation selectors are combining marks; unattached they must
         # not tokenize, or all emoji collapse onto one shared token.
