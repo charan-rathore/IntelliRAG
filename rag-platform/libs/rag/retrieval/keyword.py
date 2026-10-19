@@ -27,8 +27,14 @@ _JAPANESE_SCRIPTS = frozenset({"CJK", "HIRAGANA", "KATAKANA"})
 # Japanese iteration/prolonged marks whose Unicode names fall outside the
 # script buckets ("IDEOGRAPHIC ITERATION MARK", "KATAKANA-HIRAGANA
 # PROLONGED SOUND MARK"); they inherit the surrounding script so "人々" and
-# "ユーザー" stay single segments.
-_INHERIT_CODEPOINTS = frozenset({"\u3005", "\u3006", "\u3007", "\u30fc"})
+# "ユーザー" stay single segments. As tokens they only ever repeat the
+# previous character, so the n-gram path keeps them inside bigrams but
+# never emits them as standalone unigrams. U+3007 is deliberately absent:
+# it is IDEOGRAPHIC NUMBER ZERO (a real character, classified CJK below),
+# not a repetition mark.
+_INHERIT_CODEPOINTS = frozenset(
+    {"\u3005", "\u3006", "\u30fc", "\u309d", "\u309e", "\u30fd", "\u30fe"}
+)
 
 
 def _clusters(seg: str) -> List[str]:
@@ -52,6 +58,9 @@ def _is_mark(ch: str) -> bool:
 
 def _script_of(ch: str) -> Optional[str]:
     """Script family of a character; None for script-neutral characters."""
+    if ch == "\u3007":
+        # IDEOGRAPHIC NUMBER ZERO is a real character, not a mark.
+        return "CJK"
     if ch.isdigit() or _is_mark(ch) or ch in _INHERIT_CODEPOINTS:
         # Digits, combining marks, and Japanese iteration/prolonged marks
         # inherit the surrounding script.
@@ -76,9 +85,10 @@ def _emit_word(word: str, tokens: List[str]) -> None:
         script = _script_of(ch)
         if script is None:
             # Digits and unattributed characters inherit the current script -
-            # except digits beside a non-Latin script, which form their own
-            # whole token so "إصدار2026" keeps a searchable "2026".
-            if ch.isdigit() and segment_script not in (None, "LATIN", "DIGIT"):
+            # except digits beside (or opening a word before) a non-Latin
+            # script, which form their own whole token so "إصدار2026" and
+            # "2026東京" both keep a searchable "2026".
+            if ch.isdigit() and segment_script not in ("LATIN", "DIGIT"):
                 script = "DIGIT"
             else:
                 segment += ch
@@ -123,10 +133,12 @@ def tokenize(text: str) -> List[str]:
     match ("Mu\u0308nchen" == "München", "Ｐｙｔｈｏｎ" == "Python").
     """
     tokens: List[str] = []
-    # NFKC folds compatibility forms (full-width Latin, half-width katakana)
-    # onto their ordinary equivalents so extracted East Asian text matches a
-    # plain query; casefold first per Unicode default caseless matching.
-    normalized = unicodedata.normalize("NFKC", text.casefold())
+    # Unicode default caseless matching is NFKC(casefold(NFKC(s))): the
+    # first pass turns compatibility forms into ordinary characters
+    # (full-width Latin, half-width katakana, squared unit symbols like
+    # "㎒" -> "MHz") so case folding reaches every letter, and the second
+    # settles anything case folding decomposed.
+    normalized = unicodedata.normalize("NFKC", unicodedata.normalize("NFKC", text).casefold())
     i = 0
     n = len(normalized)
     while i < n:
