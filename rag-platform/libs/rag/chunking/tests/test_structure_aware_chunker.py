@@ -351,6 +351,37 @@ class TestOversizedUnstructuredContent(unittest.TestCase):
             self.assertGreaterEqual(chunk.start_char_offset, prev_start)
             prev_start = chunk.start_char_offset
 
+class TestAggregateSplitOffsets(unittest.TestCase):
+    """Regression: aggregate paragraph splits must advance offsets by real
+    consumed source characters, not by the synthetic repeated header."""
+
+    def test_aggregate_spans_track_consumed_source(self) -> None:
+        # One section whose paragraphs aggregate into 3 chunks. The chunker
+        # repeats the synthetic "## H\n\n" prefix in every chunk; it is not
+        # source text, so spans must tile the real paragraphs: each ten-char
+        # paragraph plus its blank-line separator.
+        config = ChunkerConfig(
+            chunk_size=5,
+            chunk_overlap=0,
+            min_chunk_size=1,
+            max_chunk_size=8,
+        )
+        chunker = StructureAwareChunker(config)
+        text = "## H\n\n" + "a" * 10 + "\n\n" + "b" * 10 + "\n\n" + "c" * 10 + "\n\n"
+        metadata = ChunkMetadata(
+            source_type=IngestionSource.MARKDOWN_DOC,
+            source_uri="https://example.com/doc.md",
+        )
+        result = chunker.chunk(text, uuid4(), uuid4(), metadata)
+        spans = [(c.start_char_offset, c.end_char_offset) for c in result.chunks]
+        self.assertEqual(spans, [(6, 18), (18, 30), (30, 40)])
+        # The repeated header is synthetic; each chunk still carries it.
+        for chunk in result.chunks:
+            self.assertTrue(chunk.chunk_text.startswith("## H"))
+        # Spans slice real source content back out.
+        self.assertEqual(text[6:18], "a" * 10 + "\n\n")
+        self.assertEqual(text[18:30], "b" * 10 + "\n\n")
+
 
 if __name__ == "__main__":
     unittest.main()
