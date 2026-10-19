@@ -361,7 +361,29 @@ class StructureAwareChunker(BaseChunker):
             
             if len(current_text) + len(sentence) + 1 <= target_chars:
                 current_text += sentence + " "
-            else:
+                continue
+            
+            if current_text.strip() and current_text.strip() != header_prefix.strip():
+                spans.append(TextSpan(
+                    text=current_text.strip(),
+                    start=current_start,
+                    end=current_start + len(current_text),
+                ))
+                current_start = current_start + len(current_text)
+                current_text = header_prefix
+            
+            if len(header_prefix) + len(sentence) + 1 <= target_chars:
+                current_text = header_prefix + sentence + " "
+                continue
+            
+            # A single sentence (or sentence-free text) larger than the
+            # target: split at word boundaries, then hard-cut any word
+            # that still overflows so max_chunk_size stays a hard limit.
+            words = sentence.split(" ")
+            for word in words:
+                if len(current_text) + len(word) + 1 <= target_chars:
+                    current_text += word + " "
+                    continue
                 if current_text.strip() and current_text.strip() != header_prefix.strip():
                     spans.append(TextSpan(
                         text=current_text.strip(),
@@ -369,8 +391,18 @@ class StructureAwareChunker(BaseChunker):
                         end=current_start + len(current_text),
                     ))
                     current_start = current_start + len(current_text)
-                
-                current_text = header_prefix + sentence + " "
+                    current_text = header_prefix
+                while len(header_prefix) + len(word) + 1 > target_chars:
+                    room = target_chars - len(header_prefix)
+                    piece, word = word[:room], word[room:]
+                    spans.append(TextSpan(
+                        text=(header_prefix + piece).strip(),
+                        start=current_start,
+                        end=current_start + len(header_prefix) + len(piece),
+                    ))
+                    current_start = current_start + len(header_prefix) + len(piece)
+                    current_text = header_prefix
+                current_text = header_prefix + word + " "
         
         if current_text.strip() and current_text.strip() != header_prefix.strip():
             spans.append(TextSpan(

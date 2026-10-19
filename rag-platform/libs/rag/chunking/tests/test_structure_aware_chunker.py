@@ -261,3 +261,41 @@ If the above steps don't resolve the issue, contact the DBA team."""
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestOversizedUnstructuredContent(unittest.TestCase):
+    """Regression: max_chunk_size is a hard limit even with no sentence boundaries."""
+
+    def setUp(self) -> None:
+        self.config = ChunkerConfig(
+            chunk_size=512,
+            chunk_overlap=0,
+            min_chunk_size=100,
+            max_chunk_size=1024,
+        )
+        self.chunker = StructureAwareChunker(self.config)
+        self.doc_id = uuid4()
+        self.version_id = uuid4()
+        self.metadata = ChunkMetadata(
+            source_type=IngestionSource.MARKDOWN_DOC,
+            source_uri="https://example.com/doc.md",
+        )
+
+    def test_force_split_sentence_free_text_respects_max_chunk_size(self) -> None:
+        # 20k chars with no '.', '!', '?' and no blank lines: one giant
+        # "sentence" in one "paragraph". Must still be split under the
+        # documented hard limit instead of returned as a single chunk.
+        text = "word" * 5000  # 20000 chars, no sentence boundaries
+        result = self.chunker.chunk(text, self.doc_id, self.version_id, self.metadata)
+        self.assertGreater(result.total_chunks, 1)
+        for chunk in result.chunks:
+            self.assertLessEqual(chunk.token_count, self.config.max_chunk_size)
+
+    def test_force_split_sentence_free_text_preserves_content(self) -> None:
+        text = "alpha " * 3000  # 18000 chars, no sentence boundaries
+        result = self.chunker.chunk(text, self.doc_id, self.version_id, self.metadata)
+        self.assertGreater(result.total_chunks, 1)
+        reassembled = " ".join(
+            piece for chunk in result.chunks for piece in chunk.chunk_text.split()
+        )
+        self.assertEqual(reassembled, " ".join(text.split()))
