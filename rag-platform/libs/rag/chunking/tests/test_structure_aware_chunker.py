@@ -259,10 +259,6 @@ If the above steps don't resolve the issue, contact the DBA team."""
         self.assertIn("DBA", all_text)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestOversizedUnstructuredContent(unittest.TestCase):
     """Regression: max_chunk_size is a hard limit even with no sentence boundaries."""
 
@@ -299,3 +295,48 @@ class TestOversizedUnstructuredContent(unittest.TestCase):
             piece for chunk in result.chunks for piece in chunk.chunk_text.split()
         )
         self.assertEqual(reassembled, " ".join(text.split()))
+
+    def test_force_split_long_header_terminates(self) -> None:
+        # A header longer than the target must not hang the hard-cut loop
+        # (room = target_chars - len(header_prefix) would go non-positive).
+        import resource
+        import signal
+
+        def _alarm(signum, frame):
+            raise TimeoutError("force-split hung on over-long header")
+
+        long_header = "## " + "h" * 3000
+        text = long_header + "\n\n" + "word" * 5000
+        # Cap address space so the unbounded span growth surfaces as
+        # MemoryError instead of swapping the host to death, and bound
+        # wall time so a hang surfaces as TimeoutError.
+        soft, _ = resource.getrlimit(resource.RLIMIT_AS)
+        resource.setrlimit(resource.RLIMIT_AS, (1 << 30, soft))
+        signal.signal(signal.SIGALRM, _alarm)
+        signal.alarm(5)
+        try:
+            result = self.chunker.chunk(text, self.doc_id, self.version_id, self.metadata)
+        finally:
+            signal.alarm(0)
+            resource.setrlimit(resource.RLIMIT_AS, (soft, soft))
+        self.assertGreaterEqual(result.total_chunks, 1)
+        for chunk in result.chunks:
+            self.assertLessEqual(chunk.token_count, self.config.max_chunk_size)
+
+    def test_force_split_offsets_stay_ordered(self) -> None:
+        # Synthetic header prefix must not leak into document offsets:
+        # every chunk needs start <= end, and starts must not regress.
+        text = "## Section\n\n" + "word" * 5000
+        result = self.chunker.chunk(text, self.doc_id, self.version_id, self.metadata)
+        self.assertGreater(result.total_chunks, 1)
+        prev_start = -1
+        for chunk in result.chunks:
+            self.assertIsNotNone(chunk.start_char_offset)
+            self.assertIsNotNone(chunk.end_char_offset)
+            self.assertLessEqual(chunk.start_char_offset, chunk.end_char_offset)
+            self.assertGreaterEqual(chunk.start_char_offset, prev_start)
+            prev_start = chunk.start_char_offset
+
+
+if __name__ == "__main__":
+    unittest.main()
