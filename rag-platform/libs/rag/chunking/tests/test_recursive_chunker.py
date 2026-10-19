@@ -217,3 +217,59 @@ class TestChunkerConfigValidation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestOffsetsIndexOriginalSource(unittest.TestCase):
+    """Offsets must index the ORIGINAL source, not the normalized text.
+
+    Bug: chunking ran on normalize_whitespace(text) but recorded the
+    normalized positions as source offsets, so source[start:end] did not
+    cover the chunk text - citation/highlight spans pointed at the wrong
+    bytes whenever whitespace was collapsed or stripped.
+    """
+
+    def setUp(self) -> None:
+        self.config = ChunkerConfig(
+            chunk_size=100,
+            chunk_overlap=10,
+            min_chunk_size=10,
+            max_chunk_size=200,
+        )
+        self.chunker = RecursiveChunker(self.config)
+        self.doc_id = uuid4()
+        self.version_id = uuid4()
+        self.metadata = ChunkMetadata(
+            source_type=IngestionSource.MARKDOWN_DOC,
+            source_uri="https://example.com/doc",
+            tenant_id="test-tenant",
+        )
+
+    def test_offsets_cover_the_chunk_in_the_original_source(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = "  Alpha   beta.\n\nGamma delta.  "
+        result = self.chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertEqual(len(result.chunks), 1)
+        chunk = result.chunks[0]
+        sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+        # The source span must cover exactly the chunk's content...
+        self.assertEqual(normalize_whitespace(sliced), chunk.chunk_text)
+        # ...starting at real content, not stripped padding.
+        self.assertEqual(source[chunk.start_char_offset], "A")
+        self.assertTrue(sliced.endswith("."))
+
+    def test_multi_chunk_offsets_each_cover_their_span(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = ("Intro   paragraph with  spaced words.\n\n\n\n" * 6).strip()
+        tight = ChunkerConfig(chunk_size=40, chunk_overlap=0, min_chunk_size=5, max_chunk_size=60)
+        chunker = RecursiveChunker(tight)
+        result = chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertGreater(len(result.chunks), 1)
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            self.assertEqual(
+                normalize_whitespace(sliced),
+                chunk.chunk_text,
+                f"chunk {chunk.chunk_index} offsets do not cover its text",
+            )
