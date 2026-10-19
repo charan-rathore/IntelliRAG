@@ -23,7 +23,8 @@ from .utils import (
     create_overlap_text,
     estimate_token_count,
     merge_small_spans,
-    normalize_whitespace,
+    normalize_whitespace_with_map,
+    remap_offsets_to_source,
 )
 
 
@@ -65,7 +66,10 @@ class RecursiveChunker(BaseChunker):
         """
         self._validate_input(text)
         
-        normalized = normalize_whitespace(text)
+        # Split the normalized text, but keep the map back: offsets are
+        # recorded against the ORIGINAL source so citations/highlight spans
+        # slice the right bytes.
+        normalized, norm_to_source = normalize_whitespace_with_map(text)
         
         target_chars = chars_for_tokens(self.config.chunk_size)
         
@@ -88,6 +92,7 @@ class RecursiveChunker(BaseChunker):
             version_id=version_id,
             base_metadata=base_metadata,
         )
+        remap_offsets_to_source(chunks, norm_to_source, len(text))
         
         return self._create_result(document_id, version_id, chunks)
     
