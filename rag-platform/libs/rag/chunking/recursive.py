@@ -270,6 +270,7 @@ class RecursiveChunker(BaseChunker):
         
         chunks = []
         previous_text = ""
+        previous_start = 0
         previous_end = 0
         
         for idx, span in enumerate(spans):
@@ -279,11 +280,19 @@ class RecursiveChunker(BaseChunker):
             if idx > 0 and self.config.chunk_overlap > 0 and previous_text:
                 overlap = create_overlap_text(previous_text, self.config.chunk_overlap)
                 if overlap:
-                    chunk_text = overlap + "\n\n" + chunk_text
-                    # The overlap is a suffix of the previous span: move the
-                    # start back over it so citations/highlights cover the
-                    # whole chunk text, not just the current span.
-                    start = previous_end - len(overlap)
+                    # Anchor to source: merge_small_spans can add synthetic
+                    # separators, so len(previous_text) may exceed the previous
+                    # span's source-backed length. Clamp the overlap to that
+                    # region or the start goes negative / before the span.
+                    max_overlap = previous_end - previous_start
+                    if len(overlap) > max_overlap:
+                        overlap = overlap[len(overlap) - max_overlap:]
+                    if overlap:
+                        chunk_text = overlap + "\n\n" + chunk_text
+                        # The overlap is a suffix of the previous span: move the
+                        # start back over it so citations/highlights cover the
+                        # whole chunk text, not just the current span.
+                        start = previous_end - len(overlap)
             
             chunk = Chunk.create(
                 document_id=document_id,
@@ -297,6 +306,7 @@ class RecursiveChunker(BaseChunker):
             )
             chunks.append(chunk)
             previous_text = span.text
+            previous_start = span.start
             previous_end = span.end
         
         return chunks
