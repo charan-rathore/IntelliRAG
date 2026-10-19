@@ -135,6 +135,29 @@ class TestTokenizeUnicode:
         kana = tokenize("ユーザー")
         assert "ユー" in kana and "ザー" in kana
 
+    def test_iteration_marks_are_not_standalone_unigrams(self):
+        idx = BM25Index([("d", "スーパー")])
+        assert idx.search("ユーザー") == []
+        assert "々" not in tokenize("人々")
+        assert "ー" not in tokenize("ユーザー")
+
+    def test_digit_runs_beside_non_latin_scripts(self):
+        tokens = tokenize("إصدار2026")
+        assert "2026" in tokens
+        idx = BM25Index([("d", "إصدار2026")])
+        assert idx.search("2026") != []
+        # Latin words keep their digits inside the token.
+        assert "bm25" in tokenize("BM25")
+
+    def test_kanji_kana_boundary_keeps_bigram(self):
+        assert "食べ" in tokenize("食べる")
+        assert "食べ" not in tokenize("食、べる")
+
+    def test_compatibility_forms_match_plain_query(self):
+        assert tokenize("Ｐｙｔｈｏｎ") == ["python"]
+        idx = BM25Index([("d", "Ｐｙｔｈｏｎ ３")])
+        assert idx.search("Python") != []
+
     def test_detached_combining_marks_form_no_token(self):
         # Emoji variation selectors are combining marks; unattached they must
         # not tokenize, or all emoji collapse onto one shared token.
