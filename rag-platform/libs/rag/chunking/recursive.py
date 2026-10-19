@@ -24,6 +24,8 @@ from .utils import (
     estimate_token_count,
     merge_small_spans,
     normalize_whitespace,
+    normalize_whitespace_with_map,
+    remap_offsets_to_source,
 )
 
 
@@ -65,7 +67,10 @@ class RecursiveChunker(BaseChunker):
         """
         self._validate_input(text)
         
-        normalized = normalize_whitespace(text)
+        # Split the normalized text, but keep the map back: offsets are
+        # recorded against the ORIGINAL source so citations/highlight spans
+        # slice the right bytes.
+        normalized, norm_to_source = normalize_whitespace_with_map(text)
         
         target_chars = chars_for_tokens(self.config.chunk_size)
         
@@ -88,6 +93,7 @@ class RecursiveChunker(BaseChunker):
             version_id=version_id,
             base_metadata=base_metadata,
         )
+        remap_offsets_to_source(chunks, norm_to_source, len(text))
         
         return self._create_result(document_id, version_id, chunks)
     
@@ -178,7 +184,10 @@ class RecursiveChunker(BaseChunker):
         for part in parts[1:]:
             result.append(separator + part if part else separator)
         
-        return [p for p in result if p.strip()]
+        # Keep whitespace-only pieces: _recursive_split skips them as spans
+        # but must still advance the offset over them, or every following
+        # span's position shifts left by the discarded separators.
+        return [p for p in result if p]
     
     def _force_split(
         self,
@@ -261,26 +270,43 @@ class RecursiveChunker(BaseChunker):
         
         chunks = []
         previous_text = ""
+        previous_start = 0
+        previous_end = 0
         
         for idx, span in enumerate(spans):
             chunk_text = span.text
+            start = span.start
             
             if idx > 0 and self.config.chunk_overlap > 0 and previous_text:
                 overlap = create_overlap_text(previous_text, self.config.chunk_overlap)
                 if overlap:
-                    chunk_text = overlap + "\n\n" + chunk_text
+                    # Anchor to source: merge_small_spans can add synthetic
+                    # separators, so len(previous_text) may exceed the previous
+                    # span's source-backed length. Clamp the overlap to that
+                    # region or the start goes negative / before the span.
+                    max_overlap = previous_end - previous_start
+                    if len(overlap) > max_overlap:
+                        overlap = overlap[len(overlap) - max_overlap:]
+                    if overlap:
+                        chunk_text = overlap + "\n\n" + chunk_text
+                        # The overlap is a suffix of the previous span: move the
+                        # start back over it so citations/highlights cover the
+                        # whole chunk text, not just the current span.
+                        start = previous_end - len(overlap)
             
             chunk = Chunk.create(
                 document_id=document_id,
                 version_id=version_id,
                 chunk_index=idx,
-                chunk_text=chunk_text.strip(),
+                chunk_text=normalize_whitespace(chunk_text),
                 token_count=estimate_token_count(chunk_text),
                 metadata=base_metadata,
-                start_char_offset=span.start,
+                start_char_offset=start,
                 end_char_offset=span.end,
             )
             chunks.append(chunk)
             previous_text = span.text
+            previous_start = span.start
+            previous_end = span.end
         
         return chunks

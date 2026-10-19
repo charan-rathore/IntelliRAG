@@ -43,6 +43,8 @@ from .utils import (
     estimate_token_count,
     find_code_blocks,
     normalize_whitespace,
+    normalize_whitespace_with_map,
+    remap_offsets_to_source,
 )
 
 __all__ = [
@@ -64,5 +66,7 @@ __all__ = [
     "get_chunker",
     "get_chunker_for_strategy",
     "normalize_whitespace",
+    "normalize_whitespace_with_map",
+    "remap_offsets_to_source",
     "register_chunker",
 ]

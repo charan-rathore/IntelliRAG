@@ -32,6 +32,8 @@ from .utils import (
     estimate_token_count,
     merge_small_spans,
     normalize_whitespace,
+    normalize_whitespace_with_map,
+    remap_offsets_to_source,
 )
 
 if TYPE_CHECKING:
@@ -173,18 +175,24 @@ class SemanticChunker(BaseChunker):
         self._validate_input(text)
         self._load_model()
         
-        normalized = normalize_whitespace(text)
+        # Split the normalized text, but keep the map back to the original
+        # source for citation/highlight offsets (see recursive.py).
+        normalized, norm_to_source = normalize_whitespace_with_map(text)
         
         if self._model is None:
             logger.warning("Falling back to sentence-based splitting without embeddings")
-            return self._fallback_chunk(normalized, document_id, version_id, base_metadata)
+            result = self._fallback_chunk(normalized, document_id, version_id, base_metadata)
+            remap_offsets_to_source(result.chunks, norm_to_source, len(text))
+            return result
         
         sentences = self._split_into_sentences(normalized)
         
         if len(sentences) < 3:
-            return self._create_single_chunk(
+            result = self._create_single_chunk(
                 normalized, document_id, version_id, base_metadata
             )
+            remap_offsets_to_source(result.chunks, norm_to_source, len(text))
+            return result
         
         breakpoints = self._find_semantic_breakpoints(sentences)
         
@@ -202,6 +210,7 @@ class SemanticChunker(BaseChunker):
             version_id=version_id,
             base_metadata=base_metadata,
         )
+        remap_offsets_to_source(chunks, norm_to_source, len(text))
         
         return self._create_result(document_id, version_id, chunks)
     
@@ -435,27 +444,33 @@ class SemanticChunker(BaseChunker):
         
         chunks = []
         previous_text = ""
+        previous_end = 0
         
         for idx, span in enumerate(spans):
             chunk_text = span.text
+            start = span.start
             
             if idx > 0 and self.config.chunk_overlap > 0 and previous_text:
                 overlap = create_overlap_text(previous_text, self.config.chunk_overlap)
                 if overlap:
                     chunk_text = overlap + "\n\n" + chunk_text
+                    # Overlap is a suffix of the previous span: include it in
+                    # the offsets so citations cover the whole chunk text.
+                    start = previous_end - len(overlap)
             
             chunk = Chunk.create(
                 document_id=document_id,
                 version_id=version_id,
                 chunk_index=idx,
-                chunk_text=chunk_text.strip(),
+                chunk_text=normalize_whitespace(chunk_text),
                 token_count=estimate_token_count(chunk_text),
                 metadata=base_metadata,
-                start_char_offset=span.start,
+                start_char_offset=start,
                 end_char_offset=span.end,
             )
             chunks.append(chunk)
             previous_text = span.text
+            previous_end = span.end
         
         return chunks
     

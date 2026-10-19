@@ -388,3 +388,37 @@ class TestAggregateSplitOffsets(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStructureAwareOffsetsIndexOriginalSource(unittest.TestCase):
+    """Same original-source offset contract as the recursive chunker."""
+
+    def setUp(self) -> None:
+        self.config = ChunkerConfig(
+            chunk_size=100,
+            chunk_overlap=10,
+            preserve_code_blocks=True,
+            preserve_lists=True,
+            include_section_headers=True,
+        )
+        self.chunker = StructureAwareChunker(self.config)
+        self.doc_id = uuid4()
+        self.version_id = uuid4()
+        self.metadata = ChunkMetadata(
+            source_type=IngestionSource.MARKDOWN_DOC,
+            source_uri="https://example.com/doc.md",
+        )
+
+    def test_offsets_cover_the_chunk_in_the_original_source(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = "  # Setup\n\nFirst  install the   package.\n\nThen run it.  "
+        result = self.chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertGreaterEqual(len(result.chunks), 1)
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            self.assertEqual(
+                normalize_whitespace(sliced),
+                chunk.chunk_text,
+                f"chunk {chunk.chunk_index} offsets do not cover its text",
+            )

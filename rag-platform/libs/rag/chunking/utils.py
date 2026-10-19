@@ -66,6 +66,129 @@ def normalize_whitespace(text: str) -> str:
     return text.strip()
 
 
+class NormalizationMap:
+    """Sparse normalized-text -> source-text index map.
+
+    Checkpoints record (normalized_index, source_index) at each whitespace
+    collapse; between checkpoints the mapping is linear. Memory scales with
+    the number of collapses, not the document length - a per-character map
+    would add tens of bytes per source character and can OOM ingestion on
+    large documents.
+    """
+
+    __slots__ = ("checkpoints", "normalized_length")
+
+    def __init__(self, checkpoints: List[Tuple[int, int]], normalized_length: int) -> None:
+        self.checkpoints = checkpoints
+        self.normalized_length = normalized_length
+
+    def to_source(self, index: int, source_length: int) -> int:
+        """Translate a normalized-text index to its source-text index."""
+        if index >= self.normalized_length:
+            return source_length
+        if not self.checkpoints:
+            return index
+        # Last checkpoint with norm index <= index.
+        lo, hi = 0, len(self.checkpoints)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if self.checkpoints[mid][0] <= index:
+                lo = mid + 1
+            else:
+                hi = mid
+        if lo == 0:
+            return index
+        norm0, src0 = self.checkpoints[lo - 1]
+        return src0 + (index - norm0)
+
+
+def normalize_whitespace_with_map(text: str) -> Tuple[str, "NormalizationMap"]:
+    """Normalize whitespace and keep a sparse map back to the source.
+
+    Same transformation as normalize_whitespace, but also returns a
+    NormalizationMap translating normalized offsets back into the caller's
+    source string.
+
+    Args:
+        text: Text to normalize.
+
+    Returns:
+        (normalized_text, NormalizationMap) tuple.
+    """
+    # Unchanged characters are flushed as whole source slices, so `out`
+    # holds one entry per run instead of one per character - per-char
+    # appends cost ~9 bytes of transient allocation per ASCII char and can
+    # OOM large ingestion inputs.
+    out: List[str] = []
+    norm_len = 0
+    checkpoints: List[Tuple[int, int]] = []
+    i = 0
+    n = len(text)
+    while i < n and text[i].isspace():
+        i += 1
+    if i:
+        checkpoints.append((0, i))
+    run_start: Optional[int] = None
+    while i < n:
+        c = text[i]
+        if c == " " or c == "\n":
+            if run_start is not None:
+                out.append(text[run_start:i])
+                norm_len += i - run_start
+                run_start = None
+            j = i
+            if c == " ":
+                while j < n and text[j] == " ":
+                    j += 1
+                out.append(" ")
+                norm_len += 1
+            else:
+                while j < n and text[j] == "\n":
+                    j += 1
+                take = min(j - i, 2)
+                out.append("\n" * take)
+                norm_len += take
+            i = j
+            # Checkpoint only when the run actually collapsed the mapping;
+            # single-space runs stay linear and need no entry.
+            prev_norm, prev_src = checkpoints[-1] if checkpoints else (0, 0)
+            if j != prev_src + (norm_len - prev_norm):
+                checkpoints.append((norm_len, j))
+        else:
+            if run_start is None:
+                run_start = i
+            i += 1
+    if run_start is not None:
+        out.append(text[run_start:n])
+        norm_len += n - run_start
+    while out:
+        stripped = out[-1].rstrip()
+        if stripped:
+            if len(stripped) != len(out[-1]):
+                norm_len -= len(out[-1]) - len(stripped)
+                out[-1] = stripped
+            break
+        norm_len -= len(out[-1])
+        out.pop()
+    return "".join(out), NormalizationMap(checkpoints, norm_len)
+
+
+def remap_offsets_to_source(chunks: List, norm_map: "NormalizationMap", source_len: int) -> None:
+    """Rewrite chunk char offsets from normalized-text to original-source.
+
+    Chunkers split the normalized text, so their offsets index that
+    string. Citations and highlights slice the ORIGINAL source, so the
+    offsets must be translated back: source[start:end] then covers the
+    chunk's real content. Mutates each chunk in place.
+    """
+    for chunk in chunks:
+        chunk.start_char_offset = norm_map.to_source(chunk.start_char_offset, source_len)
+        end = chunk.end_char_offset
+        chunk.end_char_offset = (
+            norm_map.to_source(end - 1, source_len) + 1 if end > 0 else source_len
+        )
+
+
 def find_code_blocks(text: str) -> List[Tuple[int, int]]:
     """Find all fenced code block positions in text.
     

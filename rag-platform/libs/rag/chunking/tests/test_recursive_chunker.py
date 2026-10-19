@@ -28,6 +28,26 @@ class TestRecursiveChunkerBasics(unittest.TestCase):
             tenant_id="test-tenant",
         )
 
+    def test_overlap_start_never_goes_before_previous_span_source(self) -> None:
+        """Merged spans can carry synthetic separators, so len(span.text) may
+        exceed the span's source-backed length; the overlap start must stay
+        inside the previous span's source region (never negative)."""
+        from libs.rag.chunking.utils import TextSpan
+
+        config = ChunkerConfig(chunk_size=200, chunk_overlap=30, min_chunk_size=15)
+        chunker = RecursiveChunker(config)
+        # Simulates a post-merge span: text inflated by synthetic "\n\n"
+        # separators beyond the source-backed [start, end) region.
+        spans = [
+            TextSpan(text="alpha " * 10, start=0, end=30),
+            TextSpan(text="beta " * 6, start=30, end=60),
+        ]
+        chunks = chunker._create_chunks_with_overlap(
+            spans, self.doc_id, self.version_id, self.metadata
+        )
+        self.assertGreaterEqual(chunks[1].start_char_offset, 0)
+        self.assertGreaterEqual(chunks[1].start_char_offset, spans[0].start)
+
     def test_strategy_name(self) -> None:
         self.assertEqual(self.chunker.strategy_name, "recursive")
 
@@ -217,3 +237,107 @@ class TestChunkerConfigValidation(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestOffsetsIndexOriginalSource(unittest.TestCase):
+    """Offsets must index the ORIGINAL source, not the normalized text.
+
+    Bug: chunking ran on normalize_whitespace(text) but recorded the
+    normalized positions as source offsets, so source[start:end] did not
+    cover the chunk text - citation/highlight spans pointed at the wrong
+    bytes whenever whitespace was collapsed or stripped.
+    """
+
+    def setUp(self) -> None:
+        self.config = ChunkerConfig(
+            chunk_size=100,
+            chunk_overlap=10,
+            min_chunk_size=10,
+            max_chunk_size=200,
+        )
+        self.chunker = RecursiveChunker(self.config)
+        self.doc_id = uuid4()
+        self.version_id = uuid4()
+        self.metadata = ChunkMetadata(
+            source_type=IngestionSource.MARKDOWN_DOC,
+            source_uri="https://example.com/doc",
+            tenant_id="test-tenant",
+        )
+
+    def test_offsets_cover_the_chunk_in_the_original_source(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = "  Alpha   beta.\n\nGamma delta.  "
+        result = self.chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertEqual(len(result.chunks), 1)
+        chunk = result.chunks[0]
+        sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+        # The source span must cover exactly the chunk's content...
+        self.assertEqual(normalize_whitespace(sliced), chunk.chunk_text)
+        # ...starting at real content, not stripped padding.
+        self.assertEqual(source[chunk.start_char_offset], "A")
+        self.assertTrue(sliced.endswith("."))
+
+    def test_multi_chunk_offsets_each_cover_their_span(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = ("Intro   paragraph with  spaced words.\n\n\n\n" * 6).strip()
+        tight = ChunkerConfig(chunk_size=40, chunk_overlap=0, min_chunk_size=5, max_chunk_size=60)
+        chunker = RecursiveChunker(tight)
+        result = chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertGreater(len(result.chunks), 1)
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            self.assertEqual(
+                normalize_whitespace(sliced),
+                chunk.chunk_text,
+                f"chunk {chunk.chunk_index} offsets do not cover its text",
+            )
+
+
+class TestOverlapAndSeparatorOffsets(unittest.TestCase):
+    """Codex P1 regressions: overlap coverage and discarded separators."""
+
+    def setUp(self) -> None:
+        self.doc_id = uuid4()
+        self.version_id = uuid4()
+        self.metadata = ChunkMetadata(source_type=IngestionSource.MARKDOWN_DOC)
+
+    def test_discarded_separators_do_not_skew_offsets(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = "Alpha alpha alpha.\n\nBeta beta beta."
+        chunker = RecursiveChunker(ChunkerConfig(chunk_size=3, chunk_overlap=0, min_chunk_size=1, max_chunk_size=100))
+        result = chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertGreaterEqual(len(result.chunks), 2)
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            self.assertEqual(
+                normalize_whitespace(sliced),
+                chunk.chunk_text,
+                f"chunk {chunk.chunk_index} offsets do not cover its text",
+            )
+
+    def test_overlap_chunks_cover_the_prepended_text(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = "First paragraph has words.\n\nSecond paragraph has more words.\n\nThird one ends it."
+        chunker = RecursiveChunker(ChunkerConfig(chunk_size=12, chunk_overlap=4, min_chunk_size=1, max_chunk_size=100))
+        result = chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertGreaterEqual(len(result.chunks), 2)
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            self.assertEqual(
+                normalize_whitespace(sliced),
+                chunk.chunk_text,
+                f"chunk {chunk.chunk_index} offsets do not cover its text",
+            )
+
+    def test_offset_map_is_sparse(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace_with_map
+
+        # A large document with almost no collapsible whitespace must not
+        # allocate a per-character map.
+        source = "word " * 20000
+        _, norm_map = normalize_whitespace_with_map(source)
+        self.assertLess(len(norm_map.checkpoints), 100)

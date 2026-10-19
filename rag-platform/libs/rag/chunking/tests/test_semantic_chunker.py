@@ -379,3 +379,23 @@ class TestFromFactory:
         chunker = get_chunker_for_strategy("semantic", config)
         
         assert chunker.config.chunk_size == 256
+
+
+class TestSemanticOffsetsIndexOriginalSource:
+    """Same original-source offset contract as the recursive chunker."""
+
+    def test_fallback_offsets_cover_the_chunk_in_the_original_source(
+        self, base_metadata, document_ids
+    ):
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        chunker = SemanticChunker()
+        doc_id, version_id = document_ids
+        source = "  Alpha   beta. Gamma   is here. Delta   waits too.  "
+        result = chunker.chunk(source, doc_id, version_id, base_metadata)
+        assert len(result.chunks) >= 1
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            assert normalize_whitespace(sliced) == chunk.chunk_text, (
+                f"chunk {chunk.chunk_index} offsets do not cover its text"
+            )
