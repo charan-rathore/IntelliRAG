@@ -14,9 +14,13 @@ from .models import RetrievedChunk, RetrievalResult
 
 logger = logging.getLogger(__name__)
 
-# Han ideographs and Japanese kana are not space-separated, so a run of
-# them cannot rely on word boundaries; they tokenize per character.
-_CJK_SCRIPTS = frozenset({"CJK", "HIRAGANA", "KATAKANA"})
+# Scripts whose writing omits spaces between words (Han ideographs,
+# Japanese kana, Thai, Lao, Khmer, Burmese): a run of them cannot rely on
+# word boundaries, so they tokenize per character plus overlapping bigrams
+# so multi-character queries still match adjacent characters.
+_NGRAM_SCRIPTS = frozenset({"CJK", "HIRAGANA", "KATAKANA", "THAI", "LAO", "KHMER", "MYANMAR"})
+
+_DIGIT_RUN = re.compile(r"\d+")
 
 # Characters that join the current token: letters and digits from any
 # script, plus combining marks (Devanagari vowel signs, Arabic harakat,
@@ -63,9 +67,12 @@ def _emit_word(word: str, tokens: List[str]) -> None:
     if segment:
         segments.append((segment, segment_script or ""))
     for seg, script in segments:
-        if script in _CJK_SCRIPTS:
+        if script in _NGRAM_SCRIPTS:
             tokens.extend(seg)
             tokens.extend(seg[k : k + 2] for k in range(len(seg) - 1))
+            # Digits inherit the surrounding script but stay searchable as
+            # whole runs: "東京2026年" must still match a "2026" query.
+            tokens.extend(m.group(0) for m in _DIGIT_RUN.finditer(seg) if len(m.group(0)) > 2)
         else:
             tokens.append(seg)
 
