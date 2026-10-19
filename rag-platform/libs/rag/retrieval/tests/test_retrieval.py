@@ -122,6 +122,19 @@ class TestTokenizeUnicode:
             tokens.update(tokenize(word))
         assert tokens == {"की", "का", "कि", "कु"}
 
+    def test_detached_combining_marks_form_no_token(self):
+        # Emoji variation selectors are combining marks; unattached they must
+        # not tokenize, or all emoji collapse onto one shared token.
+        assert tokenize("❤️") == []
+        assert tokenize("☀️") == []
+        heart = set(tokenize("I ❤️ pizza"))
+        sun = set(tokenize("☀️ beach"))
+        assert heart.isdisjoint(sun & {"️"})
+
+    def test_marks_inherit_script_inside_words(self):
+        # A mark with no precomposed form must not split a Latin run.
+        assert tokenize("a\u0330b") == ["a\u0330b"]
+
     def test_digit_runs_next_to_cjk_stay_whole(self):
         tokens = tokenize("東京2026年")
         assert "2026" in tokens
