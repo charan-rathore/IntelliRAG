@@ -92,6 +92,27 @@ class TestTokenizeUnicode:
         assert "京" in tokens
         assert "東京" in tokens
 
+    def test_mixed_script_run_keeps_latin_token(self):
+        tokens = tokenize("Python東京")
+        assert "python" in tokens
+        assert "東" in tokens
+        assert "京" in tokens
+
+    def test_mixed_script_cjk_first(self):
+        tokens = tokenize("使用Python开发")
+        assert "python" in tokens
+        assert "使" in tokens and "用" in tokens
+
+    def test_canonical_equivalence_matches(self):
+        decomposed = tokenize("Mu\u0308nchen")
+        precomposed = tokenize("München")
+        assert decomposed == precomposed == ["münchen"]
+
+    def test_cjk_phrase_emits_bigram(self):
+        assert "東京" in tokenize("東京は日本の首都です")
+        # The same characters separated do NOT form the phrase token.
+        assert "東京" not in tokenize("東と京")
+
     def test_bm25_finds_cjk_document(self):
         index = BM25Index([("doc-1", "東京は日本の首都です")])
         results = index.search("東京", top_k=1)
