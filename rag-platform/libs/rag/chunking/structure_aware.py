@@ -389,6 +389,11 @@ class StructureAwareChunker(BaseChunker):
             # than leaving no room for content (non-positive room would
             # loop forever without consuming the word).
             prefix = header_prefix if len(header_prefix) + 1 < target_chars else ""
+            if not prefix:
+                # The over-long header was already emitted by the caller;
+                # flushing it again here would duplicate it as content and
+                # push span offsets past the real source position.
+                current_text = ""
             words = sentence.split(" ")
             for word in words:
                 if len(current_text) + len(word) + 1 <= target_chars:
