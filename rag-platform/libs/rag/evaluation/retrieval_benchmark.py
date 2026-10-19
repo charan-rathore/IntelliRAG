@@ -72,7 +72,11 @@ class RetrievalBenchmarkResult:
 def _is_relevant(chunk_id: str, text: str, sample: RetrievalEvalSample) -> bool:
     if chunk_id in sample.relevant_chunk_ids:
         return True
-    text_lower = text.lower()
+    text_lower = text.lower().strip()
+    if not text_lower:
+        # A chunk without text cannot evidence relevance: "" would
+        # substring-match every reference and inflate recall/MRR/NDCG.
+        return False
     for ref in sample.relevant_texts:
         ref_lower = ref.lower().strip()
         if ref_lower and (ref_lower in text_lower or text_lower in ref_lower):

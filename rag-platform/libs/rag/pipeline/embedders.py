@@ -3,18 +3,12 @@
 from __future__ import annotations
 
 import math
-import re
 from collections import Counter
 from typing import List
 
 import numpy as np
 
-
-_TOKEN_RE = re.compile(r"[a-z0-9]+")
-
-
-def _tokenize(text: str) -> List[str]:
-    return _TOKEN_RE.findall(text.lower())
+from libs.rag.retrieval.keyword import tokenize as _tokenize
 
 
 class TfidfEmbedder:

@@ -13,6 +13,8 @@ import pytest
 from libs.rag.evaluation.models import EvaluationDataset, EvaluationSample
 from libs.rag.evaluation.retrieval_benchmark import (
     RetrievalBenchmark,
+    RetrievalEvalSample,
+    _is_relevant,
     mrr,
     ndcg_at_k,
     precision_at_k,
@@ -73,6 +75,144 @@ CORPUS = [
 class TestTokenize:
     def test_basic(self):
         assert tokenize("Hello World 123") == ["hello", "world", "123"]
+
+
+
+
+class TestTokenizeUnicode:
+    def test_accented_word_stays_whole(self):
+        assert tokenize("München") == ["münchen"]
+
+    def test_casefold_maps_sharp_s(self):
+        assert tokenize("Straße") == ["strasse"]
+
+    def test_cjk_text_produces_tokens(self):
+        tokens = tokenize("東京")
+        assert "東" in tokens
+        assert "京" in tokens
+        assert "東京" in tokens
+
+    def test_mixed_script_run_keeps_latin_token(self):
+        tokens = tokenize("Python東京")
+        assert "python" in tokens
+        assert "東" in tokens
+        assert "京" in tokens
+
+    def test_mixed_script_cjk_first(self):
+        tokens = tokenize("使用Python开发")
+        assert "python" in tokens
+        assert "使" in tokens and "用" in tokens
+
+    def test_canonical_equivalence_matches(self):
+        decomposed = tokenize("Mu\u0308nchen")
+        precomposed = tokenize("München")
+        assert decomposed == precomposed == ["münchen"]
+
+    def test_mixed_latin_hangul_run_splits(self):
+        tokens = tokenize("Python으로")
+        assert "python" in tokens
+        assert "으로" in tokens
+
+    def test_combining_marks_stay_attached(self):
+        # Devanagari vowel signs remain combining marks after NFC; dropping
+        # them would collapse these distinct words onto one token.
+        assert tokenize("की") == ["की"]
+        tokens = set()
+        for word in ("की", "का", "कि", "कु"):
+            tokens.update(tokenize(word))
+        assert tokens == {"की", "का", "कि", "कु"}
+
+    def test_thai_ngrams_keep_marks_attached(self):
+        tokens = tokenize("กิ")
+        assert tokens == ["กิ"]
+        # A bare vowel mark must never be a shared term.
+        idx = BM25Index([("c1", "มิ")])
+        assert idx.search("กิ") == []
+
+    def test_japanese_iteration_marks_keep_adjacency(self):
+        tokens = tokenize("人々")
+        assert "人々" in tokens
+        kana = tokenize("ユーザー")
+        assert "ユー" in kana and "ザー" in kana
+
+    def test_iteration_marks_are_not_standalone_unigrams(self):
+        idx = BM25Index([("d", "スーパー")])
+        assert idx.search("ユーザー") == []
+        assert "々" not in tokenize("人々")
+        assert "ー" not in tokenize("ユーザー")
+
+    def test_digit_runs_beside_non_latin_scripts(self):
+        tokens = tokenize("إصدار2026")
+        assert "2026" in tokens
+        idx = BM25Index([("d", "إصدار2026")])
+        assert idx.search("2026") != []
+        # Latin words keep their digits inside the token.
+        assert "bm25" in tokenize("BM25")
+
+    def test_kanji_kana_boundary_keeps_bigram(self):
+        assert "食べ" in tokenize("食べる")
+        assert "食べ" not in tokenize("食、べる")
+
+    def test_compatibility_forms_match_plain_query(self):
+        assert tokenize("Ｐｙｔｈｏｎ") == ["python"]
+        idx = BM25Index([("d", "Ｐｙｔｈｏｎ ３")])
+        assert idx.search("Python") != []
+
+    def test_detached_combining_marks_form_no_token(self):
+        # Emoji variation selectors are combining marks; unattached they must
+        # not tokenize, or all emoji collapse onto one shared token.
+        assert tokenize("❤️") == []
+        assert tokenize("☀️") == []
+        heart = set(tokenize("I ❤️ pizza"))
+        sun = set(tokenize("☀️ beach"))
+        assert heart.isdisjoint(sun & {"️"})
+
+    def test_marks_inherit_script_inside_words(self):
+        # A mark with no precomposed form must not split a Latin run.
+        assert tokenize("a\u0330b") == ["a\u0330b"]
+
+    def test_digit_runs_next_to_cjk_stay_whole(self):
+        tokens = tokenize("東京2026年")
+        assert "2026" in tokens
+
+    def test_spaceless_thai_matches_via_ngrams(self):
+        doc_tokens = set(tokenize("กรุงเทพมหานครเป็นเมืองหลวงของประเทศไทย"))
+        query_tokens = set(tokenize("ประเทศไทย"))
+        assert query_tokens <= doc_tokens
+
+    def test_digits_stay_inside_words(self):
+        assert tokenize("BM25 k1=1.5") == ["bm25", "k1", "1", "5"]
+
+    def test_cjk_phrase_emits_bigram(self):
+        assert "東京" in tokenize("東京は日本の首都です")
+        # The same characters separated do NOT form the phrase token.
+        assert "東京" not in tokenize("東と京")
+
+    def test_bm25_finds_cjk_document(self):
+        index = BM25Index([("doc-1", "東京は日本の首都です")])
+        results = index.search("東京", top_k=1)
+        assert [r[0] for r in results] == ["doc-1"]
+
+    def test_bm25_finds_accented_document(self):
+        index = BM25Index(
+            [("doc-1", "München ist eine Stadt"), ("doc-2", "Berlin ist eine Stadt")]
+        )
+        results = index.search("München", top_k=1)
+        assert results[0][0] == "doc-1"
+
+
+class TestIsRelevantEmptyText:
+    def test_missing_chunk_text_is_not_a_relevant_hit(self):
+        sample = RetrievalEvalSample(
+            question="q",
+            relevant_chunk_ids=set(),
+            relevant_texts=["alpha is the source context"],
+        )
+        assert _is_relevant("missing-text-chunk", "", sample) is False
+
+    def test_missing_chunk_text_still_counts_by_id(self):
+        sample = RetrievalEvalSample(question="q", relevant_chunk_ids={"c1"})
+        assert _is_relevant("c1", "", sample) is True
 
 
 class TestBM25Index:
@@ -240,3 +380,37 @@ class TestRetrievalBenchmark:
         assert "dense" in table
         assert "keyword" in table
         assert "hybrid" in table
+
+
+def test_leading_digit_runs_before_non_latin_scripts():
+    # Digits that OPEN a word beside a non-Latin script must also form their
+    # own token: "2026إصدار" and "2026東京" stay searchable by "2026".
+    assert "2026" in tokenize("2026إصدار")
+    assert "2026" in tokenize("2026東京")
+    # Latin-leading words keep their digits: "bm25" stays one token.
+    assert "bm25" in tokenize("bm25")
+
+
+def test_compatibility_forms_normalize_before_casefold():
+    # NFKC after casefold leaves compatibility letters unfolded: ㎒
+    # decomposes to "MHz" and must fold to the same token as "MHz".
+    assert tokenize("㎒") == tokenize("MHz")
+    assert tokenize("𝐀") == tokenize("a")
+
+
+def test_ideographic_zero_is_a_searchable_unigram():
+    # 〇 is IDEOGRAPHIC NUMBER ZERO, not an iteration mark: "二〇二六" must
+    # answer a "〇" query.
+    assert "〇" in tokenize("二〇二六")
+    assert "二〇" in tokenize("二〇二六")
+
+
+def test_kana_iteration_marks_are_not_standalone_unigrams():
+    # ゝゞヽヾ repeat the previous kana; as shared unigrams they false-match
+    # unrelated words ("さゝ" vs "くゝ").
+    assert "ゝ" not in tokenize("さゝ")
+    assert "ゞ" not in tokenize("さゞ")
+    assert "ヽ" not in tokenize("サヽ")
+    assert "ヾ" not in tokenize("サヾ")
+    # Adjacency is still searchable via the bigram.
+    assert "さゝ" in tokenize("さゝ")
