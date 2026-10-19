@@ -380,3 +380,37 @@ class TestRetrievalBenchmark:
         assert "dense" in table
         assert "keyword" in table
         assert "hybrid" in table
+
+
+def test_leading_digit_runs_before_non_latin_scripts():
+    # Digits that OPEN a word beside a non-Latin script must also form their
+    # own token: "2026إصدار" and "2026東京" stay searchable by "2026".
+    assert "2026" in tokenize("2026إصدار")
+    assert "2026" in tokenize("2026東京")
+    # Latin-leading words keep their digits: "bm25" stays one token.
+    assert "bm25" in tokenize("bm25")
+
+
+def test_compatibility_forms_normalize_before_casefold():
+    # NFKC after casefold leaves compatibility letters unfolded: ㎒
+    # decomposes to "MHz" and must fold to the same token as "MHz".
+    assert tokenize("㎒") == tokenize("MHz")
+    assert tokenize("𝐀") == tokenize("a")
+
+
+def test_ideographic_zero_is_a_searchable_unigram():
+    # 〇 is IDEOGRAPHIC NUMBER ZERO, not an iteration mark: "二〇二六" must
+    # answer a "〇" query.
+    assert "〇" in tokenize("二〇二六")
+    assert "二〇" in tokenize("二〇二六")
+
+
+def test_kana_iteration_marks_are_not_standalone_unigrams():
+    # ゝゞヽヾ repeat the previous kana; as shared unigrams they false-match
+    # unrelated words ("さゝ" vs "くゝ").
+    assert "ゝ" not in tokenize("さゝ")
+    assert "ゞ" not in tokenize("さゞ")
+    assert "ヽ" not in tokenize("サヽ")
+    assert "ヾ" not in tokenize("サヾ")
+    # Adjacency is still searchable via the bigram.
+    assert "さゝ" in tokenize("さゝ")
