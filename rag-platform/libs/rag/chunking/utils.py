@@ -115,7 +115,12 @@ def normalize_whitespace_with_map(text: str) -> Tuple[str, "NormalizationMap"]:
     Returns:
         (normalized_text, NormalizationMap) tuple.
     """
+    # Unchanged characters are flushed as whole source slices, so `out`
+    # holds one entry per run instead of one per character - per-char
+    # appends cost ~9 bytes of transient allocation per ASCII char and can
+    # OOM large ingestion inputs.
     out: List[str] = []
+    norm_len = 0
     checkpoints: List[Tuple[int, int]] = []
     i = 0
     n = len(text)
@@ -123,35 +128,49 @@ def normalize_whitespace_with_map(text: str) -> Tuple[str, "NormalizationMap"]:
         i += 1
     if i:
         checkpoints.append((0, i))
+    run_start: Optional[int] = None
     while i < n:
         c = text[i]
-        if c == " ":
+        if c == " " or c == "\n":
+            if run_start is not None:
+                out.append(text[run_start:i])
+                norm_len += i - run_start
+                run_start = None
             j = i
-            while j < n and text[j] == " ":
-                j += 1
-            out.append(" ")
+            if c == " ":
+                while j < n and text[j] == " ":
+                    j += 1
+                out.append(" ")
+                norm_len += 1
+            else:
+                while j < n and text[j] == "\n":
+                    j += 1
+                take = min(j - i, 2)
+                out.append("\n" * take)
+                norm_len += take
             i = j
             # Checkpoint only when the run actually collapsed the mapping;
             # single-space runs stay linear and need no entry.
             prev_norm, prev_src = checkpoints[-1] if checkpoints else (0, 0)
-            if j != prev_src + (len(out) - prev_norm):
-                checkpoints.append((len(out), j))
-        elif c == "\n":
-            j = i
-            while j < n and text[j] == "\n":
-                j += 1
-            for _ in range(min(j - i, 2)):
-                out.append("\n")
-            i = j
-            prev_norm, prev_src = checkpoints[-1] if checkpoints else (0, 0)
-            if j != prev_src + (len(out) - prev_norm):
-                checkpoints.append((len(out), j))
+            if j != prev_src + (norm_len - prev_norm):
+                checkpoints.append((norm_len, j))
         else:
-            out.append(c)
+            if run_start is None:
+                run_start = i
             i += 1
-    while out and out[-1].isspace():
+    if run_start is not None:
+        out.append(text[run_start:n])
+        norm_len += n - run_start
+    while out:
+        stripped = out[-1].rstrip()
+        if stripped:
+            if len(stripped) != len(out[-1]):
+                norm_len -= len(out[-1]) - len(stripped)
+                out[-1] = stripped
+            break
+        norm_len -= len(out[-1])
         out.pop()
-    return "".join(out), NormalizationMap(checkpoints, len(out))
+    return "".join(out), NormalizationMap(checkpoints, norm_len)
 
 
 def remap_offsets_to_source(chunks: List, norm_map: "NormalizationMap", source_len: int) -> None:
