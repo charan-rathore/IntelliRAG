@@ -309,19 +309,33 @@ class TestOversizedUnstructuredContent(unittest.TestCase):
         text = long_header + "\n\n" + "word" * 5000
         # Cap address space so the unbounded span growth surfaces as
         # MemoryError instead of swapping the host to death, and bound
-        # wall time so a hang surfaces as TimeoutError.
-        soft, _ = resource.getrlimit(resource.RLIMIT_AS)
-        resource.setrlimit(resource.RLIMIT_AS, (1 << 30, soft))
+        # wall time so a hang surfaces as TimeoutError. Never raise the
+        # soft cap above an existing (lower) hard cap, and restore the
+        # original pair afterwards.
+        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        cap = 1 << 30
+        if hard != resource.RLIM_INFINITY:
+            cap = min(cap, hard)
+        resource.setrlimit(resource.RLIMIT_AS, (cap, hard))
         signal.signal(signal.SIGALRM, _alarm)
         signal.alarm(5)
         try:
             result = self.chunker.chunk(text, self.doc_id, self.version_id, self.metadata)
         finally:
             signal.alarm(0)
-            resource.setrlimit(resource.RLIMIT_AS, (soft, soft))
+            resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
         self.assertGreaterEqual(result.total_chunks, 1)
         for chunk in result.chunks:
             self.assertLessEqual(chunk.token_count, self.config.max_chunk_size)
+        # The header was already emitted as its own chunk by the caller;
+        # the force-split must not flush it a second time as content.
+        header_pieces = sum(1 for chunk in result.chunks if "h" * 100 in chunk.chunk_text)
+        self.assertEqual(header_pieces, 1)
+        prev_start = -1
+        for chunk in result.chunks:
+            self.assertLessEqual(chunk.start_char_offset, chunk.end_char_offset)
+            self.assertGreaterEqual(chunk.start_char_offset, prev_start)
+            prev_start = chunk.start_char_offset
 
     def test_force_split_offsets_stay_ordered(self) -> None:
         # Synthetic header prefix must not leak into document offsets:
