@@ -21,6 +21,10 @@ eval = [
 	"langchain-ollama>=0.2.0",
 	"sentence-transformers>=3.0.0",
 ]
+test = [
+	"pytest>=8.0.0",
+	"pgserver>=0.1.4",
+]
 eval-openai = [
 	"ragas>=0.4.0",
 	"datasets>=2.14.0",

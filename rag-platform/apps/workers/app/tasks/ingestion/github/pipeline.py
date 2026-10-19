@@ -234,17 +234,37 @@ def _ingest_single_payload(
     # Start transaction for all remaining operations
     try:
         with psycopg.connect(repository.dsn, row_factory=dict_row) as conn:
+            # Serialize version transitions per document: two workers
+            # handling payloads for the same document concurrently must not
+            # both pass the duplicate check below.
+            repository.lock_document(document.document_id, conn=conn)
+            
             # Check if document exists and has same hash
             active = repository.get_active_version(document.document_id, conn=conn)
+            is_active_match = bool(active and active.get("hash_payload") == version.hash_payload)
+            
+            # A hash that exists on ANY version row - active or not - is a
+            # duplicate delivery, not an update. Delivery is at-least-once,
+            # so an OLD payload can arrive after a newer version is active;
+            # without this check the insert below would silently no-op
+            # (ON CONFLICT DO NOTHING) while the newer active version gets
+            # deactivated, committing success with ZERO active versions.
+            existing = (
+                None
+                if is_active_match
+                else repository.get_version_by_hash(
+                    document.document_id, version.hash_payload, conn=conn
+                )
+            )
             
             ing_logger.dedupe_checked(
                 document_id=document.document_id,
                 payload_hash=version.hash_payload,
-                is_duplicate=bool(active and active.get("hash_payload") == version.hash_payload),
+                is_duplicate=is_active_match or existing is not None,
             )
             
-            # ===== STEP 2a: Skip if no changes =====
-            if active and active.get("hash_payload") == version.hash_payload:
+            # ===== STEP 2a: Skip duplicates (current or stale replay) =====
+            if is_active_match or existing is not None:
                 ingestion_run_repo.update_status(
                     run_id=run_id,
                     status=IngestionRunStatus.SKIPPED_NO_CHANGE.value,
@@ -668,9 +688,32 @@ def reprocess_github_payloads_to_postgres(
         # Check for duplicates and register
         try:
             with psycopg.connect(repository.dsn, row_factory=dict_row) as conn:
+                # Same transition serialization and stale-hash guard as the
+                # live ingest path: replaying an OLDER stored payload must
+                # not deactivate the newer active version.
+                repository.lock_document(document.document_id, conn=conn)
                 active = repository.get_active_version(document.document_id, conn=conn)
                 
                 if active and active.get("hash_payload") == version.hash_payload:
+                    ingestion_run_repo.update_status(
+                        run_id=run_id,
+                        status=IngestionRunStatus.SKIPPED_NO_CHANGE.value,
+                        finished_at=now,
+                        document_id=document.document_id,
+                        payload_hash=version.hash_payload,
+                        conn=conn,
+                    )
+                    ing_logger.skipped_no_change(
+                        document_id=document.document_id,
+                        payload_hash=version.hash_payload,
+                    )
+                    conn.commit()
+                    continue
+                
+                existing = repository.get_version_by_hash(
+                    document.document_id, version.hash_payload, conn=conn
+                )
+                if existing is not None:
                     ingestion_run_repo.update_status(
                         run_id=run_id,
                         status=IngestionRunStatus.SKIPPED_NO_CHANGE.value,
