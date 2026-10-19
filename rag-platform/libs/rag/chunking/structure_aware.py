@@ -287,7 +287,13 @@ class StructureAwareChunker(BaseChunker):
                     spans.extend(force_spans)
                     current_text = header_prefix if self.config.include_section_headers else ""
         
-        if current_text.strip():
+        # Skip a trailing span that is only the synthetic header when the
+        # section already emitted chunks: the force-split above embeds the
+        # prefix in its first span, so re-emitting it here would duplicate
+        # the header and carry an out-of-order offset.
+        if current_text.strip() and (
+            current_text.strip() != header_prefix.strip() or not spans
+        ):
             spans.append(TextSpan(
                 text=current_text.strip(),
                 start=current_start,
@@ -379,30 +385,38 @@ class StructureAwareChunker(BaseChunker):
             # A single sentence (or sentence-free text) larger than the
             # target: split at word boundaries, then hard-cut any word
             # that still overflows so max_chunk_size stays a hard limit.
+            # A header that alone fills the target is dropped here rather
+            # than leaving no room for content (non-positive room would
+            # loop forever without consuming the word).
+            prefix = header_prefix if len(header_prefix) + 1 < target_chars else ""
             words = sentence.split(" ")
             for word in words:
                 if len(current_text) + len(word) + 1 <= target_chars:
                     current_text += word + " "
                     continue
-                if current_text.strip() and current_text.strip() != header_prefix.strip():
+                if current_text.strip() and current_text.strip() != prefix.strip():
+                    consumed = len(current_text)
+                    if prefix and current_text.startswith(prefix):
+                        consumed -= len(prefix)
                     spans.append(TextSpan(
                         text=current_text.strip(),
                         start=current_start,
-                        end=current_start + len(current_text),
+                        end=current_start + consumed,
                     ))
-                    current_start = current_start + len(current_text)
-                    current_text = header_prefix
-                while len(header_prefix) + len(word) + 1 > target_chars:
-                    room = target_chars - len(header_prefix)
+                    current_start += consumed
+                    current_text = prefix
+                while len(prefix) + len(word) + 1 > target_chars:
+                    # room >= 1 guaranteed by the prefix check above.
+                    room = target_chars - len(prefix)
                     piece, word = word[:room], word[room:]
                     spans.append(TextSpan(
-                        text=(header_prefix + piece).strip(),
+                        text=(prefix + piece).strip(),
                         start=current_start,
-                        end=current_start + len(header_prefix) + len(piece),
+                        end=current_start + len(piece),
                     ))
-                    current_start = current_start + len(header_prefix) + len(piece)
-                    current_text = header_prefix
-                current_text = header_prefix + word + " "
+                    current_start += len(piece)
+                    current_text = prefix
+                current_text = prefix + word + " "
         
         if current_text.strip() and current_text.strip() != header_prefix.strip():
             spans.append(TextSpan(
