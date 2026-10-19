@@ -136,6 +136,33 @@ class TestStaleReplayRealDb(unittest.TestCase):
         hash_v2 = self.transformer.issue_to_document(second)[1].hash_payload
         self.assertEqual(active[0], hash_v2, "the NEWER version must stay active")
 
+    def test_reprocess_of_stored_payloads_keeps_newer_version_active(self) -> None:
+        """Replaying stored payloads (newest-first) must not zero actives."""
+        from apps.workers.app.tasks.ingestion.github.pipeline import (
+            reprocess_github_payloads_to_postgres,
+        )
+
+        first = _issue_payload(303, "original body")
+        second = _issue_payload(303, "updated body")
+        self.assertTrue(self._ingest(first).success)
+        self.assertTrue(self._ingest(second).success)
+        doc_id = self.transformer.issue_to_document(first)[0].document_id
+
+        # Reprocessing walks stored payloads newest-first: B is skipped as
+        # the active duplicate, then the OLDER A must also be a duplicate,
+        # not a transition that deactivates B.
+        reprocess_github_payloads_to_postgres(
+            transformer=self.transformer,
+            repository=self.repository,
+            raw_payload_repo=self.raw_payload_repo,
+            ingestion_run_repo=self.run_repo,
+            document_id=doc_id,
+        )
+        active = self._active_hashes()
+        self.assertEqual(len(active), 1, "reprocessing must keep exactly one active version")
+        hash_v2 = self.transformer.issue_to_document(second)[1].hash_payload
+        self.assertEqual(active[0], hash_v2, "the NEWER version must stay active")
+
     def test_reingest_of_current_payload_still_skips(self) -> None:
         payload = _issue_payload(202, "only body")
         self.assertTrue(self._ingest(payload).success)
