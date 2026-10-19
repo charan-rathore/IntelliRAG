@@ -29,7 +29,8 @@ from .utils import (
     find_code_blocks,
     find_numbered_lists,
     merge_small_spans,
-    normalize_whitespace,
+    normalize_whitespace_with_map,
+    remap_offsets_to_source,
 )
 
 
@@ -86,7 +87,9 @@ class StructureAwareChunker(BaseChunker):
         """
         self._validate_input(text)
         
-        normalized = normalize_whitespace(text)
+        # Split the normalized text, but keep the map back to the original
+        # source for citation/highlight offsets (see recursive.py).
+        normalized, norm_to_source = normalize_whitespace_with_map(text)
         
         sections = self._extract_sections(normalized)
         
@@ -107,6 +110,7 @@ class StructureAwareChunker(BaseChunker):
             base_metadata=base_metadata,
         )
         
+        remap_offsets_to_source(chunks, norm_to_source, len(text))
         return self._create_result(document_id, version_id, chunks)
     
     def _extract_sections(self, text: str) -> List[MarkdownSection]:
