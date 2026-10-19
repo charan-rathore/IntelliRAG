@@ -66,6 +66,72 @@ def normalize_whitespace(text: str) -> str:
     return text.strip()
 
 
+def normalize_whitespace_with_map(text: str) -> Tuple[str, List[int]]:
+    """Normalize whitespace and keep a map back to the source.
+
+    Same transformation as normalize_whitespace, but also returns a list
+    where index i holds the ORIGINAL source position of normalized
+    character i, so offsets computed on the normalized text can be
+    translated back into the caller's source string.
+
+    Args:
+        text: Text to normalize.
+
+    Returns:
+        (normalized_text, norm_to_source_index) tuple.
+    """
+    out: List[str] = []
+    idx_map: List[int] = []
+    i = 0
+    n = len(text)
+    while i < n and text[i].isspace():
+        i += 1
+    while i < n:
+        c = text[i]
+        if c == " ":
+            j = i
+            while j < n and text[j] == " ":
+                j += 1
+            out.append(" ")
+            idx_map.append(i)
+            i = j
+        elif c == "\n":
+            j = i
+            while j < n and text[j] == "\n":
+                j += 1
+            for k in range(min(j - i, 2)):
+                out.append("\n")
+                idx_map.append(i + k)
+            i = j
+        else:
+            out.append(c)
+            idx_map.append(i)
+            i += 1
+    while out and out[-1].isspace():
+        out.pop()
+        idx_map.pop()
+    return "".join(out), idx_map
+
+
+def remap_offsets_to_source(chunks: List, norm_to_source: List[int], source_len: int) -> None:
+    """Rewrite chunk char offsets from normalized-text to original-source.
+
+    Chunkers split the normalized text, so their offsets index that
+    string. Citations and highlights slice the ORIGINAL source, so the
+    offsets must be translated back: source[start:end] then covers the
+    chunk's real content. Mutates each chunk in place.
+    """
+    for chunk in chunks:
+        start = chunk.start_char_offset
+        end = chunk.end_char_offset
+        chunk.start_char_offset = (
+            norm_to_source[start] if start < len(norm_to_source) else source_len
+        )
+        chunk.end_char_offset = (
+            norm_to_source[end - 1] + 1 if 0 < end <= len(norm_to_source) else source_len
+        )
+
+
 def find_code_blocks(text: str) -> List[Tuple[int, int]]:
     """Find all fenced code block positions in text.
     
