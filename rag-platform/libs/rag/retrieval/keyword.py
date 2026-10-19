@@ -14,40 +14,60 @@ from .models import RetrievedChunk, RetrievalResult
 
 logger = logging.getLogger(__name__)
 
-# Unicode-aware: letters and digits from ANY script form word tokens, so
-# "München" stays one token instead of splitting into ["m", "nchen"].
-TOKEN_PATTERN = re.compile(r"[^\W_]+")
+# Han ideographs and Japanese kana are not space-separated, so a run of
+# them cannot rely on word boundaries; they tokenize per character.
+_CJK_SCRIPTS = frozenset({"CJK", "HIRAGANA", "KATAKANA"})
 
-# Han ideographs and Japanese kana are not space-separated, so a run of them
-# cannot rely on word boundaries. Hangul is space-separated and stays a word.
-_CJK_CHAR = re.compile(
-    r"[\u3040-\u309f\u30a0-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]"
-)
+# Characters that join the current token: letters and digits from any
+# script, plus combining marks (Devanagari vowel signs, Arabic harakat,
+# etc. - NFC leaves many of them decomposed, and dropping them collapses
+# distinct words like "की" / "का" / "कि" onto one token).
+def _is_word_char(ch: str) -> bool:
+    return ch.isalnum() or unicodedata.category(ch).startswith("M")
+
+
+def _script_of(ch: str) -> Optional[str]:
+    """Script family of a character; None for script-neutral characters."""
+    if ch.isdigit():
+        return None
+    name = unicodedata.name(ch, "")
+    return name.split(" ")[0] if name else None
 
 
 def _emit_word(word: str, tokens: List[str]) -> None:
-    """Emit a matched word, splitting mixed-script runs.
+    """Emit a matched word, splitting at script boundaries.
 
-    Latin/digit segments stay whole ("Python東京" still yields "python").
-    CJK segments emit each character (meaning is per-character and text is
-    not space-separated) plus overlapping bigrams, so a multi-character
-    query phrase matches the adjacent characters in the document instead of
-    ranking documents that merely contain the same characters far apart.
+    Each script segment tokenizes its own way: CJK segments emit each
+    character (meaning is per-character and the text is not space-separated)
+    plus overlapping bigrams so a multi-character query phrase matches
+    adjacent characters in the document; every other script stays whole, so
+    "Python東京" and "Python으로" both still yield "python".
     """
-    i = 0
-    n = len(word)
-    while i < n:
-        is_cjk = bool(_CJK_CHAR.match(word[i]))
-        j = i + 1
-        while j < n and bool(_CJK_CHAR.match(word[j])) == is_cjk:
-            j += 1
-        segment = word[i:j]
-        if is_cjk:
-            tokens.extend(segment)
-            tokens.extend(segment[k : k + 2] for k in range(len(segment) - 1))
+    segment = ""
+    segment_script: Optional[str] = None
+    segments: List[Tuple[str, str]] = []
+    for ch in word:
+        script = _script_of(ch)
+        if script is None:
+            # Digits and unattributed characters inherit the current script.
+            segment += ch
+            continue
+        if segment_script is None:
+            segment_script = script
+        if script != segment_script:
+            segments.append((segment, segment_script))
+            segment = ch
+            segment_script = script
         else:
-            tokens.append(segment)
-        i = j
+            segment += ch
+    if segment:
+        segments.append((segment, segment_script or ""))
+    for seg, script in segments:
+        if script in _CJK_SCRIPTS:
+            tokens.extend(seg)
+            tokens.extend(seg[k : k + 2] for k in range(len(seg) - 1))
+        else:
+            tokens.append(seg)
 
 
 def tokenize(text: str) -> List[str]:
@@ -58,8 +78,17 @@ def tokenize(text: str) -> List[str]:
     """
     tokens: List[str] = []
     normalized = unicodedata.normalize("NFC", text.casefold())
-    for match in TOKEN_PATTERN.finditer(normalized):
-        _emit_word(match.group(0), tokens)
+    i = 0
+    n = len(normalized)
+    while i < n:
+        if not _is_word_char(normalized[i]):
+            i += 1
+            continue
+        j = i
+        while j < n and _is_word_char(normalized[j]):
+            j += 1
+        _emit_word(normalized[i:j], tokens)
+        i = j
     return tokens
 
 
