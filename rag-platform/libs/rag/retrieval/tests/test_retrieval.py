@@ -108,6 +108,23 @@ class TestTokenizeUnicode:
         precomposed = tokenize("München")
         assert decomposed == precomposed == ["münchen"]
 
+    def test_mixed_latin_hangul_run_splits(self):
+        tokens = tokenize("Python으로")
+        assert "python" in tokens
+        assert "으로" in tokens
+
+    def test_combining_marks_stay_attached(self):
+        # Devanagari vowel signs remain combining marks after NFC; dropping
+        # them would collapse these distinct words onto one token.
+        assert tokenize("की") == ["की"]
+        tokens = set()
+        for word in ("की", "का", "कि", "कु"):
+            tokens.update(tokenize(word))
+        assert tokens == {"की", "का", "कि", "कु"}
+
+    def test_digits_stay_inside_words(self):
+        assert tokenize("BM25 k1=1.5") == ["bm25", "k1", "1", "5"]
+
     def test_cjk_phrase_emits_bigram(self):
         assert "東京" in tokenize("東京は日本の首都です")
         # The same characters separated do NOT form the phrase token.
