@@ -31,7 +31,8 @@ from .utils import (
     create_overlap_text,
     estimate_token_count,
     merge_small_spans,
-    normalize_whitespace,
+    normalize_whitespace_with_map,
+    remap_offsets_to_source,
 )
 
 if TYPE_CHECKING:
@@ -173,18 +174,24 @@ class SemanticChunker(BaseChunker):
         self._validate_input(text)
         self._load_model()
         
-        normalized = normalize_whitespace(text)
+        # Split the normalized text, but keep the map back to the original
+        # source for citation/highlight offsets (see recursive.py).
+        normalized, norm_to_source = normalize_whitespace_with_map(text)
         
         if self._model is None:
             logger.warning("Falling back to sentence-based splitting without embeddings")
-            return self._fallback_chunk(normalized, document_id, version_id, base_metadata)
+            result = self._fallback_chunk(normalized, document_id, version_id, base_metadata)
+            remap_offsets_to_source(result.chunks, norm_to_source, len(text))
+            return result
         
         sentences = self._split_into_sentences(normalized)
         
         if len(sentences) < 3:
-            return self._create_single_chunk(
+            result = self._create_single_chunk(
                 normalized, document_id, version_id, base_metadata
             )
+            remap_offsets_to_source(result.chunks, norm_to_source, len(text))
+            return result
         
         breakpoints = self._find_semantic_breakpoints(sentences)
         
@@ -202,6 +209,7 @@ class SemanticChunker(BaseChunker):
             version_id=version_id,
             base_metadata=base_metadata,
         )
+        remap_offsets_to_source(chunks, norm_to_source, len(text))
         
         return self._create_result(document_id, version_id, chunks)
     
