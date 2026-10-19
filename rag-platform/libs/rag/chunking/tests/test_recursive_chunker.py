@@ -273,3 +273,51 @@ class TestOffsetsIndexOriginalSource(unittest.TestCase):
                 chunk.chunk_text,
                 f"chunk {chunk.chunk_index} offsets do not cover its text",
             )
+
+
+class TestOverlapAndSeparatorOffsets(unittest.TestCase):
+    """Codex P1 regressions: overlap coverage and discarded separators."""
+
+    def setUp(self) -> None:
+        self.doc_id = uuid4()
+        self.version_id = uuid4()
+        self.metadata = ChunkMetadata(source_type=IngestionSource.MARKDOWN_DOC)
+
+    def test_discarded_separators_do_not_skew_offsets(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = "Alpha alpha alpha.\n\nBeta beta beta."
+        chunker = RecursiveChunker(ChunkerConfig(chunk_size=3, chunk_overlap=0, min_chunk_size=1, max_chunk_size=100))
+        result = chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertGreaterEqual(len(result.chunks), 2)
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            self.assertEqual(
+                normalize_whitespace(sliced),
+                chunk.chunk_text,
+                f"chunk {chunk.chunk_index} offsets do not cover its text",
+            )
+
+    def test_overlap_chunks_cover_the_prepended_text(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace
+
+        source = "First paragraph has words.\n\nSecond paragraph has more words.\n\nThird one ends it."
+        chunker = RecursiveChunker(ChunkerConfig(chunk_size=12, chunk_overlap=4, min_chunk_size=1, max_chunk_size=100))
+        result = chunker.chunk(source, self.doc_id, self.version_id, self.metadata)
+        self.assertGreaterEqual(len(result.chunks), 2)
+        for chunk in result.chunks:
+            sliced = source[chunk.start_char_offset : chunk.end_char_offset]
+            self.assertEqual(
+                normalize_whitespace(sliced),
+                chunk.chunk_text,
+                f"chunk {chunk.chunk_index} offsets do not cover its text",
+            )
+
+    def test_offset_map_is_sparse(self) -> None:
+        from libs.rag.chunking.utils import normalize_whitespace_with_map
+
+        # A large document with almost no collapsible whitespace must not
+        # allocate a per-character map.
+        source = "word " * 20000
+        _, norm_map = normalize_whitespace_with_map(source)
+        self.assertLess(len(norm_map.checkpoints), 100)
