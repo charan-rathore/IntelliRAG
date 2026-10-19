@@ -28,6 +28,26 @@ class TestRecursiveChunkerBasics(unittest.TestCase):
             tenant_id="test-tenant",
         )
 
+    def test_overlap_start_never_goes_before_previous_span_source(self) -> None:
+        """Merged spans can carry synthetic separators, so len(span.text) may
+        exceed the span's source-backed length; the overlap start must stay
+        inside the previous span's source region (never negative)."""
+        from libs.rag.chunking.utils import TextSpan
+
+        config = ChunkerConfig(chunk_size=200, chunk_overlap=30, min_chunk_size=15)
+        chunker = RecursiveChunker(config)
+        # Simulates a post-merge span: text inflated by synthetic "\n\n"
+        # separators beyond the source-backed [start, end) region.
+        spans = [
+            TextSpan(text="alpha " * 10, start=0, end=30),
+            TextSpan(text="beta " * 6, start=30, end=60),
+        ]
+        chunks = chunker._create_chunks_with_overlap(
+            spans, self.doc_id, self.version_id, self.metadata
+        )
+        self.assertGreaterEqual(chunks[1].start_char_offset, 0)
+        self.assertGreaterEqual(chunks[1].start_char_offset, spans[0].start)
+
     def test_strategy_name(self) -> None:
         self.assertEqual(self.chunker.strategy_name, "recursive")
 
