@@ -259,7 +259,14 @@ class StructureAwareChunker(BaseChunker):
         
         spans = []
         current_text = header_prefix
-        current_start = section.start
+        # The header prefix is synthetic (rebuilt from the parsed header and
+        # repeated in every chunk), so it is not consumed source. Start the
+        # source cursor past the section's own header line and advance it by
+        # the real characters each chunk takes from the source - the chunk
+        # text minus the repeated prefix - so spans tile the section instead
+        # of drifting by one prefix length per chunk.
+        prefix_len = len(header_prefix)
+        current_start = section.start + prefix_len
         
         for para in paragraphs:
             para_with_sep = para + "\n\n"
@@ -268,12 +275,13 @@ class StructureAwareChunker(BaseChunker):
                 current_text += para_with_sep
             else:
                 if current_text.strip():
+                    consumed = len(current_text) - prefix_len
                     spans.append(TextSpan(
                         text=current_text.strip(),
                         start=current_start,
-                        end=current_start + len(current_text),
+                        end=current_start + consumed,
                     ))
-                    current_start = current_start + len(current_text)
+                    current_start = current_start + consumed
                 
                 if self.config.include_section_headers and section.header:
                     current_text = header_prefix + para_with_sep
