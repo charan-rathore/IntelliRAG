@@ -22,6 +22,24 @@ _NGRAM_SCRIPTS = frozenset({"CJK", "HIRAGANA", "KATAKANA", "THAI", "LAO", "KHMER
 
 _DIGIT_RUN = re.compile(r"\d+")
 
+# Japanese iteration/prolonged marks whose Unicode names fall outside the
+# script buckets ("IDEOGRAPHIC ITERATION MARK", "KATAKANA-HIRAGANA
+# PROLONGED SOUND MARK"); they inherit the surrounding script so "人々" and
+# "ユーザー" stay single segments.
+_INHERIT_CODEPOINTS = frozenset({"\u3005", "\u3006", "\u3007", "\u30fc"})
+
+
+def _clusters(seg: str) -> List[str]:
+    """Split into base+marks clusters so n-grams never detach a vowel sign
+    or tone mark from its base (Thai "กิ" must not emit a bare "ิ")."""
+    clusters: List[str] = []
+    for ch in seg:
+        if clusters and _is_mark(ch):
+            clusters[-1] += ch
+        else:
+            clusters.append(ch)
+    return clusters
+
 # Characters that join the current token: letters and digits from any
 # script, plus combining marks (Devanagari vowel signs, Arabic harakat,
 # etc. - NFC leaves many of them decomposed, and dropping them collapses
@@ -32,8 +50,9 @@ def _is_mark(ch: str) -> bool:
 
 def _script_of(ch: str) -> Optional[str]:
     """Script family of a character; None for script-neutral characters."""
-    if ch.isdigit() or _is_mark(ch):
-        # Digits and combining marks inherit the surrounding script.
+    if ch.isdigit() or _is_mark(ch) or ch in _INHERIT_CODEPOINTS:
+        # Digits, combining marks, and Japanese iteration/prolonged marks
+        # inherit the surrounding script.
         return None
     name = unicodedata.name(ch, "")
     return name.split(" ")[0] if name else None
@@ -69,8 +88,11 @@ def _emit_word(word: str, tokens: List[str]) -> None:
         segments.append((segment, segment_script or ""))
     for seg, script in segments:
         if script in _NGRAM_SCRIPTS:
-            tokens.extend(seg)
-            tokens.extend(seg[k : k + 2] for k in range(len(seg) - 1))
+            clusters = _clusters(seg)
+            tokens.extend(clusters)
+            tokens.extend(
+                clusters[k] + clusters[k + 1] for k in range(len(clusters) - 1)
+            )
             # Digits inherit the surrounding script but stay searchable as
             # whole runs: "東京2026年" must still match a "2026" query.
             tokens.extend(m.group(0) for m in _DIGIT_RUN.finditer(seg) if len(m.group(0)) > 2)
