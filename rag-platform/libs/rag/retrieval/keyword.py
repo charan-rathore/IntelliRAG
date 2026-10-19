@@ -6,6 +6,7 @@ import logging
 import math
 import re
 import time
+import unicodedata
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -24,23 +25,41 @@ _CJK_CHAR = re.compile(
 )
 
 
-def tokenize(text: str) -> List[str]:
-    """Casefolded, unicode-aware tokenization.
+def _emit_word(word: str, tokens: List[str]) -> None:
+    """Emit a matched word, splitting mixed-script runs.
 
-    Word scripts produce whole-word tokens ("München" -> ["münchen"]).
-    CJK runs additionally emit each character (words there carry meaning per
-    character and are not space-separated), so a single-ideograph query can
-    still match, plus the whole run so exact phrases score highest.
+    Latin/digit segments stay whole ("Python東京" still yields "python").
+    CJK segments emit each character (meaning is per-character and text is
+    not space-separated) plus overlapping bigrams, so a multi-character
+    query phrase matches the adjacent characters in the document instead of
+    ranking documents that merely contain the same characters far apart.
+    """
+    i = 0
+    n = len(word)
+    while i < n:
+        is_cjk = bool(_CJK_CHAR.match(word[i]))
+        j = i + 1
+        while j < n and bool(_CJK_CHAR.match(word[j])) == is_cjk:
+            j += 1
+        segment = word[i:j]
+        if is_cjk:
+            tokens.extend(segment)
+            tokens.extend(segment[k : k + 2] for k in range(len(segment) - 1))
+        else:
+            tokens.append(segment)
+        i = j
+
+
+def tokenize(text: str) -> List[str]:
+    """Casefolded, NFC-normalized, unicode-aware tokenization.
+
+    NFC first: extraction pipelines often produce decomposed Unicode, and a
+    precomposed query must still match ("Mu\u0308nchen" == "München").
     """
     tokens: List[str] = []
-    for match in TOKEN_PATTERN.finditer(text.casefold()):
-        word = match.group(0)
-        if _CJK_CHAR.search(word):
-            if len(word) > 1:
-                tokens.append(word)
-            tokens.extend(word)
-        else:
-            tokens.append(word)
+    normalized = unicodedata.normalize("NFC", text.casefold())
+    for match in TOKEN_PATTERN.finditer(normalized):
+        _emit_word(match.group(0), tokens)
     return tokens
 
 
