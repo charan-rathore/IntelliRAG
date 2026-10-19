@@ -260,6 +260,33 @@ def _ingest_single_payload(
                 conn.commit()
                 return IngestionResult.skipped(document.document_id)
             
+            # ===== STEP 2b: Skip stale replays of older payloads =====
+            # Delivery is at-least-once, so an OLD payload can arrive after a
+            # newer version is already active. Its hash matches an INACTIVE
+            # version row: the insert below would silently no-op (ON CONFLICT
+            # DO NOTHING) while the newer active version gets deactivated,
+            # leaving the document with ZERO active versions behind a
+            # "success" result. A hash that already exists - on any version,
+            # active or not - is a duplicate delivery, not an update.
+            existing = repository.get_version_by_hash(
+                document.document_id, version.hash_payload, conn=conn
+            )
+            if existing is not None:
+                ingestion_run_repo.update_status(
+                    run_id=run_id,
+                    status=IngestionRunStatus.SKIPPED_NO_CHANGE.value,
+                    finished_at=now,
+                    document_id=document.document_id,
+                    payload_hash=version.hash_payload,
+                    conn=conn,
+                )
+                ing_logger.skipped_no_change(
+                    document_id=document.document_id,
+                    payload_hash=version.hash_payload,
+                )
+                conn.commit()
+                return IngestionResult.skipped(document.document_id)
+            
             # ===== STEP 3: Prepare version transition =====
             is_new_document = active is None
             version_index, should_deactivate = _prepare_version_transition(active, now)
