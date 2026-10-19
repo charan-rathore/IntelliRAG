@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import math
-import re
 import time
 import unicodedata
 from collections import Counter
@@ -20,7 +19,10 @@ logger = logging.getLogger(__name__)
 # so multi-character queries still match adjacent characters.
 _NGRAM_SCRIPTS = frozenset({"CJK", "HIRAGANA", "KATAKANA", "THAI", "LAO", "KHMER", "MYANMAR"})
 
-_DIGIT_RUN = re.compile(r"\d+")
+# Kanji and kana mix inside single Japanese words ("食べる"), so contiguous
+# segments of these scripts tokenize as one run - otherwise no bigram spans
+# the boundary and a punctuated decoy scores the same as the real word.
+_JAPANESE_SCRIPTS = frozenset({"CJK", "HIRAGANA", "KATAKANA"})
 
 # Japanese iteration/prolonged marks whose Unicode names fall outside the
 # script buckets ("IDEOGRAPHIC ITERATION MARK", "KATAKANA-HIRAGANA
@@ -73,9 +75,14 @@ def _emit_word(word: str, tokens: List[str]) -> None:
     for ch in word:
         script = _script_of(ch)
         if script is None:
-            # Digits and unattributed characters inherit the current script.
-            segment += ch
-            continue
+            # Digits and unattributed characters inherit the current script -
+            # except digits beside a non-Latin script, which form their own
+            # whole token so "إصدار2026" keeps a searchable "2026".
+            if ch.isdigit() and segment_script not in (None, "LATIN", "DIGIT"):
+                script = "DIGIT"
+            else:
+                segment += ch
+                continue
         if segment_script is None:
             segment_script = script
         if script != segment_script:
@@ -86,28 +93,40 @@ def _emit_word(word: str, tokens: List[str]) -> None:
             segment += ch
     if segment:
         segments.append((segment, segment_script or ""))
+    # Merge contiguous Japanese-script segments so n-grams span kanji/kana
+    # boundaries.
+    runs: List[List[Any]] = []
     for seg, script in segments:
+        if runs and script in _JAPANESE_SCRIPTS and runs[-1][1] in _JAPANESE_SCRIPTS:
+            runs[-1][0] += seg
+        else:
+            runs.append([seg, script])
+    for seg, script in runs:
         if script in _NGRAM_SCRIPTS:
             clusters = _clusters(seg)
-            tokens.extend(clusters)
+            # Iteration/prolonged marks (々, ー) keep adjacency via bigrams
+            # but are never standalone terms - every Japanese word shares
+            # them, so as unigrams they false-match unrelated words.
+            tokens.extend(c for c in clusters if c not in _INHERIT_CODEPOINTS)
             tokens.extend(
                 clusters[k] + clusters[k + 1] for k in range(len(clusters) - 1)
             )
-            # Digits inherit the surrounding script but stay searchable as
-            # whole runs: "東京2026年" must still match a "2026" query.
-            tokens.extend(m.group(0) for m in _DIGIT_RUN.finditer(seg) if len(m.group(0)) > 2)
         else:
             tokens.append(seg)
 
 
 def tokenize(text: str) -> List[str]:
-    """Casefolded, NFC-normalized, unicode-aware tokenization.
+    """Casefolded, NFKC-normalized, unicode-aware tokenization.
 
-    NFC first: extraction pipelines often produce decomposed Unicode, and a
-    precomposed query must still match ("Mu\u0308nchen" == "München").
+    NFKC first: extraction pipelines often produce decomposed or
+    compatibility-form Unicode, and a precomposed plain query must still
+    match ("Mu\u0308nchen" == "München", "Ｐｙｔｈｏｎ" == "Python").
     """
     tokens: List[str] = []
-    normalized = unicodedata.normalize("NFC", text.casefold())
+    # NFKC folds compatibility forms (full-width Latin, half-width katakana)
+    # onto their ordinary equivalents so extracted East Asian text matches a
+    # plain query; casefold first per Unicode default caseless matching.
+    normalized = unicodedata.normalize("NFKC", text.casefold())
     i = 0
     n = len(normalized)
     while i < n:
