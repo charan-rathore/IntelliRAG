@@ -26,13 +26,14 @@ _DIGIT_RUN = re.compile(r"\d+")
 # script, plus combining marks (Devanagari vowel signs, Arabic harakat,
 # etc. - NFC leaves many of them decomposed, and dropping them collapses
 # distinct words like "की" / "का" / "कि" onto one token).
-def _is_word_char(ch: str) -> bool:
-    return ch.isalnum() or unicodedata.category(ch).startswith("M")
+def _is_mark(ch: str) -> bool:
+    return unicodedata.category(ch).startswith("M")
 
 
 def _script_of(ch: str) -> Optional[str]:
     """Script family of a character; None for script-neutral characters."""
-    if ch.isdigit():
+    if ch.isdigit() or _is_mark(ch):
+        # Digits and combining marks inherit the surrounding script.
         return None
     name = unicodedata.name(ch, "")
     return name.split(" ")[0] if name else None
@@ -88,11 +89,14 @@ def tokenize(text: str) -> List[str]:
     i = 0
     n = len(normalized)
     while i < n:
-        if not _is_word_char(normalized[i]):
+        if not normalized[i].isalnum():
+            # Tokens start on letters/digits only: a detached combining mark
+            # (e.g. an emoji variation selector) must not become a token, or
+            # every emoji collapses onto one shared, meaningless token.
             i += 1
             continue
-        j = i
-        while j < n and _is_word_char(normalized[j]):
+        j = i + 1
+        while j < n and (normalized[j].isalnum() or _is_mark(normalized[j])):
             j += 1
         _emit_word(normalized[i:j], tokens)
         i = j
