@@ -66,26 +66,63 @@ def normalize_whitespace(text: str) -> str:
     return text.strip()
 
 
-def normalize_whitespace_with_map(text: str) -> Tuple[str, List[int]]:
-    """Normalize whitespace and keep a map back to the source.
+class NormalizationMap:
+    """Sparse normalized-text -> source-text index map.
 
-    Same transformation as normalize_whitespace, but also returns a list
-    where index i holds the ORIGINAL source position of normalized
-    character i, so offsets computed on the normalized text can be
-    translated back into the caller's source string.
+    Checkpoints record (normalized_index, source_index) at each whitespace
+    collapse; between checkpoints the mapping is linear. Memory scales with
+    the number of collapses, not the document length - a per-character map
+    would add tens of bytes per source character and can OOM ingestion on
+    large documents.
+    """
+
+    __slots__ = ("checkpoints", "normalized_length")
+
+    def __init__(self, checkpoints: List[Tuple[int, int]], normalized_length: int) -> None:
+        self.checkpoints = checkpoints
+        self.normalized_length = normalized_length
+
+    def to_source(self, index: int, source_length: int) -> int:
+        """Translate a normalized-text index to its source-text index."""
+        if index >= self.normalized_length:
+            return source_length
+        if not self.checkpoints:
+            return index
+        # Last checkpoint with norm index <= index.
+        lo, hi = 0, len(self.checkpoints)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if self.checkpoints[mid][0] <= index:
+                lo = mid + 1
+            else:
+                hi = mid
+        if lo == 0:
+            return index
+        norm0, src0 = self.checkpoints[lo - 1]
+        return src0 + (index - norm0)
+
+
+def normalize_whitespace_with_map(text: str) -> Tuple[str, "NormalizationMap"]:
+    """Normalize whitespace and keep a sparse map back to the source.
+
+    Same transformation as normalize_whitespace, but also returns a
+    NormalizationMap translating normalized offsets back into the caller's
+    source string.
 
     Args:
         text: Text to normalize.
 
     Returns:
-        (normalized_text, norm_to_source_index) tuple.
+        (normalized_text, NormalizationMap) tuple.
     """
     out: List[str] = []
-    idx_map: List[int] = []
+    checkpoints: List[Tuple[int, int]] = []
     i = 0
     n = len(text)
     while i < n and text[i].isspace():
         i += 1
+    if i:
+        checkpoints.append((0, i))
     while i < n:
         c = text[i]
         if c == " ":
@@ -93,27 +130,31 @@ def normalize_whitespace_with_map(text: str) -> Tuple[str, List[int]]:
             while j < n and text[j] == " ":
                 j += 1
             out.append(" ")
-            idx_map.append(i)
             i = j
+            # Checkpoint only when the run actually collapsed the mapping;
+            # single-space runs stay linear and need no entry.
+            prev_norm, prev_src = checkpoints[-1] if checkpoints else (0, 0)
+            if j != prev_src + (len(out) - prev_norm):
+                checkpoints.append((len(out), j))
         elif c == "\n":
             j = i
             while j < n and text[j] == "\n":
                 j += 1
-            for k in range(min(j - i, 2)):
+            for _ in range(min(j - i, 2)):
                 out.append("\n")
-                idx_map.append(i + k)
             i = j
+            prev_norm, prev_src = checkpoints[-1] if checkpoints else (0, 0)
+            if j != prev_src + (len(out) - prev_norm):
+                checkpoints.append((len(out), j))
         else:
             out.append(c)
-            idx_map.append(i)
             i += 1
     while out and out[-1].isspace():
         out.pop()
-        idx_map.pop()
-    return "".join(out), idx_map
+    return "".join(out), NormalizationMap(checkpoints, len(out))
 
 
-def remap_offsets_to_source(chunks: List, norm_to_source: List[int], source_len: int) -> None:
+def remap_offsets_to_source(chunks: List, norm_map: "NormalizationMap", source_len: int) -> None:
     """Rewrite chunk char offsets from normalized-text to original-source.
 
     Chunkers split the normalized text, so their offsets index that
@@ -122,13 +163,10 @@ def remap_offsets_to_source(chunks: List, norm_to_source: List[int], source_len:
     chunk's real content. Mutates each chunk in place.
     """
     for chunk in chunks:
-        start = chunk.start_char_offset
+        chunk.start_char_offset = norm_map.to_source(chunk.start_char_offset, source_len)
         end = chunk.end_char_offset
-        chunk.start_char_offset = (
-            norm_to_source[start] if start < len(norm_to_source) else source_len
-        )
         chunk.end_char_offset = (
-            norm_to_source[end - 1] + 1 if 0 < end <= len(norm_to_source) else source_len
+            norm_map.to_source(end - 1, source_len) + 1 if end > 0 else source_len
         )
 
 
