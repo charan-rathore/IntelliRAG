@@ -151,6 +151,25 @@ class PostgresDocumentRepository:
             cur.execute(query, {"document_id": str(document_id)})
             return cur.fetchone()
 
+    def lock_document(
+        self,
+        document_id: UUID,
+        conn: psycopg.Connection,
+    ) -> None:
+        """Row-lock the document for the duration of the transaction.
+
+        Serializes concurrent version transitions for the same document:
+        without it, two workers ingesting different payloads can both pass
+        the duplicate check, and the loser's deactivation plus its
+        conflict-skipped insert commits zero active versions. No-op for
+        documents that do not exist yet.
+        """
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT document_id FROM documents WHERE document_id = %(document_id)s FOR UPDATE",
+                {"document_id": str(document_id)},
+            )
+
     def get_version_by_hash(
         self,
         document_id: UUID,
