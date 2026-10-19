@@ -13,12 +13,35 @@ from .models import RetrievedChunk, RetrievalResult
 
 logger = logging.getLogger(__name__)
 
-TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+# Unicode-aware: letters and digits from ANY script form word tokens, so
+# "München" stays one token instead of splitting into ["m", "nchen"].
+TOKEN_PATTERN = re.compile(r"[^\W_]+")
+
+# Han ideographs and Japanese kana are not space-separated, so a run of them
+# cannot rely on word boundaries. Hangul is space-separated and stays a word.
+_CJK_CHAR = re.compile(
+    r"[\u3040-\u309f\u30a0-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]"
+)
 
 
 def tokenize(text: str) -> List[str]:
-    """Lowercase alphanumeric tokenization."""
-    return TOKEN_PATTERN.findall(text.lower())
+    """Casefolded, unicode-aware tokenization.
+
+    Word scripts produce whole-word tokens ("München" -> ["münchen"]).
+    CJK runs additionally emit each character (words there carry meaning per
+    character and are not space-separated), so a single-ideograph query can
+    still match, plus the whole run so exact phrases score highest.
+    """
+    tokens: List[str] = []
+    for match in TOKEN_PATTERN.finditer(text.casefold()):
+        word = match.group(0)
+        if _CJK_CHAR.search(word):
+            if len(word) > 1:
+                tokens.append(word)
+            tokens.extend(word)
+        else:
+            tokens.append(word)
+    return tokens
 
 
 class BM25Index:
