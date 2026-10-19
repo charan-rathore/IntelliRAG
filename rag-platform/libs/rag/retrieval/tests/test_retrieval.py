@@ -13,6 +13,8 @@ import pytest
 from libs.rag.evaluation.models import EvaluationDataset, EvaluationSample
 from libs.rag.evaluation.retrieval_benchmark import (
     RetrievalBenchmark,
+    RetrievalEvalSample,
+    _is_relevant,
     mrr,
     ndcg_at_k,
     precision_at_k,
@@ -73,6 +75,48 @@ CORPUS = [
 class TestTokenize:
     def test_basic(self):
         assert tokenize("Hello World 123") == ["hello", "world", "123"]
+
+
+
+
+class TestTokenizeUnicode:
+    def test_accented_word_stays_whole(self):
+        assert tokenize("München") == ["münchen"]
+
+    def test_casefold_maps_sharp_s(self):
+        assert tokenize("Straße") == ["strasse"]
+
+    def test_cjk_text_produces_tokens(self):
+        tokens = tokenize("東京")
+        assert "東" in tokens
+        assert "京" in tokens
+        assert "東京" in tokens
+
+    def test_bm25_finds_cjk_document(self):
+        index = BM25Index([("doc-1", "東京は日本の首都です")])
+        results = index.search("東京", top_k=1)
+        assert [r[0] for r in results] == ["doc-1"]
+
+    def test_bm25_finds_accented_document(self):
+        index = BM25Index(
+            [("doc-1", "München ist eine Stadt"), ("doc-2", "Berlin ist eine Stadt")]
+        )
+        results = index.search("München", top_k=1)
+        assert results[0][0] == "doc-1"
+
+
+class TestIsRelevantEmptyText:
+    def test_missing_chunk_text_is_not_a_relevant_hit(self):
+        sample = RetrievalEvalSample(
+            question="q",
+            relevant_chunk_ids=set(),
+            relevant_texts=["alpha is the source context"],
+        )
+        assert _is_relevant("missing-text-chunk", "", sample) is False
+
+    def test_missing_chunk_text_still_counts_by_id(self):
+        sample = RetrievalEvalSample(question="q", relevant_chunk_ids={"c1"})
+        assert _is_relevant("c1", "", sample) is True
 
 
 class TestBM25Index:
