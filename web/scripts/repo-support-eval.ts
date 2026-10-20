@@ -70,9 +70,9 @@ const pack = (ids: string[]) => {
   return ids.filter(id => { const n = byId.get(id)!.chunk.token_count; if (tokens + n > 1400) return false; tokens += n; return true; });
 };
 type Evidence = { quote: string; start: number; end: number; line: number };
-function metrics(ids: string[], gold: Evidence[]) {
+function metrics(ids: string[], gold: Evidence[], texts?: Map<string, string>) {
   if (!gold.length) return { evidenceRecall: null, completeEvidence: null, reciprocalRank: null, evidencePrecision: null };
-  const covers = (id: string, e: Evidence) => normalize(byId.get(id)!.chunk.text).includes(normalize(e.quote));
+  const covers = (id: string, e: Evidence) => normalize(texts?.get(id) ?? byId.get(id)!.chunk.text).includes(normalize(e.quote));
   const found = gold.filter(e => ids.some(id => covers(id, e))).length;
   const first = ids.findIndex(id => gold.some(e => covers(id, e)));
   return { evidenceRecall: found / gold.length, completeEvidence: Number(found === gold.length),
@@ -120,7 +120,7 @@ for (const [index, item] of dataset.cases.entries()) {
   const row: any = existing ?? { id: item.id, split: item.split, category: item.category, answerable: item.answerable,
     question: item.question, requiredClaims: item.requiredClaims, evidence: item.evidence,
     bm25: { ids: baselineIds, metrics: metrics(baselineIds, item.evidence), wallMs: baselineMs },
-    intellirag: { ids, metrics: metrics(ids, item.evidence), gate: result.evidenceGate, tokens: result.contextTokens,
+    intellirag: { ids, metrics: metrics(ids, item.evidence, new Map(result.chunks.map(c => [c.chunkId, c.text]))), gate: result.evidenceGate, tokens: result.contextTokens,
       stages: { keywordMs: result.keywordMs, rerankMs: result.rerankMs, assembleMs: result.assembleMs }, candidates: result.candidates },
     oracle: { ids: oracle, metrics: metrics(oracle, item.evidence) } };
   if (!existing) report.results.push(row); save();

@@ -12,6 +12,7 @@ import {
   selectContext,
 } from "./ranking";
 import { classifyEvidence } from "./evidence";
+import { compactContext } from "./compact";
 import { BM25Index } from "./bm25";
 import { overlapTerms } from "./trace";
 import type {
@@ -131,6 +132,8 @@ export function retrieveFromRows(opts: {
   preferredSlugs?: string[];
   graphPathCosts?: Map<string, number>;
   corpusScope?: CorpusScope;
+  /** Optional token-saving mode for passage packing; see compactContext. Default 0 fills the budget. */
+  compactMinUnitShare?: number;
 }): RetrieveResult {
   const scope = opts.corpusScope ?? { kind: "corpus", corpusId: SEED_CORPUS_ID };
   const scopedRows =
@@ -255,7 +258,21 @@ export function retrieveFromRows(opts: {
     signals,
     denseRank1Slug: denseSlugRanks[0]?.slug ?? null,
   });
-  const gatedPacked = evidence.kind === "insufficient" ? [] : packed;
+  // Same documents the gate approved, but packed as the best passages instead of whole chunks.
+  const packedSlugs = new Set(packed.map((c) => c.slug));
+  const gatedPacked =
+    evidence.kind === "insufficient"
+      ? []
+      : compactContext({
+          query,
+          terms,
+          idf,
+          ranked: ranked.filter((c) => packedSlugs.has(c.slug)),
+          keywordScores,
+          denseScores,
+          maxTokens: CONTEXT_TOKEN_BUDGET,
+          minUnitShare: opts.compactMinUnitShare,
+        });
   const gatedIds = new Set(gatedPacked.map((c) => c.chunkId));
   if (evidence.kind === "insufficient") {
     for (const c of packed) {

@@ -1,0 +1,955 @@
+{
+ "version": "multi-repo-1",
+ "sources": {
+  "chalk": {
+   "file": "fixtures/chalk.md",
+   "repo": "chalk/chalk",
+   "commit": "47fc05abd46171b235e24174cd2dba83d25bf037",
+   "sha256": "83afc9420595c1f7bb4ad5e13c2d77614676983f3df1e58acbb6985ed6a2ad7b",
+   "split": "development"
+  },
+  "p-retry": {
+   "file": "fixtures/p-retry.md",
+   "repo": "sindresorhus/p-retry",
+   "commit": "1472907affe8d6107aba5884abc36d6361b3042e",
+   "sha256": "c82039fad81447e4d0ad2233800a297cf5d7349708f58b030df46b811d8739d7",
+   "split": "development"
+  },
+  "ky": {
+   "file": "fixtures/ky.md",
+   "repo": "sindresorhus/ky",
+   "commit": "0d59458a0a58e1c3d7c6db0ab17ed5c7cd671e47",
+   "sha256": "f53cf9ddc6a4d74ed0cc2ae397c0440c0849380fb292f46411ac52c21d8e0013",
+   "split": "development"
+  },
+  "commander": {
+   "file": "fixtures/commander.js.md",
+   "repo": "tj/commander.js",
+   "commit": "ba6d13ddb4243e5913367734f8c159089ffe7834",
+   "sha256": "e219aeefbaea202ffb39b94a50812a4a2e69e91b67db3a5e39f3e0eeae2d7686",
+   "split": "development"
+  },
+  "p-map": {
+   "file": "fixtures/p-map.md",
+   "repo": "sindresorhus/p-map",
+   "commit": "2c0934b8312b637f933b752c6054845c2d2d5533",
+   "sha256": "d8f2c0a3cecf0c6db268f05f5467c6974fdf4b0c66295f636f8fb3b61e45adc6",
+   "split": "holdout"
+  },
+  "uuid": {
+   "file": "fixtures/uuid.md",
+   "repo": "uuidjs/uuid",
+   "commit": "dd8c173521bb3faacb11ff244233df4a0dcde545",
+   "sha256": "7916cc8c955d5a11f806e0550b2591cb8198717d6c9ad948f33ed4098dff326d",
+   "split": "holdout"
+  }
+ },
+ "cases": [
+  {
+   "id": "chalk:colors-piped",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "My CLI prints no colors when its output is piped. How can I force colors on?",
+   "evidence": [
+    {
+     "quote": "use the environment variable `FORCE_COLOR=1` (level 1)"
+    }
+   ]
+  },
+  {
+   "id": "chalk:conflict",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "What happens if I chain two conflicting colors?",
+   "evidence": [
+    {
+     "quote": "later styles take precedent in case of a conflict"
+    }
+   ]
+  },
+  {
+   "id": "chalk:own-instance",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I turn colors off inside my own library without changing every other package that uses this?",
+   "evidence": [
+    {
+     "quote": "You should however only do this in your own code as it applies globally to all Chalk consumers."
+    },
+    {
+     "quote": "create a new instance:"
+    }
+   ]
+  },
+  {
+   "id": "chalk:stderr",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "Can I detect color support for the error stream instead of normal output?",
+   "evidence": [
+    {
+     "quote": "`chalkStderr` contains a separate instance configured with color support detected for `stderr` stream instead of `stdout`."
+    }
+   ]
+  },
+  {
+   "id": "chalk:bad-level",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "Which values are accepted when setting the color level?",
+   "evidence": [
+    {
+     "quote": "throw for anything that is not an integer from 0 to 3"
+    }
+   ]
+  },
+  {
+   "id": "chalk:visible",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "Which style shows text only when colors are enabled?",
+   "evidence": [
+    {
+     "quote": "Print the text only when Chalk has a color level above zero."
+    }
+   ]
+  },
+  {
+   "id": "chalk:esm",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "Will this work in my TypeScript project, or is it ESM only?",
+   "evidence": [
+    {
+     "quote": "Chalk 5 is ESM"
+    }
+   ]
+  },
+  {
+   "id": "chalk:validate-names",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "How can I check if a style name is valid before wrapping the library?",
+   "evidence": [
+    {
+     "quote": "All supported style strings are exposed as an array of strings for convenience."
+    }
+   ]
+  },
+  {
+   "id": "chalk:downsample",
+   "source": "chalk",
+   "split": "development",
+   "answerable": true,
+   "question": "What happens to a truecolor value on a terminal that only supports basic colors?",
+   "evidence": [
+    {
+     "quote": "Colors are downsampled from 16 million RGB values to an ANSI color format that is supported by the terminal emulator"
+    }
+   ]
+  },
+  {
+   "id": "chalk:unans1",
+   "source": "chalk",
+   "split": "development",
+   "answerable": false,
+   "question": "Does chalk have a Python or Rust port maintained by the same team?",
+   "evidence": []
+  },
+  {
+   "id": "chalk:unans2",
+   "source": "chalk",
+   "split": "development",
+   "answerable": false,
+   "question": "What is the pricing for a chalk enterprise license?",
+   "evidence": []
+  },
+  {
+   "id": "p-retry:abort-now",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I stop retrying immediately for an error that will never succeed, like a 404?",
+   "evidence": [
+    {
+     "quote": "Abort retrying and reject the promise. No callback functions will be called."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:typeerror",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "Why does it stop retrying when my code throws a TypeError?",
+   "evidence": [
+    {
+     "quote": "Non-network `TypeError`s always abort retries, even if `shouldConsumeRetry` or `shouldRetry` would otherwise allow another attempt."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:default-retries",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "How many times does it retry if I set nothing?",
+   "evidence": [
+    {
+     "quote": "The maximum amount of times to retry the operation. Must be a non-negative integer or `Infinity`."
+    },
+    {
+     "quote": "Default: `10`"
+    }
+   ]
+  },
+  {
+   "id": "p-retry:rate-limit-free",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "Can I make rate limit errors not count against my retry budget?",
+   "evidence": [
+    {
+     "quote": "Decide if this failure should consume a retry from the `retries` budget."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:callback-order",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "In what order are the shouldConsumeRetry, onFailedAttempt and shouldRetry callbacks called?",
+   "evidence": [
+    {
+     "quote": "The function is called _after_ `shouldConsumeRetry` and _before_ `shouldRetry`, for all errors _except_ `AbortError`."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:sigint",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I stop retries when the user presses Ctrl+C?",
+   "evidence": [
+    {
+     "quote": "The package does not handle process signals itself to avoid global side effects."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:jitter",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "Is there a way to spread out the retry timings randomly?",
+   "evidence": [
+    {
+     "quote": "Randomizes the timeouts by multiplying with a factor between 1 and 2."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:keep-alive",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "My retry timers keep the Node process from exiting. What option fixes that?",
+   "evidence": [
+    {
+     "quote": "Prevents retry timeouts from keeping the process alive."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:wrap",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I wrap a function once so every call is retried?",
+   "evidence": [
+    {
+     "quote": "Wrap a function so that each call is automatically retried on failure."
+    }
+   ]
+  },
+  {
+   "id": "p-retry:args",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I pass arguments to the function being retried?",
+   "evidence": [
+    {
+     "quote": "You can pass arguments to the function being retried by wrapping it in an inline arrow function:"
+    }
+   ]
+  },
+  {
+   "id": "p-retry:unans1",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": false,
+   "question": "How do I configure p-retry to store failed attempts in a Redis queue?",
+   "evidence": []
+  },
+  {
+   "id": "p-retry:unans2",
+   "source": "p-retry",
+   "split": "development",
+   "answerable": false,
+   "question": "What is the monthly download count of p-retry on PyPI?",
+   "evidence": []
+  },
+  {
+   "id": "ky:post-retry",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "Will a failed POST request get retried automatically?",
+   "evidence": [
+    {
+     "quote": "`methods`: `get` `put` `head` `delete` `options` `trace` `query`"
+    }
+   ]
+  },
+  {
+   "id": "ky:delay",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "How long does it wait between retry attempts by default?",
+   "evidence": [
+    {
+     "quote": "By default, the delay is calculated with `0.3 * (2 ** (attemptCount - 1)) * 1000`."
+    }
+   ]
+  },
+  {
+   "id": "ky:thundering",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "How can I stop many clients from retrying at the same moment after a rate limit?",
+   "evidence": [
+    {
+     "quote": "The `jitter` option adds random jitter to retry delays to prevent thundering herd problems."
+    }
+   ]
+  },
+  {
+   "id": "ky:timeout-retry",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "Why was a request that timed out not retried?",
+   "evidence": [
+    {
+     "quote": "The `retryOnTimeout` option determines whether to retry when a request times out before a response is returned."
+    }
+   ]
+  },
+  {
+   "id": "ky:total-timeout",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "Is there a single time limit that covers all the retries together?",
+   "evidence": [
+    {
+     "quote": "Overall timeout in milliseconds for the entire operation, including retries and delays."
+    }
+   ]
+  },
+  {
+   "id": "ky:per-attempt",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "What is the default timeout for one attempt?",
+   "evidence": [
+    {
+     "quote": "Per-attempt timeout in milliseconds for getting a response, applied independently to each retry."
+    }
+   ]
+  },
+  {
+   "id": "ky:max-size",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "How can I refuse huge response bodies?",
+   "evidence": [
+    {
+     "quote": "Maximum response body size in bytes."
+    }
+   ]
+  },
+  {
+   "id": "ky:json-header",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "If I send json and also set my own Content-Type header, which one is used?",
+   "evidence": [
+    {
+     "quote": "unless you set a `Content-Type` in the `headers` option, which always takes precedence."
+    }
+   ]
+  },
+  {
+   "id": "ky:retry-after",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "What if the server asks me to wait longer than my allowed maximum?",
+   "evidence": [
+    {
+     "quote": "If the retry delay from a retry timing header is greater than `maxRetryAfter`, Ky will use `maxRetryAfter`."
+    }
+   ]
+  },
+  {
+   "id": "ky:init-sync",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "Are errors thrown in the init hook caught by the beforeError hook?",
+   "evidence": [
+    {
+     "quote": "Unlike other hooks, `init` hooks are synchronous."
+    }
+   ]
+  },
+  {
+   "id": "ky:trailing-slash",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "Should my base URL path end with a slash?",
+   "evidence": [
+    {
+     "quote": "we recommend that it include a trailing slash `/`"
+    }
+   ]
+  },
+  {
+   "id": "ky:body-clone",
+   "source": "ky",
+   "split": "development",
+   "answerable": true,
+   "question": "What happens to a streaming request body when retries are enabled?",
+   "evidence": [
+    {
+     "quote": "Ky clones the request body before each attempt using"
+    }
+   ]
+  },
+  {
+   "id": "ky:unans1",
+   "source": "ky",
+   "split": "development",
+   "answerable": false,
+   "question": "Does ky ship a built-in GraphQL client with caching?",
+   "evidence": []
+  },
+  {
+   "id": "ky:unans2",
+   "source": "ky",
+   "split": "development",
+   "answerable": false,
+   "question": "What is the SLA for ky security patch releases?",
+   "evidence": []
+  },
+  {
+   "id": "commander:combine-short",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "Can I write several short flags together in one argument?",
+   "evidence": [
+    {
+     "quote": "Multiple boolean short options may be combined following the dash, and may be followed by a single short option taking a value."
+    }
+   ]
+  },
+  {
+   "id": "commander:greedy",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "Why did my option swallow the next flag as its value?",
+   "evidence": [
+    {
+     "quote": "Options with an expected option-argument are greedy and will consume the following argument whatever the value."
+    }
+   ]
+  },
+  {
+   "id": "commander:negatable",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I make a flag that is on by default but can be switched off?",
+   "evidence": [
+    {
+     "quote": "You can define a boolean option long name with a leading `no-` to set the option value to `false` when used."
+    }
+   ]
+  },
+  {
+   "id": "commander:camel",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I read an option written as --template-engine in code?",
+   "evidence": [
+    {
+     "quote": "Multi-word options like `--template-engine` are normalized to camelCase option names"
+    }
+   ]
+  },
+  {
+   "id": "commander:unknown",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I stop it from erroring on options I did not declare?",
+   "evidence": [
+    {
+     "quote": "You can suppress the unknown option check with `.allowUnknownOption()`."
+    }
+   ]
+  },
+  {
+   "id": "commander:async",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "My action handler is async. What do I call instead of parse?",
+   "evidence": [
+    {
+     "quote": "You may supply an `async` action handler, in which case you call `.parseAsync()` rather than `.parse()`."
+    }
+   ]
+  },
+  {
+   "id": "commander:default-sub",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I run a subcommand when the user types none?",
+   "evidence": [
+    {
+     "quote": "Specifying `isDefault: true` will run the subcommand if no other"
+    }
+   ]
+  },
+  {
+   "id": "commander:footer",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "How do I add a footer to the help of every subcommand?",
+   "evidence": [
+    {
+     "quote": "`afterAll`: add to the program for a global footer (epilog)"
+    }
+   ]
+  },
+  {
+   "id": "commander:addcommand",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "A subcommand I attached lost my parent's settings. Why?",
+   "evidence": [
+    {
+     "quote": "For safety, `.addCommand()` does not automatically copy the inherited settings from the parent command."
+    }
+   ]
+  },
+  {
+   "id": "commander:executables",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "Where does it look for stand-alone executable subcommands?",
+   "evidence": [
+    {
+     "quote": "Commander will search the files in the directory of the entry script for a file with the name combination `command-subcommand`"
+    }
+   ]
+  },
+  {
+   "id": "commander:help-stderr",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "How can I print help to stderr without quitting?",
+   "evidence": [
+    {
+     "quote": "`.outputHelp()`: output help information without exiting."
+    }
+   ]
+  },
+  {
+   "id": "commander:variadic-stop",
+   "source": "commander",
+   "split": "development",
+   "answerable": true,
+   "question": "When does a variadic option stop reading values?",
+   "evidence": [
+    {
+     "quote": "are read until the first argument starting with a dash."
+    }
+   ]
+  },
+  {
+   "id": "commander:unans1",
+   "source": "commander",
+   "split": "development",
+   "answerable": false,
+   "question": "How do I deploy a commander program as an AWS Lambda layer?",
+   "evidence": []
+  },
+  {
+   "id": "commander:unans2",
+   "source": "commander",
+   "split": "development",
+   "answerable": false,
+   "question": "Which license tier removes the commander telemetry?",
+   "evidence": []
+  },
+  {
+   "id": "p-map:vs-all",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "How is this different from Promise.all?",
+   "evidence": [
+    {
+     "quote": "you can control the concurrency and also decide whether or not to stop iterating when there's an error."
+    }
+   ]
+  },
+  {
+   "id": "p-map:order",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "In what order do the results come back?",
+   "evidence": [
+    {
+     "quote": "The fulfilled value is an `Array` of the fulfilled values returned from `mapper` in `input` order."
+    }
+   ]
+  },
+  {
+   "id": "p-map:collect-errors",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "How do I keep going after a failure and get every error at the end?",
+   "evidence": [
+    {
+     "quote": "it will wait for all the promises to settle and then reject with an"
+    }
+   ]
+  },
+  {
+   "id": "p-map:error-order",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "In what order are the errors listed in the aggregate error?",
+   "evidence": [
+    {
+     "quote": "The errors are listed in the order of the input, not in the order the promises happened to settle in"
+    }
+   ]
+  },
+  {
+   "id": "p-map:concurrency",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "What does the concurrency setting control?",
+   "evidence": [
+    {
+     "quote": "Number of concurrently pending promises returned by `mapper`."
+    }
+   ]
+  },
+  {
+   "id": "p-map:slow-consumer",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "My consumer is slower than the mapper and I am flooding my database. What limits that?",
+   "evidence": [
+    {
+     "quote": "Maximum number of promises returned by `mapper` that have resolved but not yet collected by the consumer of the async iterable."
+    }
+   ]
+  },
+  {
+   "id": "p-map:skip",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "How can I leave an item out of the results?",
+   "evidence": [
+    {
+     "quote": "Return this value from a `mapper` function to skip including the value in the returned array."
+    }
+   ]
+  },
+  {
+   "id": "p-map:rate-limit",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "How do I limit how often calls start, not just how many run at once?",
+   "evidence": [
+    {
+     "quote": "compose it with a rate limiter like"
+    }
+   ]
+  },
+  {
+   "id": "p-map:slow-element",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "One slow element holds up everything after it in the stream. What can I do?",
+   "evidence": [
+    {
+     "quote": "A slow element then no longer holds back the results after it"
+    }
+   ]
+  },
+  {
+   "id": "p-map:endless",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "What should I do when my input source never ends?",
+   "evidence": [
+    {
+     "quote": "Give such a source a finite `concurrency`."
+    }
+   ]
+  },
+  {
+   "id": "p-map:after-reject",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Do the mappers that already started keep running once one rejects?",
+   "evidence": [
+    {
+     "quote": "any already-started async mappers will continue to run until they resolve or reject."
+    }
+   ]
+  },
+  {
+   "id": "p-map:async-input",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Can the input be an async iterable?",
+   "evidence": [
+    {
+     "quote": "Synchronous or asynchronous iterable that is iterated over concurrently"
+    }
+   ]
+  },
+  {
+   "id": "p-map:unans1",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": false,
+   "question": "How do I run p-map mappers inside a Kubernetes cronjob?",
+   "evidence": []
+  },
+  {
+   "id": "p-map:unans2",
+   "source": "p-map",
+   "split": "holdout",
+   "answerable": false,
+   "question": "Does p-map include a built-in circuit breaker for failing hosts?",
+   "evidence": []
+  },
+  {
+   "id": "uuid:cjs",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Can I still use require() with the latest major version?",
+   "evidence": [
+    {
+     "quote": "Starting with `uuid@12` CommonJS is no longer supported."
+    }
+   ]
+  },
+  {
+   "id": "uuid:sortable",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Which function gives me ids that sort by creation time?",
+   "evidence": [
+    {
+     "quote": "Generate a version 7 (Unix Epoch time-based) UUID"
+    }
+   ]
+  },
+  {
+   "id": "uuid:no-v8",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Why is there no function for version 8?",
+   "evidence": [
+    {
+     "quote": "The RFC does not define a creation algorithm for them, which is why this package does not offer a `v8()` method."
+    }
+   ]
+  },
+  {
+   "id": "uuid:version-nil",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "What number does version() give for the all-zero id?",
+   "evidence": [
+    {
+     "quote": "This method returns `0` for the `NIL` UUID, and `15` for the `MAX` UUID."
+    }
+   ]
+  },
+  {
+   "id": "uuid:react-native",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "I get an error about random values on React Native. How do I fix it?",
+   "evidence": [
+    {
+     "quote": "Import it _before_ `uuid`."
+    }
+   ]
+  },
+  {
+   "id": "uuid:md5",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Which function creates the MD5 name-based id?",
+   "evidence": [
+    {
+     "quote": "Create an RFC version 3 (namespace w/ MD5) UUID"
+    }
+   ]
+  },
+  {
+   "id": "uuid:url-namespace",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "How do I get a stable id derived from a URL?",
+   "evidence": [
+    {
+     "quote": "The RFC `DNS` and `URL` namespaces are available as `v5.DNS` and `v5.URL`."
+    }
+   ]
+  },
+  {
+   "id": "uuid:only-v4",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "How can I check that a string is a valid v4 only?",
+   "evidence": [
+    {
+     "quote": "Using `validate` and `version` together it is possible to do per-version validation"
+    }
+   ]
+  },
+  {
+   "id": "uuid:options-state",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Does passing options change the uniqueness behaviour of timestamp ids?",
+   "evidence": [
+    {
+     "quote": "With `options`: Internal state is **NOT** used and, instead, appropriate defaults are applied as needed."
+    }
+   ]
+  },
+  {
+   "id": "uuid:node-support",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "Which Node versions are tested?",
+   "evidence": [
+    {
+     "quote": "plus one prior."
+    }
+   ]
+  },
+  {
+   "id": "uuid:too-fast",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "What error is thrown when ids are generated too quickly?",
+   "evidence": [
+    {
+     "quote": "`Error` if more than 10M UUIDs/sec are requested"
+    }
+   ]
+  },
+  {
+   "id": "uuid:byte-order",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": true,
+   "question": "How are bytes ordered in the parsed array?",
+   "evidence": [
+    {
+     "quote": "follows the left &Rarr; right order of hex-pairs in UUID strings"
+    }
+   ]
+  },
+  {
+   "id": "uuid:unans1",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": false,
+   "question": "How do I generate ULIDs with this package?",
+   "evidence": []
+  },
+  {
+   "id": "uuid:unans2",
+   "source": "uuid",
+   "split": "holdout",
+   "answerable": false,
+   "question": "What is the maximum number of UUIDs stored in the built-in database?",
+   "evidence": []
+  }
+ ]
+}
