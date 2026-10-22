@@ -126,7 +126,13 @@ export const GENERIC_OPS_TERMS = new Set([
 ]);
 
 export function tokenize(text: string): string[] {
-  return text.toLowerCase().match(TOKEN_PATTERN) ?? [];
+  // NFC first: decomposed input ("München" as u + combining diaeresis, the
+  // NFD form PDF extractors and macOS emit) otherwise splits at the mark and
+  // a composed-form query never matches it. Same word, same tokens.
+  // Pure-ASCII text cannot change under NFC (every combining mark is
+  // non-ASCII), so the common case skips the normalization scan.
+  const prepared = /[\u0080-\uFFFF]/.test(text) ? text.normalize("NFC") : text;
+  return prepared.toLowerCase().match(TOKEN_PATTERN) ?? [];
 }
 
 export function stemToken(token: string): string {
