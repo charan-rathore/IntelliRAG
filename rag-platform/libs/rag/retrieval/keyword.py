@@ -193,7 +193,7 @@ class BM25Index:
             for term in set(tokens):
                 self.doc_freq[term] = self.doc_freq.get(term, 0) + 1
 
-    def search(self, query: str, top_k: int = 10) -> List[Tuple[str, str, float]]:
+    def search(self, query: str, top_k: Optional[int] = 10) -> List[Tuple[str, str, float]]:
         """Return top-k (chunk_id, text, score) tuples."""
         if self.total_docs == 0:
             return []
@@ -209,7 +209,7 @@ class BM25Index:
                 scores.append((doc_idx, score))
 
         scores.sort(key=lambda x: x[1], reverse=True)
-        if top_k:
+        if top_k is not None:
             scores = scores[:top_k]
         results = []
         for doc_idx, score in scores:
@@ -271,7 +271,7 @@ class KeywordRetriever:
             # Score every candidate before filtering: truncating to an
             # unfiltered top-k window first can drop all matching chunks
             # when they rank below it.
-            results = self._index.search(query, top_k=0)
+            results = self._index.search(query, top_k=None)
             results = [
                 item for item in results
                 if self._matches_filter(item[0], filter_metadata)
