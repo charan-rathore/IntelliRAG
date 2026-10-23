@@ -235,6 +235,22 @@ class TestKeywordRetriever:
         assert len(result.chunks) >= 1
         assert result.chunks[0].chunk_id == "chunk-2"
 
+    def test_filtered_retrieve_scans_beyond_unfiltered_window(self):
+        # top_k * 4 = 8 unfiltered candidates; the two chunks matching the
+        # filter rank below that window by BM25 (longer docs score lower),
+        # so truncating before filtering would drop them entirely.
+        chunks = [(f"short-{i}", "alpha") for i in range(8)]
+        chunks += [
+            ("long-1", "alpha " + " ".join(f"pad{i}" for i in range(30))),
+            ("long-2", "alpha " + " ".join(f"extra{i}" for i in range(30))),
+        ]
+        metadata = {cid: {"lang": "en"} for cid, _ in chunks}
+        metadata["long-1"] = {"lang": "de"}
+        metadata["long-2"] = {"lang": "de"}
+        retriever = KeywordRetriever(chunks, chunk_metadata=metadata)
+        result = retriever.retrieve("alpha", top_k=2, filter_metadata={"lang": "de"})
+        assert {c.chunk_id for c in result.chunks} == {"long-1", "long-2"}
+
 
 class TestDenseRetriever:
     def test_retrieve(self):

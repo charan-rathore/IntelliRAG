@@ -209,8 +209,10 @@ class BM25Index:
                 scores.append((doc_idx, score))
 
         scores.sort(key=lambda x: x[1], reverse=True)
+        if top_k:
+            scores = scores[:top_k]
         results = []
-        for doc_idx, score in scores[:top_k]:
+        for doc_idx, score in scores:
             results.append((self.chunk_ids[doc_idx], self.texts[doc_idx], score))
         return results
 
@@ -265,12 +267,17 @@ class KeywordRetriever:
     ) -> RetrievalResult:
         """Retrieve top-k chunks by BM25 score."""
         start = time.time()
-        results = self._index.search(query, top_k=top_k * 4 if filter_metadata else top_k)
         if filter_metadata:
+            # Score every candidate before filtering: truncating to an
+            # unfiltered top-k window first can drop all matching chunks
+            # when they rank below it.
+            results = self._index.search(query, top_k=0)
             results = [
                 item for item in results
                 if self._matches_filter(item[0], filter_metadata)
             ][:top_k]
+        else:
+            results = self._index.search(query, top_k=top_k)
         latency_ms = (time.time() - start) * 1000
 
         retrieved = [
