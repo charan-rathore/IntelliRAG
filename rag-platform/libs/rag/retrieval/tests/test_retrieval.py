@@ -228,6 +228,19 @@ class TestBM25Index:
 
 
 class TestKeywordRetriever:
+    @pytest.mark.parametrize("metadata_filter", [None, {"lang": "en"}])
+    def test_zero_limit_returns_no_matches(self, metadata_filter):
+        retriever = KeywordRetriever(
+            [("one", "alpha")], chunk_metadata={"one": {"lang": "en"}}
+        )
+        result = retriever.retrieve("alpha", top_k=0, filter_metadata=metadata_filter)
+        assert result.chunks == []
+        assert result.total_candidates == 0
+
+    def test_index_zero_limit_is_not_unlimited(self):
+        index = BM25Index([("one", "alpha")])
+        assert index.search("alpha", top_k=0) == []
+
     def test_retrieve(self):
         retriever = KeywordRetriever(CORPUS)
         result = retriever.retrieve("resource fragmentation nodes", top_k=2)
