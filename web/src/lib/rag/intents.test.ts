@@ -37,6 +37,25 @@ describe("intents", () => {
   it("still treats greetings as guide intents", () => {
     assert.equal(classifyIntent("hello"), "greeting");
   });
+
+  it("treats corpus questions containing the word 'help' as document questions", () => {
+    // "help" mid-question is a verb about the corpus, not a request for app help;
+    // classifying it as capability skips retrieval and returns the static guide.
+    assert.equal(classifyIntent("Does the Redis runbook help with cache stampedes?"), "document");
+    assert.equal(classifyIntent("What does the Kubernetes guide say will help pending pods?"), "document");
+  });
+
+  it("still treats a bare help request as a capability question", () => {
+    assert.equal(classifyIntent("help"), "capability");
+    assert.equal(classifyIntent("help me"), "capability");
+    assert.equal(classifyIntent("help?"), "capability");
+    assert.equal(classifyIntent("help me?"), "capability");
+  });
+
+  it("still treats assistant-meta questions as capability questions", () => {
+    assert.equal(classifyIntent("what can you do"), "capability");
+    assert.equal(classifyIntent("What are you?"), "capability");
+  });
 });
 
 describe("evidence", () => {

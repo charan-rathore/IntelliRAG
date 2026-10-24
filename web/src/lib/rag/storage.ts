@@ -89,6 +89,15 @@ export function getStorageStatus(): StorageStatus {
 }
 
 export function pgliteDataDir(): string {
+  // Test isolation: node:test runs test files in parallel worker processes
+  // and PGlite is a single-writer embedded database, so workers sharing one
+  // data directory corrupt each other's catalog. Test files import
+  // testing/isolated-pglite-dir.mjs first, which sets this per-process
+  // global to a private directory. Production never sets it, so production
+  // paths are unchanged.
+  const testDir = (globalThis as { __intelliragPgliteTestDir?: string })
+    .__intelliragPgliteTestDir;
+  if (testDir) return testDir;
   if (isServerlessRuntime()) return "/tmp/intellirag-pglite";
   return `${safeCwd()}/.data/pglite`;
 }
