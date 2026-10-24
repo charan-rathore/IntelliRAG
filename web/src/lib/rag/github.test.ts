@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   filterGithubTree,
+  listGithubFiles,
   parseGithubUrl,
   shouldIngestGithubPath,
 } from "./github.ts";
@@ -49,6 +50,54 @@ describe("GitHub file filters", () => {
       files.map((f) => f.path).sort(),
       ["README.md", "src/lib/rag/query.server.ts"],
     );
+  });
+});
+
+describe("repository tree truncation", () => {
+  function stubTree(body: unknown, captured: { url?: string }) {
+    const original = globalThis.fetch;
+    globalThis.fetch = async (input: unknown) => {
+      captured.url = String(input);
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    return () => {
+      globalThis.fetch = original;
+    };
+  }
+
+  it("refuses a truncated tree instead of silently importing a partial corpus", async () => {
+    // GitHub caps recursive tree responses; a truncated listing would
+    // otherwise ingest a partial corpus while claiming success.
+    const captured: { url?: string } = {};
+    const restore = stubTree(
+      { sha: "abc", truncated: true, tree: [{ path: "README.md", type: "blob", size: 100 }] },
+      captured,
+    );
+    try {
+      await assert.rejects(
+        () => listGithubFiles({ owner: "o", repo: "r", ref: "main" }),
+        /truncated.*no partial corpus was indexed/is,
+      );
+      assert.match(captured.url ?? "", /git\/trees\/main\?recursive=1$/);
+    } finally {
+      restore();
+    }
+  });
+
+  it("accepts a complete tree", async () => {
+    const restore = stubTree(
+      { sha: "abc", truncated: false, tree: [{ path: "README.md", type: "blob", size: 100 }] },
+      {},
+    );
+    try {
+      const { files } = await listGithubFiles({ owner: "o", repo: "r", ref: "main" });
+      assert.deepEqual(files.map((f) => f.path), ["README.md"]);
+    } finally {
+      restore();
+    }
   });
 });
 
