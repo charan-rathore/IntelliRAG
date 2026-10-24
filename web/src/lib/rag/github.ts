@@ -195,9 +195,19 @@ export async function listGithubFiles(opts: {
   prefix?: string;
   token?: string;
 }): Promise<{ sha: string; files: GithubTreeEntry[] }> {
-  const tree = await githubApi<{ sha: string; tree: GithubTreeEntry[] }>(
+  // GitHub truncates recursive tree responses that exceed its limit. A
+  // truncated listing silently ingests a partial corpus, so refuse loudly.
+  // Single-file blob imports fetch the raw file without the tree API, so
+  // they remain a working fallback for an over-limit repository.
+  const tree = await githubApi<{ sha: string; tree: GithubTreeEntry[]; truncated?: boolean }>(
     `/repos/${opts.owner}/${opts.repo}/git/trees/${encodeURIComponent(opts.ref)}?recursive=1`,
     opts.token,
   );
+  if (tree.truncated) {
+    throw new Error(
+      `GitHub reports the repository tree for ${opts.owner}/${opts.repo}@${opts.ref} is truncated; ` +
+        "no partial corpus was indexed. Import individual files via their blob URLs instead.",
+    );
+  }
   return { sha: tree.sha, files: filterGithubTree(tree.tree ?? [], opts.prefix ?? "") };
 }
