@@ -26,3 +26,7 @@ The test commands above are all the components of `npm test`. They were run sepa
 ## Limits
 
 The paired evaluation is the repository's single-README local retrieval battery, not a broad answer-quality or production-performance claim. No paid generation, external database, or browser/UI evaluation was performed. Deployment and live smoke checks remain separate gates after merge.
+
+## Review follow-through
+
+Codex review on PR #69 found that standalone `help?` and `help me?` had lost capability routing. The existing standalone-help control test failed with these two cases before adding `?` to the punctuation class, then all 10 intent/evidence/storage tests passed. A Node 24.22.1 diagnostic run of all RAG tests with one worker passed 196 tests without force exit. That diagnostic does not replace the parallel CI gate, which exposed shared PGLite test-storage corruption and remains under investigation.

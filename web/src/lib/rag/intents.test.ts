@@ -48,6 +48,8 @@ describe("intents", () => {
   it("still treats a bare help request as a capability question", () => {
     assert.equal(classifyIntent("help"), "capability");
     assert.equal(classifyIntent("help me"), "capability");
+    assert.equal(classifyIntent("help?"), "capability");
+    assert.equal(classifyIntent("help me?"), "capability");
   });
 
   it("still treats assistant-meta questions as capability questions", () => {

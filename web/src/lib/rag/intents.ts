@@ -4,7 +4,7 @@ const GREET = /^(hi|hey|hello|yo|sup|good (morning|afternoon|evening))\b/i;
 const CAPABILITY =
   /\b(what can you do|how does this work|capabilities|what (are|is) you)\b/i;
 /** A bare "help" utterance is a capability request; "help" inside a real question is not. */
-const HELP_REQUEST = /^help( me)?[.!]?$/i;
+const HELP_REQUEST = /^help( me)?[.!?]?$/i;
 
 /**
  * Only greetings and capability questions skip retrieval.
