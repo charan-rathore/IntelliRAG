@@ -229,16 +229,42 @@ export async function upsertDocument(input: UpsertInput) {
   };
   const existing =
     (input.sourceUri ? s.documents.find((d) => d.source_uri === input.sourceUri) : undefined) ??
-    s.documents.find((d) => d.slug === slugBase);
+    // Same rule as the durable store: slug dedup is corpus-scoped.
+    s.documents.find((d) => d.slug === slugBase && (d.corpus_id || SEED_CORPUS_ID) === corpusId);
   if (existing && existing.content_hash === hash && existing.corpus_id === corpusId) {
-    return {
-      id: existing.id,
-      slug: existing.slug,
-      version: existing.version,
-      skipped: true,
-      chunkCount: s.chunks.filter((c) => c.document_id === existing.id).length,
-      corpusId: existing.corpus_id || corpusId,
-    };
+    const docChunks = s.chunks.filter((c) => c.document_id === existing.id);
+    const sample = docChunks[0];
+    // Parity with the durable store: kind/language changes fall through to a
+    // full re-chunk; title/filepath-only changes refresh metadata in place.
+    if (sample) {
+      const wantKind = chunkOpts.kind ?? "prose";
+      const shapeChanged =
+        (sample.chunk_kind ?? "prose") !== wantKind ||
+        (wantKind === "code" && (sample.language ?? null) !== (chunkOpts.language ?? null));
+      if (!shapeChanged) {
+        const metaChanged =
+          existing.title !== input.title ||
+          (sample.filepath ?? null) !== (chunkOpts.filepath ?? null) ||
+          (sample.language ?? null) !== (chunkOpts.language ?? null);
+        if (metaChanged) {
+          existing.title = input.title;
+          existing.updated_at = nowIso();
+          for (const c of docChunks) {
+            c.filepath = chunkOpts.filepath ?? null;
+            c.language = chunkOpts.language ?? null;
+          }
+          persist();
+        }
+        return {
+          id: existing.id,
+          slug: existing.slug,
+          version: existing.version,
+          skipped: true,
+          chunkCount: docChunks.length,
+          corpusId: existing.corpus_id || corpusId,
+        };
+      }
+    }
   }
   if (existing) {
     existing.title = input.title;

@@ -132,27 +132,56 @@ async function upsertDurable(input: UpsertInput, sql: Sql) {
         select * from documents where source_uri = ${input.sourceUri} limit 1
       `
     : [];
+  // The slug fallback only dedupes within the same corpus; without the corpus
+  // filter, two unrelated sources that share a slug hint silently update each
+  // other's document and flap its body on every re-ingest.
   const existing =
     byUri[0] ??
     (
       await sql<DocumentRow>`
-        select * from documents where slug = ${slugBase} limit 1
+        select * from documents
+        where slug = ${slugBase} and coalesce(corpus_id, ${SEED_CORPUS_ID}) = ${corpusId}
+        limit 1
       `
     )[0];
 
   if (existing && existing.content_hash === hash && existing.corpus_id === corpusId) {
-    const count = await sql<{ n: number }>`
-      select count(*)::int as n from chunks where document_id = ${existing.id}
+    const chunkRows = await sql<{ id: string; filepath: string | null; language: string | null; chunk_kind: string }>`
+      select id, filepath, language, chunk_kind from chunks where document_id = ${existing.id}
     `;
-    if ((count[0]?.n ?? 0) > 0) {
-      return {
-        id: existing.id,
-        slug: existing.slug,
-        version: existing.version,
-        skipped: true,
-        chunkCount: count[0]?.n ?? 0,
-        corpusId: existing.corpus_id || corpusId,
-      };
+    const sample = chunkRows[0];
+    if (sample) {
+      // A kind/language change alters chunking output, so it must fall through
+      // to the full update path; an identical body with only new presentation
+      // metadata (title, filepath) refreshes in place without re-chunking.
+      const wantKind = input.chunkKind ?? "prose";
+      const wantLanguage = input.language ?? null;
+      const wantFilepath = input.filepath ?? null;
+      // Only code chunking consumes the language label, so a prose language
+      // change is metadata; a code language change alters chunk boundaries.
+      const shapeChanged =
+        sample.chunk_kind !== wantKind ||
+        (wantKind === "code" && (sample.language ?? null) !== wantLanguage);
+      if (!shapeChanged) {
+        const metaChanged =
+          existing.title !== input.title ||
+          (sample.filepath ?? null) !== wantFilepath ||
+          (sample.language ?? null) !== wantLanguage;
+        if (metaChanged) {
+          await sql`update documents set title = ${input.title}, updated_at = now() where id = ${existing.id}`;
+          if ((sample.filepath ?? null) !== wantFilepath || (sample.language ?? null) !== wantLanguage) {
+            await sql`update chunks set filepath = ${wantFilepath}, language = ${wantLanguage} where document_id = ${existing.id}`;
+          }
+        }
+        return {
+          id: existing.id,
+          slug: existing.slug,
+          version: existing.version,
+          skipped: true,
+          chunkCount: chunkRows.length,
+          corpusId: existing.corpus_id || corpusId,
+        };
+      }
     }
   }
 
