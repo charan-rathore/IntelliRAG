@@ -9,10 +9,7 @@
  */
 import type { QueryEvent } from "./query.server";
 
-export type QueryRun = (
-  send: (event: QueryEvent) => void,
-  signal: AbortSignal,
-) => Promise<void>;
+export type QueryRun = (send: (event: QueryEvent) => void, signal: AbortSignal) => Promise<void>;
 
 export function createQuerySseStream(
   run: QueryRun,
@@ -21,16 +18,28 @@ export function createQuerySseStream(
   const encoder = new TextEncoder();
   let closed = false;
   const abort = new AbortController();
-  const onRequestAbort = () => abort.abort();
-  if (requestSignal) {
-    if (requestSignal.aborted) abort.abort();
-    else requestSignal.addEventListener("abort", onRequestAbort, { once: true });
-  }
+  let closeOutput = () => {};
+  const onRequestAbort = () => {
+    closeOutput();
+    abort.abort();
+  };
   const detach = () => {
     requestSignal?.removeEventListener("abort", onRequestAbort);
   };
   return new ReadableStream<Uint8Array>({
     async start(controller) {
+      closeOutput = () => {
+        if (closed) return;
+        closed = true;
+        detach();
+        try {
+          controller.close();
+        } catch {
+          // A concurrent client cancel may have already closed the stream.
+        }
+      };
+      if (requestSignal?.aborted) onRequestAbort();
+      else requestSignal?.addEventListener("abort", onRequestAbort, { once: true });
       const send = (event: QueryEvent) => {
         if (closed) return;
         try {
