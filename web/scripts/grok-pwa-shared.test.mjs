@@ -38,7 +38,7 @@ test("OG placeholder color accepts six hex digits and omits invalid values", () 
   try {
     const makeTags = (site) => grokOgHeadTags({ host: "app.example.com", site, cwd });
     const valid = makeTags({ color: "#a1B2c3" }).find((tag) => tag.includes('property="og:image"'));
-    assert.match(valid, /&amp;color=a1B2c3(?:&|\")/);
+    assert.match(valid, /&amp;color=a1B2c3(?:&|")/);
 
     for (const site of [{}, { color: "red" }, { color: "" }, { color: "#abc" }]) {
       const image = makeTags(site).find((tag) => tag.includes('property="og:image"'));
