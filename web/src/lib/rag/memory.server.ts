@@ -229,7 +229,8 @@ export async function upsertDocument(input: UpsertInput) {
   };
   const existing =
     (input.sourceUri ? s.documents.find((d) => d.source_uri === input.sourceUri) : undefined) ??
-    s.documents.find((d) => d.slug === slugBase);
+    // Same rule as the durable store: slug dedup is corpus-scoped.
+    s.documents.find((d) => d.slug === slugBase && (d.corpus_id || SEED_CORPUS_ID) === corpusId);
   if (existing && existing.content_hash === hash && existing.corpus_id === corpusId) {
     const docChunks = s.chunks.filter((c) => c.document_id === existing.id);
     const sample = docChunks[0];

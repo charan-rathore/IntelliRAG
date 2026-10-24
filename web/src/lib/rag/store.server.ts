@@ -132,11 +132,16 @@ async function upsertDurable(input: UpsertInput, sql: Sql) {
         select * from documents where source_uri = ${input.sourceUri} limit 1
       `
     : [];
+  // The slug fallback only dedupes within the same corpus; without the corpus
+  // filter, two unrelated sources that share a slug hint silently update each
+  // other's document and flap its body on every re-ingest.
   const existing =
     byUri[0] ??
     (
       await sql<DocumentRow>`
-        select * from documents where slug = ${slugBase} limit 1
+        select * from documents
+        where slug = ${slugBase} and coalesce(corpus_id, ${SEED_CORPUS_ID}) = ${corpusId}
+        limit 1
       `
     )[0];
 
