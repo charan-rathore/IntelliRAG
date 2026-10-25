@@ -156,7 +156,7 @@ async function fetchText(url: string): Promise<string> {
       if (!res.ok) throw new Error(`Fetch failed (${res.status})`);
       let body = await readResponseText(res);
       assertNotPdf(body);
-      const contentType = res.headers.get("content-type") ?? "";
+      const contentType = (res.headers.get("content-type") ?? "").split(";", 1)[0]!.trim().toLowerCase();
       if (contentType.includes("text/html") || looksLikeHtml(body)) body = htmlToText(body);
       if (!body.trim()) throw new Error("Remote document was empty");
       if (body.length > MAX_BODY) throw new Error(TRUNCATION_ERROR);

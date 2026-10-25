@@ -104,3 +104,17 @@ describe("GitHub repository file names survive raw URL construction", () => {
     } finally { globalThis.fetch = original; }
   });
 });
+
+it("normalizes mixed-case HTML media types before real storage ingestion", async () => {
+ const original=globalThis.fetch;
+ const {ingestFromUrl}=await import("./ingest.server.ts");
+ const {getDocumentBySlug}=await import("./store.server.ts");
+ globalThis.fetch=async()=>new Response('<section><h1>Media type normalization</h1><p>Useful document text remains available after stripping markup and script content.</p><script>UNWANTED_PAYLOAD()</script></section>',{headers:{"Content-Type":"Text/HTML; Charset=UTF-8"}});
+ try {
+ const result=await ingestFromUrl("https://1.1.1.1/mixed-html");
+ const doc=await getDocumentBySlug(result.titles[0]!);
+ assert.ok(doc?.body.includes("Useful document"));
+ assert.ok(!doc?.body.includes("UNWANTED_PAYLOAD"),doc?.body);
+ assert.ok(!doc?.body.includes("<section>"),doc?.body);
+ } finally {globalThis.fetch=original;}
+});
