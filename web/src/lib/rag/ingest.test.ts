@@ -80,3 +80,27 @@ describe("ingestion guards", () => {
     assert.ok(!text.includes("<"), text);
   });
 });
+
+describe("GitHub repository file names survive raw URL construction", () => {
+  it("imports a tree entry containing hash, percent and spaces instead of treating them as URL syntax", async () => {
+    const original = globalThis.fetch;
+    const seen: string[] = [];
+    const body = "Repository source text must preserve special characters in file names. ".repeat(3);
+    globalThis.fetch = async (input) => {
+      const url = new URL(String(input));
+      seen.push(url.href);
+      if (url.hostname === "api.github.com" && url.pathname.endsWith("/git/trees/main")) return Response.json({ sha: "abc1234", tree: [{ path: "docs/hash#percent% space.md", type: "blob", size: body.length }] });
+      if (url.hostname === "raw.githubusercontent.com" && url.pathname === "/probe/special-paths/main/docs/hash%23percent%25%20space.md" && !url.hash) return new Response(body);
+      throw new Error(`unexpected URL ${url.href}`);
+    };
+    try {
+      const { ingestFromUrl } = await import("./ingest.server.ts");
+      const result = await ingestFromUrl("https://github.com/probe/special-paths/tree/main");
+      assert.equal(result.ingested, 1, JSON.stringify(seen));
+      assert.equal(result.skipped, 0);
+      const { getDocumentBySlug } = await import("./store.server.ts");
+      const stored = await getDocumentBySlug(result.titles[0]!);
+      assert.equal(stored?.body, body.trim());
+    } finally { globalThis.fetch = original; }
+  });
+});

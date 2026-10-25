@@ -4,6 +4,11 @@ export type GithubTarget =
   | { kind: "tree"; owner: string; repo: string; ref: string | null; path: string }
   | { kind: "repo"; owner: string; repo: string; ref: string | null };
 
+function decodeUrlSegment(value: string): string {
+  if (!value.includes("%")) return value;
+  try { return decodeURIComponent(value); } catch { return value; }
+}
+
 const SKIP_DIR = new Set([
   "node_modules",
   "dist",
@@ -84,14 +89,19 @@ export function parseGithubUrl(url: string): GithubTarget | null {
   const issue = rest.match(/^(?:issues|pull)\/(\d+)$/);
   if (issue) return { kind: "issue", owner, repo, number: Number(issue[1]) };
   const blob = rest.match(/^blob\/([^/]+)\/(.+)$/);
-  if (blob) return { kind: "blob", owner, repo, ref: blob[1]!, path: blob[2]! };
+  if (blob) return { kind: "blob", owner, repo, ref: decodeUrlSegment(blob[1]!), path: blob[2]!.split("/").map(decodeUrlSegment).join("/") };
   const tree = rest.match(/^tree\/([^/]+)(?:\/(.*))?$/);
-  if (tree) return { kind: "tree", owner, repo, ref: tree[1]!, path: tree[2] ?? "" };
+  if (tree) return { kind: "tree", owner, repo, ref: decodeUrlSegment(tree[1]!), path: (tree[2] ?? "").split("/").map(decodeUrlSegment).join("/") };
   throw new Error("Unsupported GitHub URL. Use a repository, file, tree, issue, or pull request URL.");
 }
 
 export function githubRawUrl(owner: string, repo: string, ref: string, path: string) {
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${path}`;
+  // API tree paths are decoded names, not URL fragments. Encode each path
+  // segment so #, %, spaces and non-ASCII characters reach the raw endpoint.
+  const encodedPath = /^[A-Za-z0-9_./~-]*$/.test(path)
+    ? path
+    : path.split("/").map(encodeURIComponent).join("/");
+  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(ref)}/${encodedPath}`;
 }
 
 export function languageFromPath(path: string): string | null {
