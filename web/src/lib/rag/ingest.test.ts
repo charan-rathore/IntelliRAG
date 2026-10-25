@@ -118,3 +118,10 @@ it("normalizes mixed-case HTML media types before real storage ingestion", async
  assert.ok(!doc?.body.includes("<section>"),doc?.body);
  } finally {globalThis.fetch=original;}
 });
+
+it("stores the same prioritized files from a large real repository ingest",async()=>{
+ const original=globalThis.fetch;const {ingestFromUrl}=await import('./ingest.server.ts');const {getDocumentBySlug}=await import('./store.server.ts');const {filterGithubTree}=await import('./github.ts');
+ const tree=Array.from({length:20000},(_,i)=>({path:`${i%3?'src':'docs'}/section-${(i*7919)%20000}/module-${i}.${i%7?'ts':'md'}`,type:'blob',size:200}));
+ globalThis.fetch=async(input)=>{const url=String(input);if(url.includes('/git/trees/'))return Response.json({sha:'priority-fixture-sha',tree});if(url==='https://api.github.com/repos/probe/priority')return Response.json({default_branch:'main'});if(url.startsWith('https://raw.githubusercontent.com/probe/priority/main/'))return new Response('Repository import preserves prioritized source files and all stored metadata. '.repeat(2));throw new Error(`unexpected ${url}`);};
+ try {const result=await ingestFromUrl('https://github.com/probe/priority');assert.equal(result.titles.length,48);const paths=[];for(const slug of result.titles){const doc=await getDocumentBySlug(slug);assert.ok(doc?.body.includes('Repository import preserves'));paths.push(doc?.source_uri?.split('/main/')[1]);}assert.deepEqual(paths,filterGithubTree(tree).map(e=>e.path));}finally{globalThis.fetch=original;}
+});

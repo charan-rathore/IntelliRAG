@@ -168,8 +168,10 @@ export function filterGithubTree(entries: GithubTreeEntry[], prefix = ""): Githu
     .filter((e) => (pre ? e.path === pre || e.path.startsWith(`${pre}/`) : true))
     .filter((e) => shouldIngestGithubPath(e.path))
     .filter((e) => (e.size ?? 0) <= GITHUB_MAX_FILE_BYTES)
-    .sort((a, b) => ingestPriority(a.path) - ingestPriority(b.path) || a.path.localeCompare(b.path))
-    .slice(0, GITHUB_MAX_FILES);
+    .map((entry) => ({ entry, priority: ingestPriority(entry.path) }))
+    .sort((a, b) => a.priority - b.priority || a.entry.path.localeCompare(b.entry.path))
+    .slice(0, GITHUB_MAX_FILES)
+    .map(({ entry }) => entry);
 }
 
 export async function githubApi<T>(path: string, token?: string): Promise<T> {

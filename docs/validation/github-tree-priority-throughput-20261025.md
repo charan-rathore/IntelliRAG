@@ -1,0 +1,9 @@
+# Prepare tree priorities before sorting
+
+Based on mainaa6ba77. The file-selection comparator recomputed lowercasing and extension regex priority for both paths on every sort comparison. Preparing the same priority once per eligible entry reduces repeated work without changing ordering, filters or48-filelimit.
+
+Executed7trialmedian3selectioncalls,20kentrytree:192.32msbaseline->93.45mscandidate.130mslocalbudgetREDonoldsource/GREENcandidate; notcommittedasflakyCIthreshold.50filetree500calls25.50->15.91ms.
+
+Complete48selectedentriesbyte-identicaltobaseline. Committedfingerprintcapturedbeforeoptimization. ActualingestFromUrl->isolatedPGlite storesall48expectedpathsandbodiesusingcontrolledGitHubHTTPresponses. Noexternalnetwork/deploymentclaim.
+
+213RAGtestsPASSbeforeaddingrealpathcontrol; focusedfinal10PASSincludingnewactualimportandfingerprint. Typecheck/buildPASS; lint0errors11existingwarnings. FreshactualCIincludesfinalcontrolbeforemerge. NoAPI/dependency/UI/selectionsemanticchange.
