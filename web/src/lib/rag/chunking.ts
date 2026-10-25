@@ -126,19 +126,28 @@ function splitCodeUnits(body: string, language: string | null, targetChars: numb
   const lines = rest.split("\n");
   const units: string[] = [];
   let buf: string[] = [];
+  let bufChars = 0;
+  let hasContent = false;
   const flush = () => {
     const text = buf.join("\n").trim();
     if (text) units.push(text);
     buf = [];
+    bufChars = 0;
+    hasContent = false;
   };
   for (const line of lines) {
-    if (re.test(line) && buf.join("\n").trim().length > 0) flush();
+    if (re.test(line) && hasContent) flush();
+    bufChars += line.length + (buf.length ? 1 : 0);
+    hasContent ||= line.trim().length > 0;
     buf.push(line);
-    if (buf.join("\n").length > targetChars * 1.6) {
+    if (bufChars > targetChars * 1.6) {
       const joined = buf.join("\n");
       const parts = recursiveSplit(joined, ["\n\n", "\n"], targetChars);
       units.push(...parts.slice(0, -1));
-      buf = (parts[parts.length - 1] ?? "").split("\n");
+      const tail = parts[parts.length - 1] ?? "";
+      buf = tail.split("\n");
+      bufChars = tail.length;
+      hasContent = tail.trim().length > 0;
     }
   }
   flush();
