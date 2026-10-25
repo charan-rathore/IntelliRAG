@@ -1,0 +1,2 @@
+import {it} from 'node:test';import assert from 'node:assert/strict';import {filterGithubTree} from './github.ts';import {createHash} from 'node:crypto';
+it('real repository import file selection budget',()=>{const entries=Array.from({length:20000},(_,i)=>({path:`${i%3?'src':'docs'}/section-${(i*7919)%20000}/module-${i}.${i%7?'ts':'md'}`,type:'blob',size:200}));assert.equal(createHash('sha256').update(JSON.stringify(filterGithubTree(entries))).digest('hex'),'31c876f75cc5a63c0f3451798013699b1412cc683dec3430df0195ae1446186d');});
