@@ -10,3 +10,5 @@ Track exact UTF16bufferlength and a nonwhitespace flag incrementally. Reset both
 -108fixture combinations acrosspython/typescript/C/Java,32/128/512chunk sizes,0/8/64overlap: completeoutputs includingallmetadata deep-equal tobaseline. Committedtest fingerprints baselinecapturedbytes, notcandidate-authoredexpectations.
 - ActualRAGsuite211existing+goldencontrolPASS (temporarybudgetalsopassedinfullrun). Typecheck/buildPASS,lint0errors11existingwarnings. ExistingpreRAGteststages passed immediatelybeforethisperformancechange; actualcurrentCIrequiredbeforemerge.
 - Thisislocalcodechunkerthroughput, not a deployedend-to-endlatencyclaim. Nochange tochunkcontent,corpus,API,dependenciesorUI.
+
+Reviewcheck: botclaimedliteralbackslash-n fixture. ActualcheckedinJavaScriptsource uses'.join(\n)' escape, producingactualnewlines. Addedexplicit183-line andmultiplechunkassertions; baselineandcandidatebothPASSwithsamegoldenfingerprint. Nodifferentfingerprintregeneratedfromcandidate. No publicreplysent.
