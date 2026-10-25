@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  githubRawUrl,
   filterGithubTree,
   listGithubFiles,
   parseGithubUrl,
@@ -120,5 +121,20 @@ export function classifyIntent(q: string) {
     assert.ok(chunks.some((c) => c.symbol === "classifyIntent"));
     assert.ok(chunks.every((c) => c.chunkKind === "code"));
     assert.ok(chunks.every((c) => c.filepath === "src/lib/rag/retrieve.server.ts"));
+  });
+});
+
+
+describe("GitHub URL path encoding", () => {
+  it("encodes tree API names without interpreting percent escapes", () => {
+    assert.equal(githubRawUrl("o", "r", "feature/branch", "docs/é#%20 file.md"), "https://raw.githubusercontent.com/o/r/feature%2Fbranch/docs/%C3%A9%23%2520%20file.md");
+  });
+  it("decodes blob URL segments once before constructing a raw URL", () => {
+    const target = parseGithubUrl("https://github.com/o/r/blob/main/docs/hash%23percent%25%20space.md");
+    assert.equal(target?.kind, "blob");
+    if (target?.kind === "blob") {
+      assert.equal(target.path, "docs/hash#percent% space.md");
+      assert.equal(githubRawUrl(target.owner,target.repo,target.ref,target.path), "https://raw.githubusercontent.com/o/r/main/docs/hash%23percent%25%20space.md");
+    }
   });
 });
