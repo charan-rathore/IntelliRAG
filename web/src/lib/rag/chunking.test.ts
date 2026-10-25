@@ -457,3 +457,19 @@ describe("table edges, fourth round", () => {
     assert.ok(fragments[1]!.text.startsWith("| C | D |"), "second table's fragment borrowed the first table's header");
   });
 });
+
+describe("hard chunk boundaries preserve Unicode characters", () => {
+  for (const kind of ["prose", "code"] as const) it(`does not split surrogate pairs in ${kind} chunks`, () => {
+    const body = "a".repeat(79) + "😀" + "b".repeat(79) + "🛰️" + "c".repeat(90);
+    const chunks = chunkDocument(body, { kind, chunkSize: 20, overlap: 0 });
+    assert.ok(chunks.length > 1);
+    assert.ok(chunks.every(c => !/[\uD800-\uDFFF]/u.test(c.text)), JSON.stringify(chunks.map(c=>c.text)));
+    assert.equal(chunks.map(c=>c.text).join(""),body);
+  });
+});
+
+it("keeps an overlap tail from starting inside a surrogate pair", () => {
+  const body = "a".repeat(75) + "😀" + "bbb" + "c".repeat(90);
+  const chunks = chunkDocument(body,{chunkSize:20,overlap:1});
+  assert.ok(chunks.every(c=>!/[\uD800-\uDFFF]/u.test(c.text)),JSON.stringify(chunks.map(c=>c.text)));
+});

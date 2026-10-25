@@ -54,8 +54,15 @@ function recursiveSplit(text: string, seps: string[], targetChars: number): stri
   const [sep, ...rest] = seps;
   if (!sep) {
     const pieces: string[] = [];
-    for (let i = 0; i < text.length; i += targetChars) {
-      pieces.push(text.slice(i, i + targetChars));
+    for (let i = 0; i < text.length;) {
+      let end = Math.min(i + targetChars, text.length);
+      // A UTF-16 cut between a surrogate pair corrupts both chunks when
+      // encoded for storage/embedding. Keep the whole code point together.
+      const previous = text.charCodeAt(end - 1);
+      const next = text.charCodeAt(end);
+      if (previous >= 0xd800 && previous <= 0xdbff && next >= 0xdc00 && next <= 0xdfff) end += 1;
+      pieces.push(text.slice(i, end));
+      i = end;
     }
     return pieces;
   }
@@ -142,6 +149,14 @@ function splitCodeUnits(body: string, language: string | null, targetChars: numb
     const hint = header.split("\n").slice(0, 12).join("\n");
     return `${hint}\n\n${u}`;
   });
+}
+
+function overlapTail(text: string, count: number): string {
+  let start = Math.max(0, text.length - count);
+  const first = text.charCodeAt(start);
+  const previous = text.charCodeAt(start - 1);
+  if (first >= 0xdc00 && first <= 0xdfff && previous >= 0xd800 && previous <= 0xdbff) start -= 1;
+  return text.slice(start).trim();
 }
 
 function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omit<DraftChunk, "ordinal" | "text" | "tokenCount" | "heading"> & { heading?: string | null }): DraftChunk[] {
@@ -295,7 +310,7 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
   const withOverlap: string[] = [];
   for (let i = 0; i < merged.length; i += 1) {
     const prev = merged[i - 1] ?? "";
-    const overlapText = prev.slice(Math.max(0, prev.length - overlapChars)).trim();
+    const overlapText = overlapTail(prev, overlapChars);
     const text = (overlapText && i > 0 ? `${overlapText}\n${merged[i]}` : merged[i]).trim();
     if (text) withOverlap.push(text);
   }
@@ -317,7 +332,7 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     // from the previous piece's tail, so anchor the walk there.
     const pieceStart = pieceStarts[pieceIndex] ?? -1;
     const prev = merged[pieceIndex - 1] ?? "";
-    const overlapText = pieceIndex > 0 ? prev.slice(Math.max(0, prev.length - overlapChars)).trim() : "";
+    const overlapText = pieceIndex > 0 ? overlapTail(prev, overlapChars) : "";
     // Analyze the untrimmed assembly so line offsets stay exact; the chunk
     // text itself is trimmed, which would shift the first line's offset.
     const pieceText = merged[pieceIndex] ?? "";
