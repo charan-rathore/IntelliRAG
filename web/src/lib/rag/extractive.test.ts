@@ -55,3 +55,31 @@ it('ignores empty and heading-only paragraphs while retaining real short text', 
  assert.match(answer,/No exception\./);
  assert.ok(!answer.includes('Header'));
 });
+
+it('keeps adjacent conditions, exceptions and revisions when the source fits the excerpt budget', () => {
+ for (const [question, body, required] of [
+  ['Can the quartz pump restart?', 'The quartz pump may restart after shutdown.\n\nOnly after supervisor approval.\n\nThe quartz pump restart procedure applies to all scheduled operating windows and recorded shift changes.', 'Only after supervisor approval.'],
+  ['What is the cobalt retry limit?', 'The cobalt retry limit is 4.\n\nExcept for payments, where retries are disabled.\n\nThe cobalt retry limit applies to background jobs and scheduled service operations across the deployment.', 'Except for payments, where retries are disabled.'],
+  ['What is the garnet rollout date?', 'The garnet rollout date was November 1.\n\nThat date was withdrawn. No replacement is set.\n\nThe garnet rollout date is discussed in the weekly operational planning notes and deployment checklists.', 'That date was withdrawn. No replacement is set.'],
+ ]) {
+  const answer=extractiveAnswer(question,[{text:body}] as RetrievedChunk[]);
+  assert.ok(answer.includes(required),answer);
+ }
+});
+
+it('keeps every qualifying paragraph when its combined text fits the existing budget', () => {
+ const paragraphs=Array.from({length:12},(_,i)=>`Recorded fact ${i}: ${i+4}.`);
+ const answer=extractiveAnswer('What is recorded fact 0?',[{text:paragraphs.join('\n\n')}] as RetrievedChunk[]);
+ for(const paragraph of paragraphs) assert.ok(answer.includes(paragraph),answer);
+});
+
+it('keeps the existing excerpt bound for long sources and exactly-budget text', () => {
+ for(const length of [699,700,701,2000]) {
+  const body='Relevant retry limit: 4. '+ 'background '.repeat(length).slice(0,length-24);
+  const answer=extractiveAnswer('What is the retry limit?',[{text:body}] as RetrievedChunk[]);
+  const excerpt=answer.split('\n\n')[1]!;
+  assert.ok(excerpt.length<=712,`${length}: ${excerpt.length}`);
+  assert.match(answer,/\[Source 1\]/);
+  assert.ok(answer.length<1000);
+ }
+});
