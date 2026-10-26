@@ -133,5 +133,27 @@ test("query runtime promises", async (t) => {
       network.mock.restore();
     }
   });
+  await t.test("real no-provider query preserves a short answer and an explicit unknown", async () => {
+    const { ingestText } = await import("./ingest.server");
+    const fixtures = [
+      { title: "Cobalt fixture", body: "# Cobalt fixture\n\nRetry limit: 4.\n\nThe cobalt service supports background uploads and operational telemetry for internal teams.", query: "What is the retry limit?", fact: "Retry limit: 4." },
+      { title: "Zircon incident fixture", body: "# Zircon incident fixture\n\nRoot cause unknown.\n\nThe zircon pump stopped on Tuesday during its scheduled operating window and the technician recorded the observation.", query: "What is the root cause?", fact: "Root cause unknown." },
+    ];
+    const network = t.mock.method(globalThis, "fetch", async () => { throw new Error("Unexpected network request"); });
+    try {
+      for (const [index, fixture] of fixtures.entries()) {
+        const imported = await ingestText({ title: fixture.title, body: fixture.body, sourceType: "markdown", sourceUri: `fixture://short-evidence/${index}`, slugHint: `short-evidence-${index}` });
+        const events: QueryEvent[] = [];
+        await runQueryStream({ question: fixture.query, corpus: imported.corpusId, skipCache: true, retrievalMode: "keyword" }, event => events.push(event));
+        const done = events.find(event => event.type === "done");
+        assert.ok(done?.type === "done", JSON.stringify(events));
+        assert.equal(done.model, "extractive");
+        assert.ok(done.answer.includes(fixture.fact), done.answer);
+        assert.ok(done.answer.includes("[Source 1]"));
+        assert.ok(done.answer.includes("not a generated recommendation"));
+      }
+      assert.equal(network.mock.callCount(), 0);
+    } finally { network.mock.restore(); }
+  });
   assert.deepEqual([...sidecars.keys()].sort(), [...paths].sort(), "all three sidecars stay in the private store");
 });
