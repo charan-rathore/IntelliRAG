@@ -65,7 +65,12 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
     try { parsed = JSON.parse(data); } catch { throw new GenerationError("invalid_response", result.usage); }
     const next = decodeCompletion(parsed, provider, true);
     if (next.usage) result.usage = next.usage;
-    if (next.stopReason) result.stopReason = next.stopReason;
+    if (next.stopReason) {
+      if (result.stopReason && result.stopReason.toLowerCase() !== next.stopReason.toLowerCase()) {
+        throw new GenerationError("invalid_response", result.usage);
+      }
+      result.stopReason = next.stopReason;
+    }
     result.text += next.text;
     if (next.text) onToken(next.text);
   };
