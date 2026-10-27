@@ -285,7 +285,7 @@ async function ingestGithubRepo(target: {
         title: file.path,
         body,
         sourceType: "github",
-        sourceUri: `https://github.com/${target.owner}/${target.repo}/blob/${ref}/${file.path}`,
+        sourceUri: `https://github.com/${encodeURIComponent(target.owner)}/${encodeURIComponent(target.repo)}/blob/${encodeURIComponent(ref)}/${file.path.split("/").map(encodeURIComponent).join("/")}`,
         slugHint: `${target.repo}-${file.path}`,
         originRepo: `${target.owner}/${target.repo}`,
         originRef: `${ref}@${sha.slice(0, 7)}`,
