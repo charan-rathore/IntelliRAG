@@ -46,7 +46,7 @@ export function decodeCompletion(value: unknown, provider: "google" | "openai", 
 /** SSE framing handles split chunks, CRLF and an unterminated final event. */
 export async function readGenerationStream(body: ReadableStream<Uint8Array>, provider: "google" | "openai", onToken: (text: string) => void): Promise<string> {
   const reader = body.getReader();
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
   let previousCR = false;
   const append = (text: string) => {
@@ -82,6 +82,7 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
     return validateCompletion(result);
   } catch (error) {
     if (error instanceof GenerationError) { error.usage ??= result.usage; throw error; }
+    if (error instanceof TypeError && "code" in error && error.code === "ERR_ENCODING_INVALID_ENCODED_DATA") throw new GenerationError("invalid_response", result.usage);
     if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) throw error;
     throw new GenerationError("incomplete_stream", result.usage);
   } finally {
