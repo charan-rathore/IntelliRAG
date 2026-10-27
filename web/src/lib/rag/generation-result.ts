@@ -43,6 +43,15 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  let previousCR = false;
+  const append = (text: string) => {
+    if (!text) return;
+    // CR is a complete SSE line ending; a following LF belongs to that CR,
+    // even when the two bytes arrive in separate response chunks.
+    if (previousCR && text.startsWith("\n")) text = text.slice(1);
+    previousCR = text.endsWith("\r");
+    buffer += text.replace(/\r\n?/g, "\n");
+  };
   const result: Completion = { text: "" };
   const consume = (event: string) => {
     const data = event.split("\n").filter(l => l.startsWith("data:")).map(l => l.slice(5).trim()).join("\n");
@@ -59,13 +68,12 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      buffer = buffer.replace(/\r\n/g, "\n");
+      append(decoder.decode(value, { stream: true }));
       let end: number;
       while ((end = buffer.indexOf("\n\n")) >= 0) { consume(buffer.slice(0, end)); buffer = buffer.slice(end + 2); }
     }
-    buffer += decoder.decode();
-    if (buffer.trim()) consume(buffer.replace(/\r\n/g, "\n"));
+    append(decoder.decode());
+    if (buffer.trim()) consume(buffer);
     return validateCompletion(result);
   } catch (error) {
     if (error instanceof GenerationError) { error.usage ??= result.usage; throw error; }
