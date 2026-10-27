@@ -170,7 +170,7 @@ async function fetchText(url: string): Promise<string> {
 async function readResponseText(res: Response): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) return "";
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
   const chunks: string[] = [];
   let bytesRead = 0;
   try {
@@ -187,6 +187,12 @@ async function readResponseText(res: Response): Promise<string> {
     }
     chunks.push(decoder.decode());
     return chunks.join("");
+  } catch (error) {
+    await reader.cancel().catch(() => undefined);
+    if (error instanceof TypeError && "code" in error && error.code === "ERR_ENCODING_INVALID_ENCODED_DATA") {
+      throw new Error("Remote document is not valid UTF-8; convert it to UTF-8 text before importing.");
+    }
+    throw error;
   } finally {
     reader.releaseLock();
   }
