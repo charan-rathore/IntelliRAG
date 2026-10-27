@@ -82,6 +82,17 @@ export function isPrivateIp(address: string): boolean {
   const mapped = normalized.match(/::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
   if (mapped) return isPrivateIp(mapped[1]);
   if (normalized.includes(":")) {
+    // URL parsing canonicalizes dotted IPv4-mapped IPv6 to hexadecimal, so
+    // normalize expanded forms too before classifying the embedded IPv4.
+    let canonical: string;
+    try { canonical = new URL(`http://[${normalized}]/`).hostname.slice(1, -1); }
+    catch { canonical = normalized; }
+    const mappedHex = canonical.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (mappedHex) {
+      const high = Number.parseInt(mappedHex[1]!, 16);
+      const low = Number.parseInt(mappedHex[2]!, 16);
+      return isPrivateIp(`${high >>> 8}.${high & 255}.${low >>> 8}.${low & 255}`);
+    }
     if (normalized === "::1" || normalized === "::") return true;
     const first = Number.parseInt(normalized.split(":")[0] || "0", 16);
     if (Number.isNaN(first)) return false;
