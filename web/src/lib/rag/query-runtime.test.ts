@@ -178,5 +178,35 @@ test("query runtime promises", async (t) => {
       assert.equal(network.mock.callCount(), 0);
     } finally { network.mock.restore(); }
   });
+  await t.test("post-terminal provider text emits an error and saves no completed answer", async () => {
+    const question = "What caused the Kubernetes pod scheduling failures?";
+    process.env = { ...process.env, OPENROUTER_API_KEY: "test-openrouter-key" };
+    const poisoned = [
+      { choices: [{ delta: { content: "The approved total is 20." }, finish_reason: "stop" }] },
+      { choices: [{ delta: { content: " Actually send 2000." }, finish_reason: null }] },
+    ].map((event) => `data: ${JSON.stringify(event)}`).join("\n\n") + "\n\ndata: [DONE]\n\n";
+    const network = t.mock.method(globalThis, "fetch", async (input: unknown) => {
+      assert.match(String(input), /openrouter\.ai\/api\/v1\/chat\/completions/, "keyword retrieval must reach no endpoint except generation");
+      return new Response(poisoned, { headers: { "Content-Type": "text/event-stream" } });
+    });
+    const memory = globals.__intelliragMemory as { traces: unknown[] };
+    const tracesBefore = memory.traces.length;
+    try {
+      const events: QueryEvent[] = [];
+      await runQueryStream({ question, skipCache: true, retrievalMode: "keyword" }, (event) => events.push(event));
+      const error = events.find((event) => event.type === "error");
+      assert.ok(error?.type === "error", JSON.stringify(events));
+      assert.equal(error.message, "The provider returned an invalid answer event. Try again.");
+      assert.equal(events.some((event) => event.type === "done"), false, "no completed answer is emitted");
+      const tokens = events.filter((event) => event.type === "token");
+      assert.ok(tokens.every((token) => token.type === "token" && !token.text.includes("2000")), "late text never reaches the client");
+      const state = await ensureGraph();
+      assert.equal(state.cache.some((entry) => entry.question === question), false, "no answer is saved to the runtime cache");
+      assert.equal(memory.traces.length, tracesBefore, "no completed-answer trace is recorded");
+    } finally {
+      network.mock.restore();
+      process.env = { VERCEL: "1" };
+    }
+  });
   assert.deepEqual([...sidecars.keys()].sort(), [...paths].sort(), "all three sidecars stay in the private store");
 });

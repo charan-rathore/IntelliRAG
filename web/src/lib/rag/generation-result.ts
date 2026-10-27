@@ -65,6 +65,11 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
     try { parsed = JSON.parse(data); } catch { throw new GenerationError("invalid_response", result.usage); }
     const next = decodeCompletion(parsed, provider, true);
     if (next.usage) result.usage = next.usage;
+    // A terminal finish reason ends the answer. Text after it is a corrupted
+    // completion, not more answer: reject instead of appending it to the
+    // saved answer or emitting it as a token. Empty/usage-only trailers
+    // after the terminal event remain valid.
+    if (result.stopReason && next.text) throw new GenerationError("invalid_response", result.usage);
     if (next.stopReason) {
       if (result.stopReason && result.stopReason.toLowerCase() !== next.stopReason.toLowerCase()) {
         throw new GenerationError("invalid_response", result.usage);
