@@ -2,8 +2,8 @@
  * Graphify sidecar store: graph.json + memory/ + .graphify_learning.json
  * kept together. Mirrors graphify-out/ so repeat queries skip Flash.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { readFileSync } from "node:fs";
+import { writeAtomicJson } from "./atomic-json.mjs";
 import { listGraphDocumentVersions, getDocumentBySlug, loadChunksByIds } from "../store.server";
 import { SEED_DOCUMENTS } from "../corpus";
 import { getSql, vercelWithoutDatabase } from "@/lib/db";
@@ -37,8 +37,7 @@ function loadDisk(): GraphState | null {
 
 function saveDisk(state: GraphState) {
   try {
-    mkdirSync(dirname(TMP), { recursive: true });
-    writeFileSync(TMP, JSON.stringify(state), { mode: 0o600 });
+    writeAtomicJson(TMP, state);
   } catch {
     // /tmp is best-effort on serverless
   }
