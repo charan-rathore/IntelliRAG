@@ -4,6 +4,7 @@
  */
 import { readFileSync } from "node:fs";
 import { writeAtomicJson } from "./atomic-json.mjs";
+import { singleFlight } from "./single-flight.mjs";
 import { listGraphDocumentVersions, getDocumentBySlug, loadChunksByIds } from "../store.server";
 import { SEED_DOCUMENTS } from "../corpus";
 import { getSql, vercelWithoutDatabase } from "@/lib/db";
@@ -16,7 +17,7 @@ import { reflect } from "./reflect";
 import type { CacheEntry, GraphOutcome, GraphState, MemoryDoc } from "./schema";
 
 const TMP = "/tmp/intellirag-graphify.json";
-type G = typeof globalThis & { __intelliragGraph?: GraphState };
+type G = typeof globalThis & { __intelliragGraph?: GraphState; __intelliragGraphRefresh?: { pending?: Promise<GraphState> } };
 
 function empty(): GraphState {
   return {
@@ -84,6 +85,12 @@ async function loadSql(): Promise<GraphState | null> {
 }
 
 export async function ensureGraph(): Promise<GraphState> {
+  const g = globalThis as G;
+  g.__intelliragGraphRefresh ??= {};
+  return singleFlight(g.__intelliragGraphRefresh, refreshGraph);
+}
+
+async function refreshGraph(): Promise<GraphState> {
   const g = globalThis as G;
   if (!g.__intelliragGraph) {
     const fromSql = await loadSql();
