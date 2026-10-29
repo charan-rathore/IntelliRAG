@@ -86,3 +86,81 @@ test("oversized or malformed envelopes reject before synthesis parsing", async (
     await assert.rejects(p(args));
   }
 });
+
+test("invalid budgets fail before network rather than normalize", () => {
+  let calls = 0;
+  for (const field of [
+    "maxInputCharacters",
+    "maxOutputTokens",
+    "maxResponseBytes",
+    "timeoutMs",
+  ]) {
+    for (const value of [NaN, Infinity, 0, -1, 1.5, "12", 10000001]) {
+      assert.throws(
+        () =>
+          createSynthesisProvider({
+            ...config(() => {
+              calls++;
+            }),
+            [field]: value,
+          }),
+        /integer|range/,
+      );
+    }
+  }
+  assert.equal(calls, 0);
+});
+test("source-bearing requests forbid redirects", async () => {
+  const p = createSynthesisProvider(
+    config(async (_url, req) => {
+      assert.equal(req.redirect, "error");
+      return new Response(null, {
+        status: 307,
+        headers: { location: "http://elsewhere.invalid" },
+      });
+    }),
+  );
+  await assert.rejects(p(args), /307/);
+});
+test("stream byte bound cancels before consuming unbounded body", async () => {
+  let canceled = false;
+  let pulls = 0;
+  const stream = new ReadableStream({
+    pull(c) {
+      pulls++;
+      c.enqueue(new Uint8Array(64));
+      if (pulls === 4) c.close();
+    },
+    cancel() {
+      canceled = true;
+    },
+  });
+  const p = createSynthesisProvider({
+    ...config(async () => new Response(stream)),
+    maxResponseBytes: 32,
+  });
+  await assert.rejects(p(args), /bound/);
+  assert.equal(canceled, true);
+  assert.ok(pulls <= 2);
+});
+test("deadline aborts stalled fetch and stalled response without caller signal", async () => {
+  for (const stall of ["fetch", "body"]) {
+    let signal;
+    const p = createSynthesisProvider({
+      ...config(async (_url, req) => {
+        signal = req.signal;
+        if (stall === "fetch") return new Promise(() => {});
+        return new Response(
+          new ReadableStream({
+            pull() {
+              return new Promise(() => {});
+            },
+          }),
+        );
+      }),
+      timeoutMs: 20,
+    });
+    await assert.rejects(p(args), /deadline/);
+    assert.equal(signal.aborted, true);
+  }
+});

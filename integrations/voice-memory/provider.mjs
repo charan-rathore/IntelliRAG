@@ -9,9 +9,20 @@ export function createSynthesisProvider({
   fetchImpl = fetch,
   maxInputCharacters = 32000,
   maxOutputTokens = 1500,
+  maxResponseBytes = 100000,
+  timeoutMs = 30000,
 }) {
   if (!apiKey || !model || !endpoint)
     throw Error("Explicit credential, model and endpoint required.");
+  for (const [name, value, limit] of [
+    ["maxInputCharacters", maxInputCharacters, 1000000],
+    ["maxOutputTokens", maxOutputTokens, 32768],
+    ["maxResponseBytes", maxResponseBytes, 1000000],
+    ["timeoutMs", timeoutMs, 120000],
+  ]) {
+    if (!Number.isSafeInteger(value) || value < 1 || value > limit)
+      throw Error(`${name} requires a positive integer in range 1..${limit}.`);
+  }
   const url = new URL(endpoint);
   if (
     url.protocol !== "https:" ||
@@ -25,54 +36,93 @@ export function createSynthesisProvider({
     const content = JSON.stringify({ question, sources });
     if (content.length + instructions.length > maxInputCharacters)
       throw Error("Input exceeds approved request bound.");
-    const response = await fetchImpl(url, {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: instructions },
-          { role: "user", content },
-        ],
-        temperature: 0.2,
-        max_tokens: maxOutputTokens,
-        response_format: { type: "json_object" },
-        provider: { allow_fallbacks: false, data_collection: "deny" },
-      }),
-      signal,
+    const controller = new AbortController();
+    const effectiveSignal = signal
+      ? AbortSignal.any([signal, controller.signal])
+      : controller.signal;
+    let reader;
+    let timer;
+    let abortListener;
+    const aborted = new Promise((_, reject) => {
+      abortListener = () => reject(effectiveSignal.reason || Error("Aborted"));
+      effectiveSignal.addEventListener("abort", abortListener, { once: true });
+      if (effectiveSignal.aborted) abortListener();
+      timer = setTimeout(
+        () => controller.abort(Error("Synthesis deadline exceeded.")),
+        timeoutMs,
+      );
     });
-    if (!response.ok)
-      throw Error(
-        `Synthesis request failed (${response.status}); no retry or fallback made.`,
-      );
-    const raw = await response.text();
-    if (raw.length > 100000)
-      throw Error("Provider response exceeds review bound.");
-    let data;
+    const bounded = (promise) => Promise.race([promise, aborted]);
     try {
-      data = JSON.parse(raw);
-    } catch {
-      throw Error("Provider returned an invalid response envelope.");
-    }
+      if (effectiveSignal.aborted) throw effectiveSignal.reason;
+      const response = await bounded(
+        fetchImpl(url, {
+          method: "POST",
+          redirect: "error",
+          headers: {
+            Authorization: "Bearer " + apiKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: "system", content: instructions },
+              { role: "user", content },
+            ],
+            temperature: 0.2,
+            max_tokens: maxOutputTokens,
+            response_format: { type: "json_object" },
+            provider: { allow_fallbacks: false, data_collection: "deny" },
+          }),
+          signal: effectiveSignal,
+        }),
+      );
+      if (!response.ok)
+        throw Error(
+          `Synthesis request failed (${response.status}); no retry or fallback made.`,
+        );
+      if (!response.body) throw Error("Provider returned no response body.");
+      reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8", { fatal: true });
+      let raw = "";
+      let bytes = 0;
+      while (true) {
+        const { done, value } = await bounded(reader.read());
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > maxResponseBytes)
+          throw Error("Provider response exceeds review bound.");
+        raw += decoder.decode(value, { stream: true });
+      }
+      raw += decoder.decode();
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw Error("Provider returned an invalid response envelope.");
+      }
 
-    if (data.error)
-      throw Error("Provider returned an error; no retry or fallback made.");
-    if (data.choices?.[0]?.finish_reason === "length")
-      throw Error(
-        "Synthesis exceeded output bound; review failed, not partially accepted.",
-      );
-    const text = data.choices?.[0]?.message?.content;
-    if (typeof text !== "string")
-      throw Error("Provider did not return synthesis text.");
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      throw Error("Provider returned invalid JSON; no retry made.");
+      if (data.error)
+        throw Error("Provider returned an error; no retry or fallback made.");
+      if (data.choices?.[0]?.finish_reason === "length")
+        throw Error(
+          "Synthesis exceeded output bound; review failed, not partially accepted.",
+        );
+      const text = data.choices?.[0]?.message?.content;
+      if (typeof text !== "string")
+        throw Error("Provider did not return synthesis text.");
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw Error("Provider returned invalid JSON; no retry made.");
+      }
+      return parsed;
+    } finally {
+      clearTimeout(timer);
+      effectiveSignal.removeEventListener("abort", abortListener);
+      controller.abort();
+      if (reader) reader.cancel().catch(() => {});
     }
-    return parsed;
   };
 }

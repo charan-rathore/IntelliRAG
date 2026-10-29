@@ -44,3 +44,22 @@ test("request bound prevents provider calls before evaluation starts", async () 
   );
   assert.equal(calls, 0);
 });
+test("invalid request budgets reject before any provider or sink effect", async () => {
+  let calls = 0;
+  for (const maxRequests of [NaN, Infinity, 0, -1, 1.5, "6", 13]) {
+    await assert.rejects(
+      runEvaluation({
+        cases,
+        maxRequests,
+        provider: async () => {
+          calls++;
+        },
+        save: async () => {
+          calls++;
+        },
+      }),
+      /integer|range/,
+    );
+  }
+  assert.equal(calls, 0);
+});

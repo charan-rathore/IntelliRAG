@@ -16,6 +16,8 @@ export async function runEvaluation({
     throw Error("Explicit provider and private output sink required.");
   if (!["development", "evaluation"].includes(split))
     throw Error("Named split required.");
+  if (!Number.isSafeInteger(maxRequests) || maxRequests < 1 || maxRequests > 12)
+    throw Error("maxRequests requires a positive integer in range 1..12.");
   const selected =
     split === "development" ? cases.slice(0, 6) : cases.slice(6, 12);
   if (selected.length > maxRequests)
