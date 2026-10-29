@@ -1,0 +1,7 @@
+{
+  "runtime": "nodejs24.x",
+  "handler": "serve.mjs",
+  "launcherType": "Nodejs",
+  "supportsResponseStreaming": true,
+  "maxDuration": 15
+}

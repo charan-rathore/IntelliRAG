@@ -1,5 +1,5 @@
 {
-  "framework": null,
-  "buildCommand": "npm run build",
-  "installCommand": "npm install"
+  "installCommand": "true",
+  "buildCommand": "node ../integrations/voice-memory/build-hosted-artifact.mjs",
+  "framework": null
 }
