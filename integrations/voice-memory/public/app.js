@@ -1,5 +1,7 @@
 const $ = (id) => document.getElementById(id);
-let csrf, latestDraft;
+let csrf,
+  latestDraft,
+  draftAllowed = false;
 const ready = fetch("/api/session")
   .then((r) => r.json())
   .then((s) => (csrf = s.csrf));
@@ -71,6 +73,7 @@ $("sample").onclick = () =>
   ]);
 $("ask").onsubmit = async (e) => {
   e.preventDefault();
+  draftAllowed = false;
   busy(true);
   status("Searching only this session’s documents…");
   $("draft-panel").hidden = true;
@@ -116,9 +119,10 @@ $("ask").onsubmit = async (e) => {
     panel.append(caution);
     $("evidence").after(panel);
     $("timing").textContent = r.latencyMs + " ms retrieval";
-    $("draft").disabled = r.refused;
+    draftAllowed = r.supported === true && !r.refused;
+    $("draft").disabled = !draftAllowed;
     $("evidence").replaceChildren(
-      ...r.evidence.map((c, i) => {
+      ...(r.unresolved ? r.reviewEvidence : r.evidence).map((c, i) => {
         const d = document.createElement("details"),
           s = document.createElement("summary"),
           p = document.createElement("pre"),
@@ -132,15 +136,17 @@ $("ask").onsubmit = async (e) => {
       }),
     );
     status(
-      r.refused
-        ? "No supporting evidence found. Try a more specific question."
-        : "Evidence ready. Open an original passage to inspect it.",
+      r.unresolved
+        ? "Relevant passages need review. The question is unresolved; drafting is disabled."
+        : r.refused
+          ? "No supporting evidence found. Try a more specific question."
+          : "Evidence ready. Open an original passage to inspect it.",
     );
   } catch (e) {
     status(e.message, true);
   } finally {
     busy(false);
-    if (!$("evidence").children.length) $("draft").disabled = true;
+    $("draft").disabled = !draftAllowed || !$("evidence").children.length;
   }
 };
 $("draft").onclick = async () => {

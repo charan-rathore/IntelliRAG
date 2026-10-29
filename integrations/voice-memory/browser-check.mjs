@@ -21,13 +21,28 @@ try {
     .fill("What is pending for the pilot launch security review?");
   await page.getByRole("button", { name: "Find the evidence" }).click();
   await page
-    .getByText("Evidence ready. Open an original passage to inspect it.")
+    .getByText(
+      "Relevant passages need review. The question is unresolved; drafting is disabled.",
+    )
     .waitFor();
   await page.locator("summary").first().click();
   await page.screenshot({
     path: "/downloads/bolna-local-desktop.png",
     fullPage: true,
   });
+  if (
+    !(await page
+      .getByRole("button", { name: "Turn this into a draft" })
+      .isDisabled())
+  )
+    throw Error("Unresolved answer allowed draft");
+  await page
+    .getByLabel("Ask across your documents")
+    .fill("budget approved Maya");
+  await page.getByRole("button", { name: "Find the evidence" }).click();
+  await page
+    .getByText("Evidence ready. Open an original passage to inspect it.")
+    .waitFor();
   await page.getByRole("button", { name: "Turn this into a draft" }).click();
   await page.getByRole("heading", { name: "Your follow-up draft" }).waitFor();
   await page.screenshot({
@@ -49,7 +64,7 @@ try {
   )
     throw Error("320px horizontal overflow");
   console.log(
-    "UI journey passed: fictional docs -> real parser/retriever -> exact original span -> draft; desktop,390px,320px.",
+    "UI journey passed: ambiguous passages unresolved/draftdisabled -> positive exact evidence -> review draft; desktop,390px,320px.",
   );
 } finally {
   await browser?.close();

@@ -21,7 +21,7 @@ test("real memoRABLE parser creates memory blocks", () => {
   assert.ok(b.sources.every((s) => s.memory.blocks.length));
 });
 test("real IntelliRAG retrieval returns validated original spans", () => {
-  const b = importBundle(docs),
+  const b = importBundle([docs[0]]),
     r = answer("What is pending for the pilot launch security review?", b);
   assert.equal(r.refused, false);
   assert.ok(r.evidence.length);
@@ -52,7 +52,7 @@ test("source mutation rejected", () => {
 });
 test("draft is quoted evidence, not invented approvals", () => {
   const b = importBundle(docs),
-    r = answer("pilot launch security review", b),
+    r = answer("budget approved Maya", b),
     d = draft(r, b);
   assert.match(d.body, /not approved|proposed/);
   assert.match(d.notice, /nothing sent/i);
@@ -134,7 +134,7 @@ test("negative specific artifact claim cannot bypass evidence gate", () => {
 test("citation metadata cannot claim a quote outside original source bounds", () => {
   const b = importBundle(docs),
     r = answer("pilot launch security review", b),
-    c = r.evidence[0];
+    c = r.evidence[0] || r.reviewEvidence[0];
   for (const change of [
     { start: -1 },
     { end: c.end + 100000 },
@@ -142,4 +142,21 @@ test("citation metadata cannot claim a quote outside original source bounds", ()
     { quote: "approved" },
   ])
     assert.throws(() => validateEvidence({ ...c, ...change }, b));
+});
+
+test("competing pilot sources remain reviewable unresolved and cannot produce a draft", () => {
+  const bundle = importBundle(docs),
+    result = answer(
+      "What is pending for the pilot launch security review?",
+      bundle,
+    );
+  assert.equal(result.evidenceStatus, "ambiguous");
+  assert.equal(result.refused, true);
+  assert.equal(result.supported, false);
+  assert.equal(result.unresolved, true);
+  assert.deepEqual(result.evidence, []);
+  assert.ok(result.reviewEvidence.length);
+  result.reviewEvidence.forEach((e) => validateEvidence(e, bundle));
+  assert.match(result.answer, /unresolved/);
+  assert.throws(() => draft(result, bundle), /supporting evidence/);
 });

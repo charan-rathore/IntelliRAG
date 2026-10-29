@@ -134,3 +134,90 @@ test("capability expiration or revocation during pending body is rechecked", asy
     assert.equal(a.lastTurn(t), null);
   }
 });
+test("async retrieval cannot publish revoked or superseded source state", async () => {
+  const pending = [];
+  const adapter = createVoiceAdapter({
+    retrieval: {
+      actualMode: "keyword",
+      embeddingModel: null,
+      retrieve: async (q, bundle) =>
+        new Promise((resolve) =>
+          pending.push(() =>
+            resolve({
+              actualMode: "keyword",
+              corpusId: bundle.scope,
+              corpusScope: "corpus",
+              evidence: "insufficient",
+              chunks: [],
+            }),
+          ),
+        ),
+    },
+  });
+  const token = adapter.bind(b());
+  const first = adapter.handle(request(token, "first"));
+  await new Promise((r) => setImmediate(r));
+  const second = adapter.handle(request(token, "second"));
+  await new Promise((r) => setImmediate(r));
+  pending[1]();
+  assert.equal((await second).status, 200);
+  pending[0]();
+  assert.equal((await first).status, 409);
+  assert.equal(adapter.lastTurn(token).result.question, "second");
+  const third = adapter.handle(request(token, "third"));
+  await new Promise((r) => setImmediate(r));
+  adapter.revoke(token);
+  pending[2]();
+  assert.equal((await third).status, 401);
+  assert.equal(adapter.lastTurn(token), null);
+});
+test("body stream byte bound and internal deadline cancel before unbounded read", async () => {
+  for (const mode of ["oversize", "stall"]) {
+    let canceled = false;
+    const a = createVoiceAdapter({ bodyTimeoutMs: 20 }),
+      t = a.bind(b());
+    const stream = new ReadableStream({
+      pull(c) {
+        if (mode === "oversize") c.enqueue(new Uint8Array(16001));
+        else return new Promise(() => {});
+      },
+      cancel() {
+        canceled = true;
+      },
+    });
+    const req = new Request("http://localhost", {
+      method: "POST",
+      headers: { authorization: "Bearer " + t },
+      body: stream,
+      duplex: "half",
+    });
+    assert.equal((await a.handle(req)).status, 400);
+    assert.equal(canceled, true);
+  }
+});
+test("injected retrieval cannot launder mismatched original source evidence", async () => {
+  const a = createVoiceAdapter({
+      retrieval: {
+        actualMode: "dense",
+        embeddingModel: "fixture-model",
+        retrieve: async () => ({
+          actualMode: "dense",
+          corpusId: "other",
+          corpusScope: "corpus",
+          evidence: "positive",
+          chunks: [
+            {
+              sourceId: "other",
+              hash: "fake",
+              start: 0,
+              end: 4,
+              quote: "fake",
+            },
+          ],
+        }),
+      },
+    }),
+    t = a.bind(b());
+  await assert.rejects(a.handle(request(t, "security")), /contract mismatch/);
+  assert.equal(a.lastTurn(t), undefined);
+});

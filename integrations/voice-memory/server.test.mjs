@@ -119,3 +119,142 @@ test("split UTF-8 HTTP buffers preserve original rupee and emoji source bytes", 
     assert.ok(!JSON.stringify(result).includes("�"));
   }
 });
+test("local session voice bridge preserves evidence and resets on replacement without exposing bearer", async () => {
+  const a = await session(),
+    b = await session();
+  await post(a, "import", {
+    documents: [
+      {
+        title: "Pilot",
+        text: "Pilot launch security review is pending. Maya owns security review and launch is not approved.",
+      },
+    ],
+  });
+  const start = await (await post(a, "voice/start", {})).json();
+  assert.deepEqual(start, {
+    ready: true,
+    mode: "local-contract",
+    audioConnected: false,
+    synthesisConnected: false,
+  });
+  assert.equal(
+    (
+      await post(b, "voice/turn", {
+        stream: true,
+        messages: [{ role: "user", content: "security pilot" }],
+      })
+    ).status,
+    400,
+  );
+  const r = await post(a, "voice/turn", {
+    stream: true,
+    messages: [{ role: "user", content: "security pilot" }],
+  });
+  assert.match(r.headers.get("content-type"), /event-stream/);
+  assert.match(await r.text(), /\[DONE\]/);
+  assert.ok(
+    (await (await post(a, "voice/last", {})).json()).turn.result.evidence
+      .length,
+  );
+  await post(a, "import", {
+    documents: [
+      {
+        title: "Other",
+        text: "The separate catering budget is under review. No pilot security decision is recorded in this document.",
+      },
+    ],
+  });
+  assert.equal((await (await post(a, "voice/last", {})).json()).turn, null);
+  assert.equal(
+    (
+      await post(a, "voice/turn", {
+        stream: true,
+        messages: [{ role: "user", content: "security" }],
+      })
+    ).status,
+    400,
+  );
+  await post(a, "voice/start", {});
+  await post(a, "reset", {});
+  assert.equal((await (await post(a, "voice/last", {})).json()).turn, null);
+});
+test("HTTP disconnect propagates abort and suppresses delayed retrieval state", async () => {
+  const { createLocalServer } = await import("./server.mjs");
+  const { createVoiceAdapter } = await import("./voice-adapter.mjs");
+  const { request } = await import("node:http");
+  let release, seen, token;
+  const entered = new Promise((r) => (seen = r));
+  const voice = createVoiceAdapter({
+    retrieval: {
+      actualMode: "keyword",
+      embeddingModel: null,
+      retrieve: async (q, bundle, { signal }) => {
+        seen(signal);
+        await new Promise((r) => (release = r));
+        return {
+          actualMode: "keyword",
+          corpusId: bundle.scope,
+          corpusScope: "corpus",
+          evidence: "insufficient",
+          chunks: [],
+        };
+      },
+    },
+  });
+  const bind = voice.bind;
+  voice.bind = (bundle) => (token = bind(bundle));
+  const port = 4318,
+    local = createLocalServer({ voice, port }),
+    url = "http://127.0.0.1:" + port;
+  await new Promise((r) => local.listen(port, "127.0.0.1", r));
+  try {
+    const r = await fetch(url + "/api/session");
+    const cookie = r.headers.get("set-cookie").split(";")[0],
+      csrf = (await r.json()).csrf;
+    const headers = {
+      cookie,
+      origin: url,
+      "X-CSRF-Token": csrf,
+      "Content-Type": "application/json",
+    };
+    await fetch(url + "/api/import", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        documents: [
+          {
+            title: "Source",
+            text: "Pilot security review is pending. Maya owns the security review.",
+          },
+        ],
+      }),
+    });
+    await fetch(url + "/api/voice/start", {
+      method: "POST",
+      headers,
+      body: "{}",
+    });
+    const req = request(url + "/api/voice/turn", { method: "POST", headers });
+    req.on("error", () => {});
+    req.end(
+      JSON.stringify({
+        stream: true,
+        messages: [{ role: "user", content: "security" }],
+      }),
+    );
+    const signal = await entered;
+    req.destroy();
+    await new Promise((r) =>
+      signal.aborted
+        ? r()
+        : signal.addEventListener("abort", r, { once: true }),
+    );
+    assert.equal(signal.aborted, true);
+    release();
+    await new Promise((r) => setImmediate(r));
+    assert.equal(voice.lastTurn(token), undefined);
+  } finally {
+    release?.();
+    await new Promise((r) => local.close(r));
+  }
+});

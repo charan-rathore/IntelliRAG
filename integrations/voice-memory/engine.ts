@@ -4,6 +4,7 @@ import { parseText } from "../../../memorable/src/import/text/parse-text";
 import {
   retrieveFromRows,
   type SearchRow,
+  type RetrieveResult,
 } from "../../web/src/lib/rag/retrieve-core";
 import { chunkDocument } from "../../web/src/lib/rag/chunking";
 import { extractiveAnswer } from "../../web/src/lib/rag/extractive";
@@ -107,6 +108,48 @@ export function answer(
     },
     corpusScope: { kind: "corpus", corpusId: bundle.scope },
   });
+  return answerFromRetrieval(
+    question,
+    bundle,
+    found,
+    { actualMode: "keyword", embeddingModel: null },
+    start,
+  );
+}
+export function answerFromRetrieval(
+  question: string,
+  bundle: ReturnType<typeof importBundle>,
+  found: RetrieveResult,
+  expected: {
+    actualMode: "keyword" | "dense" | "hybrid";
+    embeddingModel: string | null;
+  },
+  start = performance.now(),
+) {
+  if (
+    !found ||
+    !Array.isArray(found.chunks) ||
+    found.actualMode !== expected.actualMode ||
+    !["keyword", "dense", "hybrid"].includes(expected.actualMode) ||
+    (expected.actualMode !== "keyword" && !expected.embeddingModel)
+  )
+    throw Error("Retrieval mode contract mismatch.");
+  if (
+    !["positive", "negative_not_found", "insufficient", "ambiguous"].includes(
+      found.evidence,
+    )
+  )
+    throw Error("Retrieval evidence contract mismatch.");
+  if (found.corpusScope !== "corpus" || found.corpusId !== bundle.scope)
+    throw Error("Retrieval corpus contract mismatch.");
+  for (const chunk of found.chunks) {
+    if (
+      chunk.corpusId !== bundle.scope ||
+      (expected.actualMode !== "keyword" &&
+        chunk.embeddingModel !== expected.embeddingModel)
+    )
+      throw Error("Retrieval corpus/model contract mismatch.");
+  }
   const evidence = found.chunks.flatMap((chunk) => {
     const source = bundle.sources.find((s) => s.id === chunk.documentId);
     if (!source) return [];
@@ -130,23 +173,30 @@ export function answer(
   const chunks = found.chunks.filter((c) =>
     evidence.some((e) => e.sourceId === c.documentId && e.quote === c.text),
   );
-  const refused =
-    found.evidence === "insufficient" ||
-    found.evidence === "negative_not_found" ||
-    !chunks.length;
+  const refused = found.evidence !== "positive" || !chunks.length;
   return {
     question,
     context: contextReview(bundle, validateEvidence),
-    answer: refused
-      ? "I could not find supporting passages in these documents."
-      : extractiveAnswer(question, chunks).replace(
-          " Add a model in Settings to reason across them.",
-          "",
-        ),
+    answer:
+      found.evidence === "ambiguous"
+        ? "Several passages are relevant, but this question remains unresolved. Review the original passages; no supported answer or draft is available."
+        : refused
+          ? "I could not find supporting passages in these documents."
+          : extractiveAnswer(question, chunks).replace(
+              " Add a model in Settings to reason across them.",
+              "",
+            ),
     evidence: refused ? [] : evidence,
+    reviewEvidence: found.evidence === "ambiguous" ? evidence : [],
+    supported: !refused,
+    unresolved: found.evidence === "ambiguous",
     refused,
     evidenceStatus: found.evidence,
-    mode: "Local keyword retrieval + source excerpts. No generated synthesis.",
+    actualMode: found.actualMode,
+    embeddingModel: expected.embeddingModel,
+    corpusId: bundle.scope,
+    generation: false,
+    mode: `Local ${found.actualMode} retrieval + source excerpts. No generated synthesis.`,
     latencyMs: Math.round(performance.now() - start),
   };
 }
