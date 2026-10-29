@@ -20,9 +20,9 @@ export type SuggestionRow = {
   question_hash: string;
   source: SuggestionSource;
   ask_count: number;
-  last_asked_at: string | null;
-  created_at: string;
-  updated_at: string;
+  last_asked_at: string | Date | null;
+  created_at: string | Date;
+  updated_at: string | Date;
 };
 
 type MemState = { rows: SuggestionRow[] };
@@ -70,8 +70,8 @@ export function suggestionToPublic(row: SuggestionRow): SuggestedQuestion {
     question: row.question,
     source: row.source,
     askCount: row.ask_count,
-    lastAskedAt: row.last_asked_at,
-    createdAt: row.created_at,
+    lastAskedAt: row.last_asked_at instanceof Date ? row.last_asked_at.toISOString() : row.last_asked_at,
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
   };
 }
 

@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 
 const OPTIONS: Array<{ id: GraphOutcome; label: string; hint: string }> = [
   { id: "useful", label: "Useful", hint: "Cited sources answered it. Promote those nodes." },
-  { id: "dead_end", label: "Dead end", hint: "Wrong or empty path. Do not cache this." },
-  { id: "corrected", label: "Correct", hint: "The answer was wrong. Add the fix." },
+  { id: "dead_end", label: "Not useful", hint: "Wrong or empty path. Do not cache this." },
+  { id: "corrected", label: "Suggest a fix", hint: "The answer was wrong. Add the fix." },
 ];
 
 export function AnswerFeedback({
@@ -22,9 +22,11 @@ export function AnswerFeedback({
   const [correction, setCorrection] = useState("");
   return (
     <div data-tour="tour-feedback" className="mt-4 rounded-md border border-border bg-raised p-3">
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Teach the graph</p>
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
+        Was this answer useful?
+      </p>
       <p className="mt-1 text-xs leading-relaxed text-subtle">
-        Graphify save-result. Useful nodes become preferred sources on the next ask.
+        Feedback can change which sources are preferred in this collection.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {OPTIONS.map((o) => (

@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 
 const COPY: Record<CoverageKind, { label: string; hint: string; tone: string }> = {
   grounded: {
-    label: "Grounded",
-    hint: "Answered from indexed runbooks with citations",
+    label: "Cited passages",
+    hint: "Retrieved passages are cited. Check them against the answer; citations do not guarantee correctness.",
     tone: "text-good border-good/30",
   },
   general: {

@@ -1,14 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  ArrowUp,
-  Copy,
-  KeyRound,
-  Layers,
-  LoaderCircle,
-  Plus,
-  ShieldAlert,
-  X,
-} from "lucide-react";
+import { ArrowUp, Copy, KeyRound, Layers, LoaderCircle, Plus, ShieldAlert, X } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { AnswerFeedback } from "@/components/rag/answer-feedback";
@@ -17,7 +8,12 @@ import { loadGraphEdits, type GraphTrace } from "@/lib/rag/graphify/edits";
 import { VectorPaths } from "@/components/rag/vector-paths";
 import { KnowledgeGraph } from "@/components/rag/knowledge-graph";
 import { LatencyWaterfall } from "@/components/rag/latency-waterfall";
-import { FirstRunCoach, RunPreview, SuggestedQuestions, WelcomeOnboarding } from "@/components/rag/onboarding";
+import {
+  FirstRunCoach,
+  RunPreview,
+  SuggestedQuestions,
+  WelcomeOnboarding,
+} from "@/components/rag/onboarding";
 import { ProductTour } from "@/components/rag/product-tour";
 import { PackedSources, SourceInspector } from "@/components/rag/source-inspector";
 import { ViewToggle } from "@/components/rag/view-toggle";
@@ -94,6 +90,15 @@ type Message = {
   asked?: string;
 };
 
+function sourceCollectionLabel(id: string, documents: DocumentHealth[]): string {
+  if (id === ALL_CORPORA) return "All source collections";
+  const matches = documents.filter((document) => document.corpusId === id);
+  if (matches.length === 1) return matches[0]!.title;
+  if (id === REPO_DEMO_CORPUS) return "p-queue example";
+  if (id.startsWith("github:")) return id.slice("github:".length).replace(/@[^@]+$/, "");
+  return corpusLabel(id);
+}
+
 const STALE_LABEL: Record<StaleReason, string> = {
   missing_embeddings: "Missing vectors",
   model_mismatch: "Model mismatch",
@@ -147,7 +152,13 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [keyBusy, setKeyBusy] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [desktop, setDesktop] = useState(false);
-  useEffect(() => { const media = matchMedia('(min-width: 1024px)'); const update = () => setDesktop(media.matches); update(); media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
+  useEffect(() => {
+    const media = matchMedia("(min-width: 1024px)");
+    const update = () => setDesktop(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [mode, setMode] = useState<RetrievalMode>("hybrid");
@@ -161,6 +172,7 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [ingestTitle, setIngestTitle] = useState("Pasted document");
   const [ingestBusy, setIngestBusy] = useState(false);
   const [ingestError, setIngestError] = useState<string | null>(null);
+  const [ingestNotice, setIngestNotice] = useState<string | null>(null);
   const [evalBusy, setEvalBusy] = useState(false);
   const [evalError, setEvalError] = useState<string | null>(null);
   const [evalReport, setEvalReport] = useState<Snapshot["lastEval"]>(initial.lastEval);
@@ -209,7 +221,10 @@ export function Console({ initial }: { initial: Snapshot }) {
     setEvalError(null);
     try {
       const res = await fetch("/api/eval", { method: "POST" });
-      const report = (await res.json()) as Snapshot["lastEval"] & { message?: string; verdict?: string };
+      const report = (await res.json()) as Snapshot["lastEval"] & {
+        message?: string;
+        verdict?: string;
+      };
       if (!res.ok) {
         throw new Error(report?.message || "Eval failed");
       }
@@ -223,24 +238,24 @@ export function Console({ initial }: { initial: Snapshot }) {
   }, [refresh]);
 
   const runIndexLoop = useCallback(async () => {
-      if (indexLoop.current) return;
-      indexLoop.current = true;
-      setIndexing(true);
-      try {
-        let remaining = 1;
-        while (remaining > 0) {
-          const result = await embedNextBatch({ data: {} });
-          remaining = result.remaining;
-          await refresh();
-          if (result.embedded === 0) break;
-        }
-      } catch {
+    if (indexLoop.current) return;
+    indexLoop.current = true;
+    setIndexing(true);
+    try {
+      let remaining = 1;
+      while (remaining > 0) {
+        const result = await embedNextBatch({ data: {} });
+        remaining = result.remaining;
         await refresh();
-      } finally {
-        indexLoop.current = false;
-        setIndexing(false);
+        if (result.embedded === 0) break;
       }
-    }, [refresh]);
+    } catch {
+      await refresh();
+    } finally {
+      indexLoop.current = false;
+      setIndexing(false);
+    }
+  }, [refresh]);
 
   useEffect(() => {
     forgetLegacyClientKeys();
@@ -255,12 +270,17 @@ export function Console({ initial }: { initial: Snapshot }) {
   }, [initial.hasServerKey, initial.storage?.denseAvailable, runIndexLoop]);
 
   useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+    if (!messages.length) return;
+    // Start each new response at its beginning; streaming must not drag readers past evidence.
+    threadRef.current
+      ?.querySelector("article:last-child")
+      ?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [messages.length]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "TEXTAREA" || t.tagName === "INPUT")) return;
       e.preventDefault();
@@ -368,7 +388,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           if (data.type === "stage") {
             patch((m) => ({ ...m, stage: String(data.name) }));
           } else if (data.type === "graph") {
-            patch(m => ({ ...m, graphTrace: data as unknown as GraphTrace }));
+            patch((m) => ({ ...m, graphTrace: data as unknown as GraphTrace }));
           } else if (data.type === "sources") {
             patch((m) => ({
               ...m,
@@ -454,11 +474,13 @@ export function Console({ initial }: { initial: Snapshot }) {
     if (!ingestUrl.trim()) return;
     setIngestBusy(true);
     setIngestError(null);
+    setIngestNotice(null);
     try {
       const result = await ingestRemoteUrl({ data: { url: ingestUrl.trim() } });
       if (result && "corpusId" in result && typeof result.corpusId === "string") {
         setCorpus(result.corpusId);
       }
+      setIngestNotice("Source added. Questions now use this source collection.");
       setIngestUrl("");
       const next = await refresh();
       await refreshSuggestions(
@@ -475,6 +497,7 @@ export function Console({ initial }: { initial: Snapshot }) {
   const ingestPaste = async () => {
     setIngestBusy(true);
     setIngestError(null);
+    setIngestNotice(null);
     try {
       const result = await ingestPastedDocument({
         data: { title: ingestTitle.trim() || "Pasted document", body: ingestBody },
@@ -482,6 +505,7 @@ export function Console({ initial }: { initial: Snapshot }) {
       if (result && "corpusId" in result && typeof result.corpusId === "string") {
         setCorpus(result.corpusId);
       }
+      setIngestNotice("Document added. Questions now use this source collection.");
       setIngestBody("");
       const next = await refresh();
       await refreshSuggestions(
@@ -495,9 +519,21 @@ export function Console({ initial }: { initial: Snapshot }) {
     }
   };
 
-  const sendFeedback = async (id: string, q: string, outcome: GraphOutcome, correction?: string) => {
+  const sendFeedback = async (
+    id: string,
+    q: string,
+    outcome: GraphOutcome,
+    correction?: string,
+  ) => {
     try {
-      const graph = await submitGraphFeedback({ data: { question: q, outcome, correction, corpusId: messages.find(m => m.id === id)?.corpusId ?? "seed-lab" } });
+      const graph = await submitGraphFeedback({
+        data: {
+          question: q,
+          outcome,
+          correction,
+          corpusId: messages.find((m) => m.id === id)?.corpusId ?? "seed-lab",
+        },
+      });
       setMessages((all) => all.map((m) => (m.id === id ? { ...m, feedback: outcome } : m)));
       setSnapshot((s) => ({ ...s, graph }));
     } catch {
@@ -514,38 +550,45 @@ export function Console({ initial }: { initial: Snapshot }) {
     return "Ready";
   }, [denseAvailable, hasKey, indexing, snapshot.generationVia, staleCount]);
 
-  const sourcePanel = (<div data-tour="tour-corpus"><CorpusPanel
-            snapshot={snapshot}
-            corpus={corpus}
-            onCorpus={setCorpus}
-            ingestUrl={ingestUrl}
-            ingestBody={ingestBody}
-            ingestTitle={ingestTitle}
-            ingestBusy={ingestBusy}
-            ingestError={ingestError}
-            indexing={indexing}
-            pending={snapshot.pendingEmbeddings}
-            onUrl={setIngestUrl}
-            onBody={setIngestBody}
-            onTitle={setIngestTitle}
-            onIngestUrl={ingestRemote}
-            onIngestPaste={ingestPaste}
-            onRemove={async (id) => {
-              await removeDocument({ data: { id } });
-              await refresh();
-            }}
-          /></div>);
-  const auditPanel = (<AuditPanel
-            snapshot={snapshot}
-            last={messages.filter((m) => m.role === "assistant").at(-1)}
-            evalReport={evalReport}
-            evalBusy={evalBusy}
-            evalError={evalError}
-            onRunEval={() => void runEval()}
-            canEval={hasKey}
-            view={view}
-            onTour={() => setTourOpen(true)}
-          />);
+  const sourcePanel = (
+    <div data-tour="tour-corpus">
+      <CorpusPanel
+        snapshot={snapshot}
+        corpus={corpus}
+        onCorpus={setCorpus}
+        ingestUrl={ingestUrl}
+        ingestBody={ingestBody}
+        ingestTitle={ingestTitle}
+        ingestBusy={ingestBusy}
+        ingestError={ingestError}
+        ingestNotice={ingestNotice}
+        indexing={indexing}
+        pending={snapshot.pendingEmbeddings}
+        onUrl={setIngestUrl}
+        onBody={setIngestBody}
+        onTitle={setIngestTitle}
+        onIngestUrl={ingestRemote}
+        onIngestPaste={ingestPaste}
+        onRemove={async (id) => {
+          await removeDocument({ data: { id } });
+          await refresh();
+        }}
+      />
+    </div>
+  );
+  const auditPanel = (
+    <AuditPanel
+      snapshot={snapshot}
+      last={messages.filter((m) => m.role === "assistant").at(-1)}
+      evalReport={evalReport}
+      evalBusy={evalBusy}
+      evalError={evalError}
+      onRunEval={() => void runEval()}
+      canEval={hasKey}
+      view={view}
+      onTour={() => setTourOpen(true)}
+    />
+  );
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg text-fg">
@@ -556,9 +599,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           </span>
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
-            <p className="hidden text-xs text-muted sm:block">
-              Ask your documents · cited answers
-            </p>
+            <p className="hidden text-xs text-muted sm:block">Ask your documents · cited answers</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -570,39 +611,69 @@ export function Console({ initial }: { initial: Snapshot }) {
           >
             {healthLabel}
           </span>
-          <span data-tour="tour-view">
+          <span className="hidden sm:inline-flex" data-tour="tour-view">
             <ViewToggle value={view} onChange={setView} />
           </span>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
-          <a href="/walkthrough" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary sm:inline-flex">Watch demo</a>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden sm:inline-flex"
+            data-tour="tour-sources"
+            aria-expanded={corpusOpen}
+            onClick={() => setCorpusOpen(!corpusOpen)}
+          >
+            Add / manage sources
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden sm:inline-flex"
+            data-tour="tour-evidence"
+            aria-expanded={auditOpen}
+            onClick={() => setAuditOpen(!auditOpen)}
+          >
+            Evidence
+          </Button>
           <span data-tour="tour-settings">
-            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Settings"
+              onClick={() => setSettingsOpen(true)}
+            >
               <KeyRound className="size-4" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
           </span>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setTourOpen(true)}>
-            Tour
-          </Button>
         </div>
       </header>
 
-      {!hasKey && (
+      {(!hasKey || !snapshot.storage.durable || snapshot.storage.backend === "pglite") && (
         <div className="border-b border-border bg-raised px-4 py-3 md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-fg">
-              Try cited answers without an API key. Bring a source or start with a runbook below.
+            <p className="text-xs leading-relaxed text-muted">
+              {!snapshot.storage.durable
+                ? "Temporary workspace: imported sources may disappear between server sessions. Keep your originals. "
+                : snapshot.storage.backend === "pglite"
+                  ? "Sources are stored on this local server. Keep your originals. "
+                  : "Persistent source storage is connected. "}
+              {!hasKey
+                ? "Answers use cited extracts; generated synthesis is not connected."
+                : "Verify generated answers against their sources."}
             </p>
-            <Button size="sm" onClick={() => setSettingsOpen(true)}>
-              Add API key
-            </Button>
           </div>
         </div>
       )}
 
       <div className="mx-auto grid min-h-0 w-full max-w-[1600px] flex-1 grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
-        {corpusOpen && desktop && <aside aria-label="Source management" className="hidden w-[280px] overflow-y-auto border-r border-border lg:col-start-1 lg:row-start-1 lg:block">{sourcePanel}</aside>}
+        {corpusOpen && desktop && (
+          <aside
+            aria-label="Source management"
+            className="hidden w-[280px] overflow-y-auto border-r border-border lg:col-start-1 lg:row-start-1 lg:block"
+          >
+            {sourcePanel}
+          </aside>
+        )}
         <main className="flex min-h-0 min-w-0 flex-col lg:col-start-2 lg:row-start-1">
           <div ref={threadRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
             {messages.length === 0 ? (
@@ -650,26 +721,46 @@ export function Console({ initial }: { initial: Snapshot }) {
                 )}
               </div>
             )}
-          {view === "lab" && snapshot.graph && (
-            <div className="mx-auto mt-5 max-w-5xl">
-              <KnowledgeGraph
-                nodes={snapshot.graph.nodes}
-                links={snapshot.graph.links}
-                learning={snapshot.graph.learning}
-                nodeCount={snapshot.graph.nodeCount}
-                edgeCount={snapshot.graph.edgeCount}
-                cacheCount={snapshot.graph.cacheCount}
-                preferred={snapshot.graph.preferred}
-                durable={snapshot.storage.durable}
-              />
-            </div>
-          )}
+            {view === "lab" && snapshot.graph && (
+              <div className="mx-auto mt-5 max-w-5xl">
+                <KnowledgeGraph
+                  nodes={snapshot.graph.nodes}
+                  links={snapshot.graph.links}
+                  learning={snapshot.graph.learning}
+                  nodeCount={snapshot.graph.nodeCount}
+                  edgeCount={snapshot.graph.edgeCount}
+                  cacheCount={snapshot.graph.cacheCount}
+                  preferred={snapshot.graph.preferred}
+                  durable={snapshot.storage.durable}
+                />
+              </div>
+            )}
           </div>
         </main>
-        {auditOpen && desktop && <aside aria-label="Retrieval diagnostics" className="hidden w-[300px] overflow-y-auto border-l border-border lg:col-start-3 lg:row-start-1 lg:block">{auditPanel}</aside>}
+        {auditOpen && desktop && (
+          <aside
+            aria-label="Retrieval diagnostics"
+            className="hidden w-[300px] overflow-y-auto border-l border-border lg:col-start-3 lg:row-start-1 lg:block"
+          >
+            {auditPanel}
+          </aside>
+        )}
       </div>
 
       <footer className="relative z-20 shrink-0 border-t border-border bg-bg px-4 py-3 md:px-6">
+        <div className="mx-auto mb-2 flex max-w-3xl items-center justify-between gap-3">
+          <p className="min-w-0 truncate text-xs text-muted" title={corpus}>
+            Searching:{" "}
+            <span className="text-fg">{sourceCollectionLabel(corpus, snapshot.documents)}</span>
+          </p>
+          <button
+            type="button"
+            className="min-h-8 shrink-0 text-xs text-primary underline underline-offset-4"
+            onClick={() => setCorpusOpen(true)}
+          >
+            Change sources
+          </button>
+        </div>
         <form
           className="mx-auto flex max-w-3xl items-end gap-2 rounded-lg border border-border bg-surface p-2"
           data-tour="tour-composer"
@@ -695,11 +786,15 @@ export function Console({ initial }: { initial: Snapshot }) {
             className="max-h-36 min-h-11 flex-1 resize-none bg-transparent px-3 py-2 text-base text-fg outline-none placeholder:text-subtle"
           />
           <Button type="submit" size="icon" disabled={busy || !question.trim()} aria-label="Ask">
-            {busy ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
+            {busy ? (
+              <LoaderCircle className="size-4 animate-spin" />
+            ) : (
+              <ArrowUp className="size-4" />
+            )}
           </Button>
         </form>
         <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-subtle">
-          Type any question · Enter to send · Suggestions learn from what people ask on each document
+          Enter to ask · Shift + Enter for a new line · Answers are limited to the selected sources
         </p>
         <div className="mx-auto mt-2 flex max-w-3xl justify-center gap-2 sm:hidden">
           <Button variant="ghost" size="sm" onClick={() => setCorpusOpen(true)}>
@@ -708,24 +803,36 @@ export function Console({ initial }: { initial: Snapshot }) {
           <Button variant="ghost" size="sm" onClick={() => setAuditOpen(true)}>
             Evidence
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setTourOpen(true)}>
-            Tour
-          </Button>
-          <a href="/walkthrough" className="inline-flex min-h-11 items-center rounded border border-border px-3 text-xs text-primary">Demo</a>
         </div>
       </footer>
 
       {settingsOpen && (
         <Modal title="Settings" onClose={() => setSettingsOpen(false)}>
+          <nav aria-label="Workspace help" className="mb-4 flex flex-wrap items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSettingsOpen(false);
+                setTourOpen(true);
+              }}
+            >
+              Product tour
+            </Button>
+            <a href="/walkthrough" className="text-sm text-primary underline underline-offset-4">
+              Watch demo
+            </a>
+            <ViewToggle value={view} onChange={setView} />
+          </nav>
           <div className="rounded-md border border-border bg-raised px-3 py-3">
             <p className="text-sm font-medium text-fg">Two models, two jobs</p>
             <p className="mt-2 text-xs leading-relaxed text-muted">
-              Retrieval compares vectors. Every document chunk and every question must be
-              embedded with <span className="font-mono text-fg">{snapshot.embeddingModel}</span>,
-              same model, same 768 dimensions, same prefixes. Gemini 3.7 Flash never enters that
-              vector space; it only writes the answer. Dense retrieval needs durable Postgres
-              (`DATABASE_URL` / Neon in production). Scores in Lab are raw cosine / BM25 / RRF /
-              calibrated mix. not confidence and not a cross-encoder.
+              Retrieval compares vectors. Every document chunk and every question must be embedded
+              with <span className="font-mono text-fg">{snapshot.embeddingModel}</span>, same model,
+              same 768 dimensions, same prefixes. Gemini 3.7 Flash never enters that vector space;
+              it only writes the answer. Dense retrieval needs durable Postgres (`DATABASE_URL` /
+              Neon in production). Scores in Lab are raw cosine / BM25 / RRF / calibrated mix. not
+              confidence and not a cross-encoder.
             </p>
             {snapshot.storage?.warning && (
               <p className="mt-2 text-xs leading-relaxed text-warn">{snapshot.storage.warning}</p>
@@ -734,21 +841,38 @@ export function Console({ initial }: { initial: Snapshot }) {
 
           <div className="mt-4 flex flex-wrap gap-2 text-xs">
             <span className="rounded-full border border-border px-3 py-1 text-muted">
-              Embed {snapshot.embeddingVia === "google" ? "Google AI" : snapshot.embeddingVia === "openrouter" ? "OpenRouter → Gemini" : "unset"}
+              Embed{" "}
+              {snapshot.embeddingVia === "google"
+                ? "Google AI"
+                : snapshot.embeddingVia === "openrouter"
+                  ? "OpenRouter → Gemini"
+                  : "unset"}
             </span>
             <span className="rounded-full border border-border px-3 py-1 text-muted">
-              Answer {snapshot.generationVia === "openrouter" ? "OpenRouter → 3.7 Flash" : snapshot.generationVia === "google" ? "Google AI → 3.7 Flash" : snapshot.generationVia === "xai" ? "Grok 4.5" : snapshot.generationVia === "ollama" ? "Local Llama 3" : "extractive (no LLM key)"}
+              Answer{" "}
+              {snapshot.generationVia === "openrouter"
+                ? "OpenRouter → 3.7 Flash"
+                : snapshot.generationVia === "google"
+                  ? "Google AI → 3.7 Flash"
+                  : snapshot.generationVia === "xai"
+                    ? "Grok 4.5"
+                    : snapshot.generationVia === "ollama"
+                      ? "Local Llama 3"
+                      : "extractive (no LLM key)"}
             </span>
           </div>
           {snapshot.xaiFromEnv && (
             <p className="mt-3 text-xs leading-relaxed text-good">
-              Grok 4.5 is configured on the server for cited answers when no Gemini/OpenRouter key is set. Embeddings still need Gemini or OpenRouter for dense retrieval.
+              Grok 4.5 is configured on the server for cited answers when no Gemini/OpenRouter key
+              is set. Embeddings still need Gemini or OpenRouter for dense retrieval.
             </p>
           )}
 
           <label className="mt-5 block text-sm text-muted">OpenRouter key</label>
           {snapshot.openRouterFromEnv ? (
-            <p className="mt-2 text-sm text-good">Configured on the server. Not shown here, not in the browser.</p>
+            <p className="mt-2 text-sm text-good">
+              Configured on the server. Not shown here, not in the browser.
+            </p>
           ) : (
             <>
               <input
@@ -766,7 +890,12 @@ export function Console({ initial }: { initial: Snapshot }) {
                     : "Sent once to the server, never stored in page JavaScript. Use this for budget-capped Gemini calls."}
                 </p>
                 {snapshot.hasOpenRouterKey && !snapshot.openRouterFromEnv && (
-                  <Button variant="ghost" size="sm" disabled={keyBusy} onClick={() => void clearKeys("openrouter")}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={keyBusy}
+                    onClick={() => void clearKeys("openrouter")}
+                  >
                     Clear
                   </Button>
                 )}
@@ -776,7 +905,9 @@ export function Console({ initial }: { initial: Snapshot }) {
 
           <label className="mt-5 block text-sm text-muted">Gemini API key (optional)</label>
           {snapshot.geminiFromEnv ? (
-            <p className="mt-2 text-sm text-good">Configured on the server. Preferred for embeddings.</p>
+            <p className="mt-2 text-sm text-good">
+              Configured on the server. Preferred for embeddings.
+            </p>
           ) : (
             <>
               <input
@@ -794,7 +925,12 @@ export function Console({ initial }: { initial: Snapshot }) {
                     : "If set, embeddings go through Google’s API. OpenRouter still answers with 3.7 Flash."}
                 </p>
                 {snapshot.hasGeminiKey && !snapshot.geminiFromEnv && (
-                  <Button variant="ghost" size="sm" disabled={keyBusy} onClick={() => void clearKeys("gemini")}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={keyBusy}
+                    onClick={() => void clearKeys("gemini")}
+                  >
                     Clear
                   </Button>
                 )}
@@ -845,8 +981,20 @@ export function Console({ initial }: { initial: Snapshot }) {
         </Modal>
       )}
 
-      {corpusOpen && !desktop && <div className="lg:hidden"><Modal title="Sources" onClose={() => setCorpusOpen(false)}>{sourcePanel}</Modal></div>}
-      {auditOpen && !desktop && <div className="lg:hidden"><Modal title="Evidence" onClose={() => setAuditOpen(false)}>{auditPanel}</Modal></div>}
+      {corpusOpen && !desktop && (
+        <div className="lg:hidden">
+          <Modal title="Sources" onClose={() => setCorpusOpen(false)}>
+            {sourcePanel}
+          </Modal>
+        </div>
+      )}
+      {auditOpen && !desktop && (
+        <div className="lg:hidden">
+          <Modal title="Evidence" onClose={() => setAuditOpen(false)}>
+            {auditPanel}
+          </Modal>
+        </div>
+      )}
       <ProductTour open={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
@@ -886,7 +1034,9 @@ function Turn({
         {message.coverage ? <CoverageChip kind={message.coverage} /> : <span />}
         <span className="flex items-center gap-2">
           {message.cacheHit && (
-            <span className="rounded-full border border-good/30 px-2 py-0.5 text-xs text-good">Graph cache</span>
+            <span className="rounded-full border border-good/30 px-2 py-0.5 text-xs text-good">
+              Graph cache
+            </span>
           )}
           {message.text && (
             <button
@@ -906,16 +1056,15 @@ function Turn({
           {message.stage}
         </p>
       )}
-      {message.error && (
-        <p className="text-sm text-bad">{message.error}</p>
-      )}
+      {message.error && <p className="text-sm text-bad">{message.error}</p>}
       {message.text && (
         <div
           className="text-base leading-relaxed text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
-          dangerouslySetInnerHTML={{ __html: formatAnswerHtml(message.text, message.citations ?? []) }}
+          dangerouslySetInnerHTML={{
+            __html: formatAnswerHtml(message.text, message.citations ?? []),
+          }}
         />
       )}
-      {coach ? <div className="mt-4">{coach}</div> : null}
       {view === "lab" && message.latencies && (
         <div className="mt-4">
           <LatencyWaterfall latencies={message.latencies} />
@@ -936,6 +1085,7 @@ function Turn({
       ) : (
         message.chunks && message.chunks.length > 0 && <PackedSources chunks={message.chunks} />
       )}
+      {coach ? <div className="mt-4">{coach}</div> : null}
       {message.text && onFeedback && !message.stage && !message.error && (
         <AnswerFeedback
           question={message.asked ?? ""}
@@ -956,6 +1106,7 @@ function CorpusPanel(props: {
   ingestTitle: string;
   ingestBusy: boolean;
   ingestError: string | null;
+  ingestNotice: string | null;
   indexing: boolean;
   pending: number;
   onUrl: (v: string) => void;
@@ -968,7 +1119,7 @@ function CorpusPanel(props: {
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto p-4">
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Corpus</p>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Your sources</p>
         <p className="mt-1 text-xs text-subtle">
           {props.indexing
             ? `Embedding ${props.pending} remaining chunks`
@@ -977,53 +1128,59 @@ function CorpusPanel(props: {
               }`}
         </p>
         <label className="mt-3 block text-xs text-muted">
-          Active corpus
+          Search collection
           <select
             value={props.corpus}
             onChange={(e) => props.onCorpus(e.target.value)}
             className="mt-1 h-10 w-full rounded-md border border-border bg-raised px-2 text-sm text-fg outline-none"
           >
             <option value={SEED_CORPUS_ID}>{corpusLabel(SEED_CORPUS_ID)}</option>
-            {props.corpus !== SEED_CORPUS_ID && props.corpus !== ALL_CORPORA && !(props.snapshot.corpora ?? []).some(c => c.id === props.corpus) && (
-              <option value={props.corpus}>Source unavailable · import again</option>
-            )}
+            {props.corpus !== SEED_CORPUS_ID &&
+              props.corpus !== ALL_CORPORA &&
+              !(props.snapshot.corpora ?? []).some((c) => c.id === props.corpus) && (
+                <option value={props.corpus}>Source unavailable · import again</option>
+              )}
             {(props.snapshot.corpora ?? [])
               .filter((c) => c.id !== SEED_CORPUS_ID)
               .map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.label} ({c.documentCount})
+                  {sourceCollectionLabel(c.id, props.snapshot.documents)} ({c.documentCount})
                 </option>
               ))}
             <option value={ALL_CORPORA}>All corpora (advanced)</option>
           </select>
         </label>
         <p className="mt-2 text-xs leading-relaxed text-subtle">
-          Lab questions search the seed corpus unless you switch to an imported repo. All-corpora is never the default.
+          Questions use only the selected collection. Switch collections before asking about another
+          source.
         </p>
         {props.snapshot.storage?.warning && (
-          <p className="mt-2 text-xs leading-relaxed text-subtle">{props.snapshot.storage.warning}</p>
+          <p className="mt-2 text-xs leading-relaxed text-subtle">
+            {props.snapshot.storage.warning}
+          </p>
         )}
       </div>
       <ul className="space-y-2">
         {props.snapshot.documents
           .filter((doc) => props.corpus === ALL_CORPORA || doc.corpusId === props.corpus)
           .map((doc) => (
-          <DocRow
-            key={doc.id}
-            doc={doc}
-            denseAvailable={props.snapshot.storage?.denseAvailable !== false}
-            onRemove={props.onRemove}
-          />
-        ))}
+            <DocRow
+              key={doc.id}
+              doc={doc}
+              denseAvailable={props.snapshot.storage?.denseAvailable !== false}
+              onRemove={props.onRemove}
+            />
+          ))}
       </ul>
       <div className="rounded-lg border border-border bg-surface p-3">
         <p className="flex items-center gap-2 text-sm font-medium">
-          <Plus className="size-4" /> Ingest
+          <Plus className="size-4" /> Add a source
         </p>
         <input
           value={props.ingestUrl}
           onChange={(e) => props.onUrl(e.target.value)}
-          placeholder="GitHub repo, blob, or markdown URL"
+          aria-label="Source URL"
+          placeholder="GitHub repo, file, or Markdown URL"
           className="mt-3 h-11 w-full rounded-md border border-border bg-raised px-3 text-sm text-fg outline-none"
         />
         <Button
@@ -1033,18 +1190,20 @@ function CorpusPanel(props: {
           disabled={props.ingestBusy || !props.ingestUrl.trim()}
           onClick={props.onIngestUrl}
         >
-          Fetch & index
+          {props.ingestBusy ? "Adding source…" : "Import URL"}
         </Button>
         <input
           value={props.ingestTitle}
           onChange={(e) => props.onTitle(e.target.value)}
-          placeholder="Title"
+          aria-label="Document title"
+          placeholder="Document title"
           className="mt-4 h-11 w-full rounded-md border border-border bg-raised px-3 text-sm text-fg outline-none"
         />
         <textarea
           value={props.ingestBody}
           onChange={(e) => props.onBody(e.target.value)}
-          placeholder="Paste markdown…"
+          aria-label="Document text"
+          placeholder="Paste your document text or Markdown…"
           rows={5}
           className="mt-2 w-full rounded-md border border-border bg-raised px-3 py-2 text-sm text-fg outline-none"
         />
@@ -1055,9 +1214,26 @@ function CorpusPanel(props: {
           disabled={props.ingestBusy || props.ingestBody.trim().length < 40}
           onClick={props.onIngestPaste}
         >
-          Chunk & store
+          {props.ingestBusy ? "Adding document…" : "Add document"}
         </Button>
-        {props.ingestError && <p className="mt-2 text-xs text-bad">{props.ingestError}</p>}
+        <p className="mt-2 text-xs text-subtle">
+          At least 40 characters. Plain text and Markdown are supported here.
+        </p>
+        {props.ingestBusy && (
+          <p role="status" className="mt-2 text-xs text-muted">
+            Preparing your source. Keep this panel open until it finishes.
+          </p>
+        )}
+        {props.ingestNotice && (
+          <p role="status" className="mt-2 text-xs text-good">
+            {props.ingestNotice}
+          </p>
+        )}
+        {props.ingestError && (
+          <p role="alert" className="mt-2 text-xs text-bad">
+            {props.ingestError} Your text is kept here so you can try again.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -1149,24 +1325,81 @@ function AuditPanel({
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-4">
       {!last && <RunPreview onTour={onTour} />}
-      {last?.graphTrace && <details className="rounded-md border border-border bg-raised p-3 text-xs">
-        <summary className="min-h-11 cursor-pointer text-primary">Graph consulted · {last.graphTrace.cache === "hit" ? "cached answer · no model call" : `${last.graphTrace.slugs.length} source suggestions`} · {formatMs(last.graphTrace.durationMs)}</summary>
-        {last.graphTrace.vector && <div className="mt-3 space-y-2 border-y border-border py-3">
-          <p className="text-primary">Dense vector graph: {last.graphTrace.vector.route === "graph" ? "candidate-only retrieval" : "full-index fallback"}</p>
-          <p className="text-muted">{last.graphTrace.vector.compared} resident vectors compared · {last.graphTrace.vector.fetched} chunks fetched · {last.graphTrace.vector.reason}</p>
-          <p className="text-muted">Weighted Dijkstra. Edge cost = max(0.001, 1 - cosine similarity). Lower total path cost gives a bounded rerank boost, never permission to invent an answer.</p>
-          <VectorPaths trace={last.graphTrace.vector} />
-          <ol className="space-y-2">{last.graphTrace.vector.paths.map(p => <li key={p.id} className="break-words font-mono">{p.path.join(" → ")} · cost {p.cost.toFixed(3)} · query cosine {p.similarity.toFixed(3)}</li>)}</ol>
-          <p className="text-subtle">{last.graphTrace.vector.model} · {last.graphTrace.vector.dimension} dimensions. Related questions retrieve fresh evidence; they do not reuse a cached answer.</p>
-        </div>}
-        <p className="mt-2 text-muted">Cache: {last.graphTrace.cache}. Graph suggestions guide ranking; cited passages determine what the answer can claim.</p>
-        <ul className="mt-3 space-y-2">{last.graphTrace.nodes.map(n => <li key={n.id} className="break-words">{n.label} · {n.kind}{n.slug && <a className="ml-2 text-primary underline" href={`/sources/${encodeURIComponent(n.slug)}`}>source</a>}</li>)}</ul>
-        <p className="mt-3 text-muted">{last.graphTrace.links.length} connections traversed. {last.graphTrace.cache === "hit" ? "Embedding and generation skipped for this exact question and settings." : "No reusable answer found; vector graph routing or full source retrieval ran next."}</p>
-      </details>}
+      {last?.graphTrace && (
+        <details className="rounded-md border border-border bg-raised p-3 text-xs">
+          <summary className="min-h-11 cursor-pointer text-primary">
+            Graph consulted ·{" "}
+            {last.graphTrace.cache === "hit"
+              ? "cached answer · no model call"
+              : `${last.graphTrace.slugs.length} source suggestions`}{" "}
+            · {formatMs(last.graphTrace.durationMs)}
+          </summary>
+          {last.graphTrace.vector && (
+            <div className="mt-3 space-y-2 border-y border-border py-3">
+              <p className="text-primary">
+                Dense vector graph:{" "}
+                {last.graphTrace.vector.route === "graph"
+                  ? "candidate-only retrieval"
+                  : "full-index fallback"}
+              </p>
+              <p className="text-muted">
+                {last.graphTrace.vector.compared} resident vectors compared ·{" "}
+                {last.graphTrace.vector.fetched} chunks fetched · {last.graphTrace.vector.reason}
+              </p>
+              <p className="text-muted">
+                Weighted Dijkstra. Edge cost = max(0.001, 1 - cosine similarity). Lower total path
+                cost gives a bounded rerank boost, never permission to invent an answer.
+              </p>
+              <VectorPaths trace={last.graphTrace.vector} />
+              <ol className="space-y-2">
+                {last.graphTrace.vector.paths.map((p) => (
+                  <li key={p.id} className="break-words font-mono">
+                    {p.path.join(" → ")} · cost {p.cost.toFixed(3)} · query cosine{" "}
+                    {p.similarity.toFixed(3)}
+                  </li>
+                ))}
+              </ol>
+              <p className="text-subtle">
+                {last.graphTrace.vector.model} · {last.graphTrace.vector.dimension} dimensions.
+                Related questions retrieve fresh evidence; they do not reuse a cached answer.
+              </p>
+            </div>
+          )}
+          <p className="mt-2 text-muted">
+            Cache: {last.graphTrace.cache}. Graph suggestions guide ranking; cited passages
+            determine what the answer can claim.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {last.graphTrace.nodes.map((n) => (
+              <li key={n.id} className="break-words">
+                {n.label} · {n.kind}
+                {n.slug && (
+                  <a
+                    className="ml-2 text-primary underline"
+                    href={`/sources/${encodeURIComponent(n.slug)}`}
+                  >
+                    source
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-muted">
+            {last.graphTrace.links.length} connections traversed.{" "}
+            {last.graphTrace.cache === "hit"
+              ? "Embedding and generation skipped for this exact question and settings."
+              : "No reusable answer found; vector graph routing or full source retrieval ran next."}
+          </p>
+        </details>
+      )}
       <div data-tour="tour-feedback" className="rounded-md border border-border bg-raised p-3">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Teach the graph</p>
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">
+          Teach the graph
+        </p>
         <p className="mt-1 text-xs leading-relaxed text-subtle">
-          Rate an answer Useful, Dead end, or Correct. Distinct useful questions can promote a source; corrections remove its graph boost. Inspect the history in “How the graph grows.”
+          Rate an answer Useful, Not useful, or Suggest a fix. Distinct useful questions can promote
+          a source; corrections remove its graph boost. Inspect the history in “How the graph
+          grows.”
         </p>
       </div>
       {view === "lab" && last?.latencies && <LatencyWaterfall latencies={last.latencies} />}
@@ -1180,7 +1413,8 @@ function AuditPanel({
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">RAG evaluation</p>
         <p className="mt-1 text-xs leading-relaxed text-subtle">
-          20 gold questions + 5 adversarial probes. Custom RAGAS-style rubric with deterministic retrieval checks; judge failures fail the run.
+          20 gold questions + 5 adversarial probes. Custom RAGAS-style rubric with deterministic
+          retrieval checks; judge failures fail the run.
         </p>
         <Button
           className="mt-3 w-full"
@@ -1258,13 +1492,63 @@ function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    const focusable = () =>
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex="0"]',
+        ) ?? [],
+      ).filter((el) => el.getClientRects().length > 0);
+    focusable()[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeRef.current();
+      }
+      if (event.key !== "Tab") return;
+      const elements = focusable();
+      const first = elements[0];
+      const last = elements.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previous?.focus();
+    };
+  }, []);
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-bg/70 p-0 sm:items-center sm:p-6">
       <button type="button" className="absolute inset-0" aria-label="Close" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-label={title} className={cn("relative z-10 max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl", title === "Evidence" ? "max-w-5xl" : "max-w-lg")}>
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={cn(
+          "relative z-10 max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl",
+          title === "Evidence" ? "max-w-5xl" : "max-w-lg",
+        )}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl tracking-[-0.02em]">{title}</h2>
-          <button type="button" onClick={onClose} className="inline-flex size-11 items-center justify-center" aria-label="Close dialog">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex size-11 items-center justify-center"
+            aria-label="Close dialog"
+          >
             <X className="size-5" />
           </button>
         </div>
