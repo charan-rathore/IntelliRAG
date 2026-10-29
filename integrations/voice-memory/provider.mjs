@@ -32,10 +32,18 @@ export function createSynthesisProvider({
     url.search
   )
     throw Error("HTTPS endpoint without embedded credentials required.");
-  return async ({ instructions, question, sources, signal }) => {
+  const provider = async ({
+    instructions,
+    question,
+    sources,
+    signal,
+    onReceipt,
+    onRequest,
+  }) => {
     const content = JSON.stringify({ question, sources });
     if (content.length + instructions.length > maxInputCharacters)
       throw Error("Input exceeds approved request bound.");
+    if (signal?.aborted) throw signal.reason || Error("Aborted");
     const controller = new AbortController();
     const effectiveSignal = signal
       ? AbortSignal.any([signal, controller.signal])
@@ -52,9 +60,27 @@ export function createSynthesisProvider({
         timeoutMs,
       );
     });
+    aborted.catch(() => {});
     const bounded = (promise) => Promise.race([promise, aborted]);
     try {
       if (effectiveSignal.aborted) throw effectiveSignal.reason;
+      const body = JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: instructions },
+          { role: "user", content },
+        ],
+        temperature: 0.2,
+        max_tokens: maxOutputTokens,
+        response_format: { type: "json_object" },
+        provider: { allow_fallbacks: false, data_collection: "deny" },
+      });
+      if (onRequest)
+        await bounded(
+          Promise.resolve(
+            onRequest({ method: "POST", endpoint: url.href, body }),
+          ),
+        );
       const response = await bounded(
         fetchImpl(url, {
           method: "POST",
@@ -63,17 +89,7 @@ export function createSynthesisProvider({
             Authorization: "Bearer " + apiKey,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: instructions },
-              { role: "user", content },
-            ],
-            temperature: 0.2,
-            max_tokens: maxOutputTokens,
-            response_format: { type: "json_object" },
-            provider: { allow_fallbacks: false, data_collection: "deny" },
-          }),
+          body,
           signal: effectiveSignal,
         }),
       );
@@ -102,6 +118,12 @@ export function createSynthesisProvider({
         throw Error("Provider returned an invalid response envelope.");
       }
 
+      if (onReceipt)
+        await bounded(
+          Promise.resolve(
+            onReceipt({ usage: data.usage ?? null, envelope: data }),
+          ),
+        );
       if (data.error)
         throw Error("Provider returned an error; no retry or fallback made.");
       if (data.choices?.[0]?.finish_reason === "length")
@@ -125,4 +147,20 @@ export function createSynthesisProvider({
       if (reader) reader.cancel().catch(() => {});
     }
   };
+  Object.defineProperty(provider, "auditConfig", {
+    value: Object.freeze({
+      model,
+      endpoint: url.href,
+      maxInputCharacters,
+      maxOutputTokens,
+      maxResponseBytes,
+      timeoutMs,
+      temperature: 0.2,
+      responseFormat: "json_object",
+      allowFallbacks: false,
+      dataCollection: "deny",
+      redirect: "error",
+    }),
+  });
+  return provider;
 }

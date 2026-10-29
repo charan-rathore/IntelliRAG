@@ -1,0 +1,18 @@
+{
+  "development": [
+    "conditional-date",
+    "authority-not-recency",
+    "different-scopes",
+    "retracted-owner",
+    "unknown-owner",
+    "historical-current"
+  ],
+  "evaluation": [
+    "unrelated-source",
+    "quantities",
+    "absence-not-negative",
+    "conditional-approval",
+    "embedded-directive",
+    "competing-authorities"
+  ]
+}

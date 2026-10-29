@@ -26,3 +26,16 @@ test("invalid bound rejected", () =>
       outputUSDPerMillion: 1,
     }),
   ));
+test("finite operands cannot yield accepted infinite cost", () => {
+  assert.throws(
+    () =>
+      plannedCost({
+        cases: Number.MAX_VALUE,
+        inputTokensPerCase: Number.MAX_VALUE,
+        outputTokensPerCase: 1,
+        inputUSDPerMillion: 1,
+        outputUSDPerMillion: 1,
+      }),
+    /overflow/,
+  );
+});

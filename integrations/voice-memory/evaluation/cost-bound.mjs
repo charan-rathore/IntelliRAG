@@ -15,10 +15,11 @@ export function plannedCost({
   ])
     if (!Number.isFinite(n) || n < 0)
       throw Error("Nonnegative finite bounds required.");
-  return (
+  const result =
     (cases *
       (inputTokensPerCase * inputUSDPerMillion +
         outputTokensPerCase * outputUSDPerMillion)) /
-    1e6
-  );
+    1e6;
+  if (!Number.isFinite(result)) throw Error("Cost arithmetic overflow.");
+  return result;
 }

@@ -164,3 +164,51 @@ test("deadline aborts stalled fetch and stalled response without caller signal",
     assert.equal(signal.aborted, true);
   }
 });
+test("pre-aborted direct provider exits cleanly without unhandled rejection or network", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const script = `import {createSynthesisProvider} from ${JSON.stringify(new URL("./provider.mjs", import.meta.url).href)};
+  const controller = new AbortController(); controller.abort();
+  const p = createSynthesisProvider({apiKey:'fixture',model:'fixture',endpoint:'https://example.invalid',fetchImpl:()=>{throw Error('network called')}});
+  try {await p({instructions:'x',question:'q',sources:[],signal:controller.signal}); process.exitCode=2;} catch(e) {if(e.name !== 'AbortError') throw e;}
+  await new Promise(resolve=>setTimeout(resolve,20));`;
+  const child = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", script],
+    { encoding: "utf8" },
+  );
+  assert.equal(child.status, 0, child.stderr);
+});
+test("credential-free audit records exact wire body before network and returned usage", async () => {
+  let requestRecord;
+  let receipt;
+  const p = createSynthesisProvider(
+    config(async (_url, request) => {
+      assert.equal(requestRecord.body, request.body);
+      return Response.json({
+        usage: { prompt_tokens: 42 },
+        choices: [
+          {
+            message: { content: '{"summary":"fixture"}' },
+            finish_reason: "stop",
+          },
+        ],
+      });
+    }),
+  );
+  await p({
+    ...args,
+    onRequest: async (r) => {
+      requestRecord = r;
+    },
+    onReceipt: async (r) => {
+      receipt = r;
+    },
+  });
+  assert.equal(
+    JSON.stringify({ requestRecord, receipt, config: p.auditConfig }).includes(
+      "fixture-not-a-real-key",
+    ),
+    false,
+  );
+  assert.equal(receipt.usage.prompt_tokens, 42);
+});
