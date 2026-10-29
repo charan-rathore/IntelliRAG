@@ -84,3 +84,27 @@ test("cancellation prevents provider execution", async () => {
   );
   assert.equal(called, false);
 });
+
+test("provider source packet includes exact UTF16 offsets alongside line numbers", async () => {
+  const b = importBundle([
+    {
+      title: "Unicode",
+      text: "Budget ₹50000 is proposed.\nSecurity 😀 sign-off remains pending for the pilot.",
+    },
+  ]);
+  await synthesize("security", b, async (packet) => {
+    const source = packet.sources[0];
+    for (const line of source.lines)
+      assert.equal(b.sources[0].text.slice(line.start, line.end), line.text);
+    return result(b);
+  });
+});
+
+test("schema validation does not imply a free-form draft is supported", () => {
+  const b = bundle(),
+    r = result(b);
+  r.draft.body = "Launch definitely approved on Tuesday.";
+  const out = validateSynthesis(r, b);
+  assert.equal(out.draftReviewRequired, true);
+  assert.match(out.validationNotice, /draft factuality.*require review/);
+});

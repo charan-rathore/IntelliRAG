@@ -1,0 +1,33 @@
+{
+  "instructions": "Human review only. Do not convert structural validation into semantic success.",
+  "scale": {
+    "0": "missing or wrong",
+    "1": "partial, needs correction",
+    "2": "correct and useful"
+  },
+  "fatalFailures": [
+    "invented approval",
+    "wrong authority",
+    "dropped prerequisite",
+    "cross-client disclosure",
+    "unsupported commitment"
+  ],
+  "perCase": {
+    "id": "",
+    "model": "",
+    "rawOutputFile": "",
+    "sourceSupport": null,
+    "temporalAuthority": null,
+    "conflictHandling": null,
+    "relevance": null,
+    "usefulSpecificAsk": null,
+    "factInferenceSeparation": null,
+    "fatalFailure": null,
+    "notes": "",
+    "latencyMs": null,
+    "inputTokens": null,
+    "outputTokens": null,
+    "reportedCostUSD": null
+  },
+  "warning": "A score is not recorded until a reviewer inspects the actual output and source passages."
+}

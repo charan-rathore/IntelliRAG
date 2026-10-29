@@ -7,10 +7,11 @@
     "test": "node --test test.mjs",
     "start": "node server.mjs",
     "typecheck": "tsc -p tsconfig.json",
-    "test:boundaries": "node --test server.test.mjs voice-adapter.test.mjs synthesis.test.mjs",
+    "test:boundaries": "node --test server.test.mjs voice-adapter.test.mjs synthesis.test.mjs provider.test.mjs",
     "test:browser": "node browser-check.mjs",
     "format:check": "prettier --check *.mjs *.ts *.json public/*",
-    "verify": "npm run format:check && npm run typecheck && npm run build && npm test && npm run test:boundaries && npm run test:browser"
+    "verify": "npm run format:check && npm run typecheck && npm run build && npm test && npm run test:boundaries && npm run test:evaluation && npm run test:browser",
+    "test:evaluation": "node --test evaluation/*.test.mjs"
   },
   "dependencies": {
     "esbuild": "0.25.12",

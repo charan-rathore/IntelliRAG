@@ -130,3 +130,16 @@ test("negative specific artifact claim cannot bypass evidence gate", () => {
   const r = answer("What does security ticket SEC-999999 approve?", b);
   assert.equal(r.refused, true);
 });
+
+test("citation metadata cannot claim a quote outside original source bounds", () => {
+  const b = importBundle(docs),
+    r = answer("pilot launch security review", b),
+    c = r.evidence[0];
+  for (const change of [
+    { start: -1 },
+    { end: c.end + 100000 },
+    { hash: "other" },
+    { quote: "approved" },
+  ])
+    assert.throws(() => validateEvidence({ ...c, ...change }, b));
+});
