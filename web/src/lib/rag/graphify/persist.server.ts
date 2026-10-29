@@ -13,10 +13,10 @@ import { lookupCache, preferredSlugs, queryGraph } from "./query";
 import { applyGraphEdits, scopeGraph, EMPTY_EDITS, type GraphEdits } from "./edits";
 import { emptyVectorMemory, learnVectors, lookupVectors } from "./vector";
 import { parseCorpusScope } from "../corpus-scope";
+import { graphStatePath } from "../storage";
 import { reflect } from "./reflect";
 import type { CacheEntry, GraphOutcome, GraphState, MemoryDoc } from "./schema";
 
-const TMP = "/tmp/intellirag-graphify.json";
 type G = typeof globalThis & { __intelliragGraph?: GraphState; __intelliragGraphRefresh?: { pending?: Promise<GraphState> } };
 
 function empty(): GraphState {
@@ -30,7 +30,7 @@ function empty(): GraphState {
 
 function loadDisk(): GraphState | null {
   try {
-    return JSON.parse(readFileSync(TMP, "utf8")) as GraphState;
+    return JSON.parse(readFileSync(graphStatePath(), "utf8")) as GraphState;
   } catch {
     return null;
   }
@@ -38,7 +38,7 @@ function loadDisk(): GraphState | null {
 
 function saveDisk(state: GraphState) {
   try {
-    writeAtomicJson(TMP, state);
+    writeAtomicJson(graphStatePath(), state);
   } catch {
     // /tmp is best-effort on serverless
   }

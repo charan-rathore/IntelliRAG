@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { explorerNodes } from "./explorer.ts";
-import type { GraphNode } from "./schema.ts";
+import { explorerNodes } from "./graphify/explorer.ts";
+import type { GraphNode } from "./graphify/schema.ts";
 
 const nodes: GraphNode[] = ["document", "query", "chunk", "term"].map((kind, index) => ({
   id: String(index), label: kind === "query" ? "Why retry?" : "Queue", kind: kind as GraphNode["kind"],
