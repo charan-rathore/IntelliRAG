@@ -71,3 +71,51 @@ test("source text cannot become HTML", async () => {
     /script-src 'self'/,
   );
 });
+
+test("split UTF-8 HTTP buffers preserve original rupee and emoji source bytes", async () => {
+  const { request } = await import("node:http");
+  const s = await session();
+  for (const symbol of ["₹", "😀"]) {
+    const text = `Security review budget is ${symbol}50000. Pilot security sign-off remains pending. Maya owns review.`;
+    const raw = Buffer.from(
+      JSON.stringify({ documents: [{ title: "Unicode source", text }] }),
+    );
+    const index = raw.indexOf(Buffer.from(symbol)) + 1;
+    const response = await new Promise((resolve, reject) => {
+      const req = request(
+        root + "/api/import",
+        {
+          method: "POST",
+          headers: {
+            cookie: s.cookie,
+            origin: root,
+            "X-CSRF-Token": s.csrf,
+            "Content-Type": "application/json",
+          },
+        },
+        (res) => {
+          const chunks = [];
+          res.on("data", (c) => chunks.push(c));
+          res.on("end", () =>
+            resolve({
+              status: res.statusCode,
+              body: Buffer.concat(chunks).toString(),
+            }),
+          );
+        },
+      );
+      req.on("error", reject);
+      req.write(raw.subarray(0, index));
+      setTimeout(() => req.end(raw.subarray(index)), 10);
+    });
+    assert.equal(response.status, 200);
+    const result = await (
+      await post(s, "query", { question: "Security review budget" })
+    ).json();
+    assert.ok(
+      result.evidence.some((e) => e.quote.includes(symbol + "50000")),
+      JSON.stringify(result),
+    );
+    assert.ok(!JSON.stringify(result).includes("�"));
+  }
+});

@@ -80,3 +80,57 @@ test("request limits and invalid final roles rejected", async () => {
     400,
   );
 });
+
+test("malformed top-level and message-list shapes return400 rather than throwing", async () => {
+  const a = createVoiceAdapter(),
+    t = a.bind(b());
+  for (const data of [
+    null,
+    [],
+    {},
+    { stream: true, messages: {} },
+    { stream: true, messages: "fake" },
+    { stream: true, messages: [null] },
+  ]) {
+    const req = new Request("http://localhost/v1/chat/completions", {
+      method: "POST",
+      headers: { authorization: "Bearer " + t },
+      body: JSON.stringify(data),
+    });
+    assert.equal((await a.handle(req)).status, 400);
+  }
+});
+
+test("capability expiration or revocation during pending body is rechecked", async () => {
+  for (const operation of ["expire", "revoke"]) {
+    let clock = 0;
+    const a = createVoiceAdapter({ ttlMs: 10, now: () => clock }),
+      t = a.bind(b());
+    let controller;
+    const body = new ReadableStream({
+      start(c) {
+        controller = c;
+      },
+    });
+    const req = new Request("http://localhost/v1/chat/completions", {
+      method: "POST",
+      headers: { authorization: "Bearer " + t },
+      body,
+      duplex: "half",
+    });
+    const pending = a.handle(req);
+    if (operation === "expire") clock = 20;
+    else a.revoke(t);
+    controller.enqueue(
+      new TextEncoder().encode(
+        JSON.stringify({
+          stream: true,
+          messages: [{ role: "user", content: "security pilot" }],
+        }),
+      ),
+    );
+    controller.close();
+    assert.equal((await pending).status, 401);
+    assert.equal(a.lastTurn(t), null);
+  }
+});

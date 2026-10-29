@@ -41,7 +41,25 @@ export function createVoiceAdapter({
       } catch {
         return Response.json({ error: "Invalid request" }, { status: 400 });
       }
-      const last = data.messages?.at(-1);
+      if (
+        !data ||
+        typeof data !== "object" ||
+        Array.isArray(data) ||
+        !Array.isArray(data.messages)
+      ) {
+        return Response.json(
+          { error: "Invalid message list" },
+          { status: 400 },
+        );
+      }
+      if (grants.get(token) !== grant || grant.expires <= now()) {
+        grants.delete(token);
+        return Response.json(
+          { error: "Invalid or expired session capability" },
+          { status: 401 },
+        );
+      }
+      const last = data.messages.at(-1);
       if (
         data.stream !== true ||
         last?.role !== "user" ||

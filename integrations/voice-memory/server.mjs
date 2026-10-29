@@ -22,11 +22,17 @@ function session(req, res) {
   return sessions.get(id);
 }
 async function body(req) {
-  let text = "";
+  const chunks = [];
+  let bytes = 0;
   for await (const part of req) {
-    text += part;
-    if (Buffer.byteLength(text) > 700000) throw Error("Upload too large.");
+    const buffer = Buffer.isBuffer(part) ? part : Buffer.from(part);
+    bytes += buffer.length;
+    if (bytes > 700000) throw Error("Upload too large.");
+    chunks.push(buffer);
   }
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(
+    Buffer.concat(chunks, bytes),
+  );
   return JSON.parse(text);
 }
 export const server = http.createServer(async (req, res) => {
