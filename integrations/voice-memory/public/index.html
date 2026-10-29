@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Voice Memory</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand"
+        >Voice Memory<span>IntelliRAG + memoRABLE</span></a
+      ><span class="pill">Local build · no paid inference</span>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow">PICK UP WHERE YOU LEFT OFF</p>
+        <h1>Your next conversation.<br />With the context intact.</h1>
+        <p>
+          Bring your project documents. Find what was said, inspect the
+          evidence, and turn it into a follow-up draft.
+        </p>
+      </section>
+      <ol class="steps">
+        <li>01 &nbsp; Add documents</li>
+        <li>02 &nbsp; Ask & inspect</li>
+        <li>03 &nbsp; Review draft</li>
+      </ol>
+      <section class="workspace">
+        <aside>
+          <h2>Your sources</h2>
+          <p class="muted">
+            Text or Markdown, up to 10 files. Kept in this local session for one
+            hour of inactivity.
+          </p>
+          <label class="upload"
+            >Choose documents<input
+              id="files"
+              type="file"
+              multiple
+              accept=".txt,.md,text/plain,text/markdown" /></label
+          ><button id="sample" class="secondary">
+            Try a clearly fictional project
+          </button>
+          <ul id="sources"></ul>
+          <button id="reset" class="quiet">Clear this session</button>
+        </aside>
+        <article>
+          <div class="section-label">THE QUESTION</div>
+          <h2>What do you need to remember?</h2>
+          <form id="ask">
+            <label for="question">Ask across your documents</label
+            ><textarea
+              id="question"
+              rows="3"
+              placeholder="What is still pending for the pilot launch?"
+              maxlength="4000"
+              required
+            ></textarea>
+            <div class="actions">
+              <button id="query" type="submit">
+                Find the evidence <span>↗</span>
+              </button>
+            </div>
+          </form>
+          <p class="note">
+            Current build uses IntelliRAG's keyword retrieval and verbatim
+            excerpts. It does not generate a synthesized answer. Bolna
+            microphone and spoken answers are not connected yet.
+          </p>
+          <p id="status" role="status" aria-live="polite">
+            Add your documents, or try the fictional example.
+          </p>
+          <section id="output" hidden>
+            <div class="result-head">
+              <h2>What the sources say</h2>
+              <span id="timing"></span>
+            </div>
+            <p id="mode" class="muted"></p>
+            <div id="answer"></div>
+            <h3>Inspect the originals</h3>
+            <div id="evidence"></div>
+            <button id="draft">Turn this into a draft</button>
+            <p class="note">
+              Quotes prove where text came from, not that a proposed decision
+              was approved. Review context before acting.
+            </p>
+          </section>
+          <section id="draft-panel" hidden>
+            <h2>Your follow-up draft</h2>
+            <p class="note">
+              Not sent. No recipient or email account is connected.
+            </p>
+            <label for="subject">Subject</label><input id="subject" /><label
+              for="body"
+              >Body</label
+            ><textarea id="body" rows="12"></textarea
+            ><button id="download" class="secondary">
+              Download draft as text
+            </button>
+          </section>
+        </article>
+      </section>
+      <footer>
+        Original text stays alongside memory blocks. When evidence is missing,
+        we say so.
+      </footer>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

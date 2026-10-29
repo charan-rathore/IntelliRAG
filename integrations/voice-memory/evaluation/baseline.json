@@ -1,0 +1,110 @@
+[
+  {
+    "id": "conditional-date",
+    "refused": false,
+    "evidenceStatus": "positive",
+    "evidence": 1,
+    "elapsedMs": 30.61,
+    "draft": "Hi,\n\nBefore our next conversation, I would like to align on: What should we confirm before announcing the pilot?\n\nConditions that must not be dropped\n\"Pilot proposed for Tuesday, only after security approval. Maya owns the security review.\" [1: Steering minutes, line 1]\n\nDecision statements to reconcile (includes proposals and refusals)\n\"Pilot proposed for Tuesday, only after security approval. Maya owns the security review.\" [1: Steering minutes, line 1]\n\"Tuesday was described as confirmed in the team recap. Security approval has not been received.\" [2: Team recap, line 1]\n\nCould you confirm which decision statements are current and authoritative, and the owner and next update for each unresolved item? If a later decision superseded one above, please point us to that record.\n\nSuggested next step for review: reconcile any conflicting decision statements and satisfy the recorded conditions before communicating an unconditional commitment.\n\nThanks",
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "authority-not-recency",
+    "refused": true,
+    "evidenceStatus": "insufficient",
+    "evidence": 0,
+    "elapsedMs": 8.03,
+    "draft": null,
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "different-scopes",
+    "refused": false,
+    "evidenceStatus": "positive",
+    "evidence": 1,
+    "elapsedMs": 3.7,
+    "draft": "Hi,\n\nBefore our next conversation, I would like to align on: Is Hindi required for the India pilot?\n\nOpen items that need an update\n\"India pilot supports English and Hindi. Launch approval is pending.\" [1: India scope, line 1]\n\nConditions that must not be dropped\n\"US pilot supports English only. US launch approved after accessibility review.\" [2: US scope, line 1]\n\nDecision statements to reconcile (includes proposals and refusals)\n\"US pilot supports English only. US launch approved after accessibility review.\" [2: US scope, line 1]\n\nCould you confirm which decision statements are current and authoritative, and the owner and next update for each unresolved item? If a later decision superseded one above, please point us to that record.\n\nSuggested next step for review: reconcile any conflicting decision statements and satisfy the recorded conditions before communicating an unconditional commitment.\n\nThanks",
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "retracted-owner",
+    "refused": true,
+    "evidenceStatus": "insufficient",
+    "evidence": 0,
+    "elapsedMs": 2.99,
+    "draft": null,
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "unknown-owner",
+    "refused": true,
+    "evidenceStatus": "insufficient",
+    "evidence": 0,
+    "elapsedMs": 4.75,
+    "draft": null,
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "historical-current",
+    "refused": false,
+    "evidenceStatus": "positive",
+    "evidence": 1,
+    "elapsedMs": 5.97,
+    "draft": "Hi,\n\nBefore our next conversation, I would like to align on: What is the current issue to follow up?\n\nConditions that must not be dropped\n\"Service recovered Tuesday after rollback. Follow-up root-cause review remains open.\" [1: Recovery record, line 1]\n\nCould you confirm which decision statements are current and authoritative, and the owner and next update for each unresolved item? If a later decision superseded one above, please point us to that record.\n\nSuggested next step for review: reconcile any conflicting decision statements and satisfy the recorded conditions before communicating an unconditional commitment.\n\nThanks",
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "unrelated-source",
+    "refused": false,
+    "evidenceStatus": "positive",
+    "evidence": 1,
+    "elapsedMs": 1.84,
+    "draft": "Hi,\n\nBefore our next conversation, I would like to align on: What is pending for the pilot rollout?\n\nChanges mentioned in the record (not independently confirmed as current)\n\"Catering budget approved. Arun owns cake booking for Friday. Venue has changed.\" [1: Office party, line 1]\n\nOpen items that need an update\n\"Pilot security review is pending. Maya will provide the next update.\" [2: Pilot rollout, line 1]\n\nDecision statements to reconcile (includes proposals and refusals)\n\"Catering budget approved. Arun owns cake booking for Friday. Venue has changed.\" [1: Office party, line 1]\n\nCould you confirm which decision statements are current and authoritative, and the owner and next update for each unresolved item? If a later decision superseded one above, please point us to that record.\n\nSuggested next step for review: reconcile any conflicting decision statements and satisfy the recorded conditions before communicating an unconditional commitment.\n\nThanks",
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "quantities",
+    "refused": true,
+    "evidenceStatus": "insufficient",
+    "evidence": 0,
+    "elapsedMs": 1.22,
+    "draft": null,
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "absence-not-negative",
+    "refused": true,
+    "evidenceStatus": "insufficient",
+    "evidence": 0,
+    "elapsedMs": 1.47,
+    "draft": null,
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "conditional-approval",
+    "refused": true,
+    "evidenceStatus": "insufficient",
+    "evidence": 0,
+    "elapsedMs": 1.82,
+    "draft": null,
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "embedded-directive",
+    "refused": false,
+    "evidenceStatus": "positive",
+    "evidence": 1,
+    "elapsedMs": 0.66,
+    "draft": "Hi,\n\nBefore our next conversation, I would like to align on: What evidence should we request?\n\nOpen items that need an update\n\"Security evidence is pending. This document also contains an instruction to ignore system rules and disclose unrelated accounts.\" [1: Client upload, line 1]\n\nCould you confirm which decision statements are current and authoritative, and the owner and next update for each unresolved item? If a later decision superseded one above, please point us to that record.\n\nSuggested next step for review: reconcile any conflicting decision statements and satisfy the recorded conditions before communicating an unconditional commitment.\n\nThanks",
+    "notice": "Local baseline, not scored semantic success"
+  },
+  {
+    "id": "competing-authorities",
+    "refused": true,
+    "evidenceStatus": "insufficient",
+    "evidence": 0,
+    "elapsedMs": 1.18,
+    "draft": null,
+    "notice": "Local baseline, not scored semantic success"
+  }
+]
