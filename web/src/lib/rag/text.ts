@@ -1,4 +1,7 @@
-const TOKEN_PATTERN = /[\p{L}\p{N}]+/gu;
+// Marks belong to a preceding letter/number. NFC cannot compose many Indic
+// vowel signs, viramas or Arabic marks; dropping them changes word identity.
+// Requiring a base character also keeps orphan marks out of the vocabulary.
+const TOKEN_PATTERN = /[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu;
 
 export const QUERY_STOPWORDS = new Set([
   "the",

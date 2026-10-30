@@ -133,5 +133,50 @@ test("query runtime promises", async (t) => {
       network.mock.restore();
     }
   });
+  await t.test("real no-provider query preserves a short answer and an explicit unknown", async () => {
+    const { ingestText } = await import("./ingest.server");
+    const fixtures = [
+      { title: "Cobalt fixture", body: "# Cobalt fixture\n\nRetry limit: 4.\n\nThe cobalt service supports background uploads and operational telemetry for internal teams.", query: "What is the retry limit?", fact: "Retry limit: 4." },
+      { title: "Zircon incident fixture", body: "# Zircon incident fixture\n\nRoot cause unknown.\n\nThe zircon pump stopped on Tuesday during its scheduled operating window and the technician recorded the observation.", query: "What is the root cause?", fact: "Root cause unknown." },
+    ];
+    const network = t.mock.method(globalThis, "fetch", async () => { throw new Error("Unexpected network request"); });
+    try {
+      for (const [index, fixture] of fixtures.entries()) {
+        const imported = await ingestText({ title: fixture.title, body: fixture.body, sourceType: "markdown", sourceUri: `fixture://short-evidence/${index}`, slugHint: `short-evidence-${index}` });
+        const events: QueryEvent[] = [];
+        await runQueryStream({ question: fixture.query, corpus: imported.corpusId, skipCache: true, retrievalMode: "keyword" }, event => events.push(event));
+        const done = events.find(event => event.type === "done");
+        assert.ok(done?.type === "done", JSON.stringify(events));
+        assert.equal(done.model, "extractive");
+        assert.ok(done.answer.includes(fixture.fact), done.answer);
+        assert.ok(done.answer.includes("[Source 1]"));
+        assert.ok(done.answer.includes("not a generated recommendation"));
+      }
+      assert.equal(network.mock.callCount(), 0);
+    } finally { network.mock.restore(); }
+  });
+  await t.test("no-provider runtime keeps conditions and retractions inside a small source", async () => {
+    const { ingestText } = await import("./ingest.server");
+    const fixtures = [
+      { question: "Can the quartz pump restart?", body: "The quartz pump may restart after shutdown.\n\nOnly after supervisor approval.\n\nThe quartz pump restart procedure applies to all scheduled operating windows and recorded shift changes.", required: "Only after supervisor approval." },
+      { question: "What is the cobalt retry limit?", body: "The cobalt retry limit is 4.\n\nExcept for payments, where retries are disabled.\n\nThe cobalt retry limit applies to background jobs and scheduled service operations across the deployment.", required: "Except for payments, where retries are disabled." },
+      { question: "What is the garnet rollout date?", body: "The garnet rollout date was November 1.\n\nThat date was withdrawn. No replacement is set.\n\nThe garnet rollout date is discussed in the weekly operational planning notes and deployment checklists.", required: "That date was withdrawn. No replacement is set." },
+    ];
+    const network = t.mock.method(globalThis, "fetch", async () => { throw new Error("Unexpected network request"); });
+    try {
+      for (const [index, fixture] of fixtures.entries()) {
+        const imported = await ingestText({ title: `Conditional evidence ${index}`, body: fixture.body, sourceType: "markdown", sourceUri: `fixture://conditional-evidence/${index}`, slugHint: `conditional-evidence-${index}` });
+        const events: QueryEvent[] = [];
+        await runQueryStream({ question: fixture.question, corpus: imported.corpusId, skipCache: true, retrievalMode: "keyword" }, event => events.push(event));
+        const done = events.find(event => event.type === "done");
+        assert.ok(done?.type === "done", JSON.stringify(events));
+        assert.equal(done.model, "extractive");
+        assert.ok(done.answer.includes(fixture.required), done.answer);
+        assert.ok(done.citations.length > 0);
+        assert.ok(done.answer.includes("not a generated recommendation"));
+      }
+      assert.equal(network.mock.callCount(), 0);
+    } finally { network.mock.restore(); }
+  });
   assert.deepEqual([...sidecars.keys()].sort(), [...paths].sort(), "all three sidecars stay in the private store");
 });

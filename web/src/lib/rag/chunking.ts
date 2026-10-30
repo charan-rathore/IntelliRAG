@@ -397,7 +397,7 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
 }
 
 export function chunkDocument(body: string, opts: ChunkOptions = {}): DraftChunk[] {
-  const normalized = body.replace(/\r\n/g, "\n").trim();
+  const normalized = body.replace(/\r\n?/g, "\n").trim();
   if (!normalized) return [];
   const chunkSize = opts.chunkSize ?? CHUNK_SIZE_TOKENS;
   const overlap = opts.overlap ?? CHUNK_OVERLAP_TOKENS;
