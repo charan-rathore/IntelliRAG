@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import type { DenseDiagnostics, EvidenceGate, EvidenceKind, RetrievalCandidate, RetrievedChunk, RetrievalMode, RetrievalStageScores } from "@/lib/rag/types";
 import { CONTEXT_TOKEN_BUDGET } from "@/lib/rag/types";
 import { cn } from "@/lib/utils";
+import { chunkPreview } from "../../lib/rag/chunk-preview.ts";
 
 const STAGE: Array<{ key: keyof RetrievalStageScores; label: string; unit: string }> = [
   { key: "dense", label: "Cosine", unit: "raw" },
@@ -137,7 +138,7 @@ function CandidateRow({
                 : ""}
             </p>
           )}
-          <p className="line-clamp-4 text-xs leading-relaxed text-muted">{candidate.text}</p>
+          <p className="line-clamp-4 text-xs leading-relaxed text-muted">{chunkPreview(candidate.text, candidate.chunkKind)}</p>
         </div>
       )}
     </li>
@@ -161,7 +162,7 @@ export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
               <p className="text-sm font-medium text-fg">
                 [{i + 1}] {c.title}
               </p>
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{c.text}</p>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{chunkPreview(c.text, c.chunkKind)}</p>
             </Link>
           </li>
         ))}
