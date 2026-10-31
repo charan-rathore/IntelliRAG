@@ -5,17 +5,17 @@
  * cards render raw text, so fence markers, heading hashes and backticks
  * show as noise. This strips only the presentation syntax that is
  * unambiguous, and prefers leaving markdown VISIBLE over altering
- * evidence: anything ambiguous - a mid-line fence, an unmatched or
- * mixed-marker fence, multi-backtick spans - stays exactly as written.
+ * evidence. Mid-line fence markers remain visible. Unmatched inline
+ * runs remain prose, where the normal emphasis rules still apply.
  *
  * What is cleaned, conservatively:
- * - Fenced code blocks whose opening and closing markers are whole lines
- *   of the SAME marker character (``` or ~~~, any language tag): the two
- *   marker lines are dropped, the code bytes between them are verbatim.
- *   An opening marker line with no matching closing line makes the rest
- *   of the chunk code, kept verbatim.
- * - Inline code spans of exactly one backtick on each side, not adjacent
- *   to other backticks: the two delimiters are dropped, content verbatim.
+ * - Whole-line fenced blocks with same-character closing runs at least
+ *   as long as the opener: marker lines are dropped; code content is
+ *   retained with whitespace collapsed for the card preview. An unclosed
+ *   opener treats the remainder as code; its opener is dropped.
+ * - Same-line inline code spans, paired in source order with equal-length
+ *   backtick runs: outer delimiters are dropped and content is protected
+ *   from prose rules. Preview whitespace is still collapsed.
  * - Heading hashes, link/image syntax, and boundary-hugging emphasis in
  *   prose, where literals (2**3+4**5, __init__, C#, *p) survive by rule.
  *
@@ -55,19 +55,76 @@ function cleanProse(t: string): string {
 // mid-line ``` or ~~~ never matches, so it is never deleted from prose.
 const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})[ \t]*([^\n]*?)[ \t]*$/;
 
-function isFenceLine(line: string): { marker: string } | null {
+function isFenceLine(line: string): { marker: string; length: number } | null {
   const m = line.match(FENCE_LINE);
   if (!m) return null;
-  const marker = m[1][0];
+  const run = m[1];
+  const marker = run[0];
   const info = m[2] ?? "";
-  if (marker === "`" && info.includes("`")) return null;
-  if (marker === "~" && info.includes("~")) return null;
-  return { marker };
+  if (info.includes(marker)) return null;
+  return { marker, length: run.length };
 }
 
-function isClosingLine(line: string, marker: string): boolean {
-  const re = marker === "`" ? /^ {0,3}`{3,}[ \t]*$/ : /^ {0,3}~{3,}[ \t]*$/;
-  return re.test(line);
+/** Closing fence: same marker character, run length at least the
+ * opener's - a shorter run is code content, never a closer. */
+function isClosingLine(line: string, marker: string, minLength: number): boolean {
+  const m = line.match(marker === "`" ? /^ {0,3}(`+)[ \t]*$/ : /^ {0,3}(~+)[ \t]*$/);
+  return !!m && m[1]![0] === marker && m[1]!.length >= minLength;
+}
+
+/**
+ * Source-order inline span scan (mirrors answer.tsx; unify once both
+ * branches land on main). At each backtick run of length N, the next
+ * run of EXACTLY length N on the same line closes a code span;
+ * everything between is shielded from the prose rules. A run with no
+ * matching close stays literal prose and scanning continues after it.
+ */
+function scanInlineSpans(text: string): { kind: "code" | "prose"; text: string }[] {
+  const pieces: { kind: "code" | "prose"; text: string }[] = [];
+  let proseStart = 0;
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] !== "`") {
+      i += 1;
+      continue;
+    }
+    let runEnd = i;
+    while (runEnd < text.length && text[runEnd] === "`") runEnd += 1;
+    const runLength = runEnd - i;
+    let closeStart = -1;
+    let j = runEnd;
+    while (j < text.length && text[j] !== "\n") {
+      if (text[j] === "`") {
+        let closeEnd = j;
+        while (closeEnd < text.length && text[closeEnd] === "`") closeEnd += 1;
+        if (closeEnd - j === runLength) {
+          closeStart = j;
+          break;
+        }
+        j = closeEnd;
+      } else {
+        j += 1;
+      }
+    }
+    if (closeStart === -1) {
+      i = runEnd;
+      continue;
+    }
+    if (i > proseStart) pieces.push({ kind: "prose", text: text.slice(proseStart, i) });
+    pieces.push({ kind: "code", text: text.slice(runEnd, closeStart) });
+    i = closeStart + runLength;
+    proseStart = i;
+  }
+  if (proseStart < text.length) pieces.push({ kind: "prose", text: text.slice(proseStart) });
+  return pieces;
+}
+
+/** Inline spans in prose: code content verbatim (delimiters stripped),
+ * prose pieces through the prose rules. */
+function renderSingleSpans(text: string): string {
+  return scanInlineSpans(text)
+    .map((piece) => (piece.kind === "code" ? piece.text : cleanProse(piece.text)))
+    .join("");
 }
 
 export function chunkPreview(text: string, chunkKind?: "prose" | "code"): string {
@@ -83,16 +140,18 @@ export function chunkPreview(text: string, chunkKind?: "prose" | "code"): string
   let prose: string[] = [];
   let code: string[] | null = null;
   let fenceMarker = "";
+  let fenceLength = 0;
   for (const line of text.split("\n")) {
     if (code === null) {
       const fence = isFenceLine(line);
       if (fence) {
         code = [];
         fenceMarker = fence.marker;
+        fenceLength = fence.length;
       } else {
         prose.push(line);
       }
-    } else if (isClosingLine(line, fenceMarker)) {
+    } else if (isClosingLine(line, fenceMarker, fenceLength)) {
       segments.push({ kind: "prose", text: prose.join("\n") });
       prose = [];
       segments.push({ kind: "code", text: code.join("\n") });
@@ -115,14 +174,11 @@ export function chunkPreview(text: string, chunkKind?: "prose" | "code"): string
       out.push(collapseWhitespace(segment.text));
       continue;
     }
-    // Inline code spans: exactly one backtick per side, not adjacent to
-    // other backticks. Multi-backtick spans and stray backticks stay
-    // visible rather than being misquoted. Pieces carry their own
-    // surrounding whitespace, so they concatenate directly.
-    const pieces = segment.text.split(/((?<!`)`[^`\n]+`(?!`))/g);
-    out.push(
-      pieces.map((piece, j) => (j % 2 === 1 ? piece.slice(1, -1) : cleanProse(piece))).join(""),
-    );
+    // Inline spans via the source-order scanner: code content verbatim
+    // (delimiters stripped), prose through the prose rules, unmatched
+    // runs stay prose. Multi-backtick regions are shielded as a whole, so
+    // emphasis rules never reach inside ``x **bold** y``.
+    out.push(renderSingleSpans(segment.text));
   }
   return collapseWhitespace(out.join(" "));
 }

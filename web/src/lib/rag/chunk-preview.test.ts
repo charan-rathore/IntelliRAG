@@ -178,11 +178,37 @@ describe("chunkPreview ambiguity stays verbatim", () => {
     assert.equal(chunkPreview(b), b);
   });
 
-  it("multi-backtick inline spans stay verbatim rather than being misquoted", () => {
-    const t = "Call ``a`b`` now";
-    assert.equal(chunkPreview(t), t);
-    const t2 = "x `` code `` y";
-    assert.equal(chunkPreview(t2), t2);
+  it("multi-backtick spans strip only the outer delimiters, content verbatim", () => {
+    assert.equal(chunkPreview("Call ``a`b`` now"), "Call a`b now");
+    assert.equal(chunkPreview("x `` code `` y"), "x code y");
+  });
+
+  it("matched multi-backtick regions shield emphasis markers inside them", () => {
+    assert.equal(chunkPreview("Call ``x **bold** y`` now"), "Call x **bold** y now");
+    assert.equal(chunkPreview("use `` `__init__` `` here"), "use `__init__` here");
+    assert.equal(chunkPreview("a ```code **not bold** block``` z"), "a code **not bold** block z");
+  });
+
+  it("a shorter run never closes a longer fence", () => {
+    // The ``` line is code content; only a run of >= 4 backticks closes.
+    assert.equal(
+      chunkPreview("````\nkeep **this**\n```\nrest of it\n````"),
+      "keep **this** ``` rest of it",
+    );
+  });
+
+  it("a single-backtick span shields longer runs inside it, and vice versa", () => {
+    assert.equal(chunkPreview("`a ``x`` b` tail"), "a ``x`` b tail");
+    assert.equal(chunkPreview("``a `x` b`` tail"), "a `x` b tail");
+  });
+
+  it("an unmatched opener stays literal and a later matched pair still parses", () => {
+    assert.equal(chunkPreview("a ` stray ``pair`` end"), "a ` stray pair end");
+  });
+
+  it("an unmatched multi-backtick run is plain prose (emphasis rules still apply after it)", () => {
+    // Limitation, explicit: unmatched runs are NOT protected regions.
+    assert.equal(chunkPreview("a `` stray and **bold** here"), "a `` stray and bold here");
   });
 
   it("a stray unmatched single backtick stays visible", () => {
@@ -202,5 +228,8 @@ describe("source-card preview integration", () => {
     const source = readFileSync(new URL("../../components/rag/source-inspector.tsx", import.meta.url), "utf8");
     assert.match(source, /chunkPreview\(candidate\.text, candidate\.chunkKind\)/);
     assert.match(source, /chunkPreview\(c\.text, c\.chunkKind\)/);
+  });
+  it("keeps the exact crossed-run review example in source order", () => {
+    assert.equal(chunkPreview("`literal `` first` prose [Source 1] `second `` literal`"), "literal `` first prose [Source 1] second `` literal");
   });
 });
