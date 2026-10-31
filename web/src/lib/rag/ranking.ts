@@ -1,11 +1,5 @@
-import {
-  GENERIC_OPS_TERMS,
-  QUERY_STOPWORDS,
-  bigrams,
-  contentTokens,
-  expandTypos,
-  tokenSetMatches,
-} from "./text";
+import { bigrams, contentTokens, expandTypos, tokenSetMatches } from "./text";
+import { isGenericOpsTerm, isQueryStopword } from "./perfect-sets.generated";
 import type { RetrievedChunk } from "./types";
 import { SEED_CORPUS_ID } from "./corpus-scope";
 import {
@@ -31,7 +25,7 @@ export function buildIdf(corpusTexts: string[]): IdF {
   const idf = new Map<string, number>();
   for (const [t, c] of df) {
     const raw = Math.log(1 + (n - c + 0.5) / (c + 0.5));
-    idf.set(t, GENERIC_OPS_TERMS.has(t) ? raw * 0.2 : raw);
+    idf.set(t, isGenericOpsTerm(t) ? raw * 0.2 : raw);
   }
   return idf;
 }
@@ -49,8 +43,8 @@ export function corpusVocab(texts: string[]): Set<string> {
 }
 
 function termWeight(term: string, idf: IdF): number {
-  if (QUERY_STOPWORDS.has(term)) return 0;
-  const generic = GENERIC_OPS_TERMS.has(term) ? 0.2 : 1;
+  if (isQueryStopword(term)) return 0;
+  const generic = isGenericOpsTerm(term) ? 0.2 : 1;
   return (idf.get(term) ?? Math.log(8)) * generic;
 }
 
@@ -72,7 +66,7 @@ export function phraseBoost(query: string, text: string): number {
   const q = contentTokens(query);
   const grams = bigrams(q).filter((g) => {
     const [a, b] = g.split(" ");
-    return Boolean(a && b && !GENERIC_OPS_TERMS.has(a) && !GENERIC_OPS_TERMS.has(b));
+    return Boolean(a && b && !isGenericOpsTerm(a) && !isGenericOpsTerm(b));
   });
   const hay = contentTokens(text).join(" ");
   const hayRaw = text.toLowerCase();
@@ -289,7 +283,7 @@ export function isSupported(signals: RerankSignals, calibrated: number): boolean
 }
 
 function distinctiveDocHits(query: string, ranked: RetrievedChunk[], idf: IdF): string[] {
-  const terms = contentTokens(query).filter((t) => !GENERIC_OPS_TERMS.has(t) && (idf.get(t) ?? 0) > 0.4);
+  const terms = contentTokens(query).filter((t) => !isGenericOpsTerm(t) && (idf.get(t) ?? 0) > 0.4);
   const slugs: string[] = [];
   for (const c of ranked.slice(0, 8)) {
     const title = new Set(contentTokens(`${c.title} ${c.heading ?? ""}`));
@@ -485,6 +479,6 @@ export function retrievalQuery(query: string, vocab: Set<string>): string {
 
 export function distinctiveTerms(query: string): string[] {
   return contentTokens(query).filter(
-    (t) => t.length >= 4 && !GENERIC_OPS_TERMS.has(t) && !QUERY_STOPWORDS.has(t),
+    (t) => t.length >= 4 && !isGenericOpsTerm(t) && !isQueryStopword(t),
   );
 }

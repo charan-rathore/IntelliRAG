@@ -1,9 +1,10 @@
-import { QUERY_STOPWORDS, tokenize } from './text';
+import { tokenize } from './text';
+import { isQueryStopword } from './perfect-sets.generated';
 import type { RetrievedChunk } from './types';
 
 /** Select source paragraphs, without inventing an answer when no model is configured. */
 export function extractiveAnswer(question: string, chunks: RetrievedChunk[]): string {
-  const terms = new Set(tokenize(question).filter(t => !QUERY_STOPWORDS.has(t)));
+  const terms = new Set(tokenize(question).filter(t => !isQueryStopword(t)));
   const extracts = chunks.slice(0, 3).map((chunk, index) => {
     const paragraphs = chunk.text.split(/\n\s*\n/).map((text, order) => ({
       text: text.trim(), order,
