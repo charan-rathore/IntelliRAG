@@ -97,7 +97,8 @@ function renderInlineSpans(text: string, byIndex: Map<string, Citation>): string
  * runs, single line) are protected as a WHOLE: their content is escaped
  * verbatim inside <code>, never emphasis- or chip-transformed - so
  * ``x **bold** y`` and `` `__init__` `` keep every byte. Unmatched runs
- * stay plain prose (emphasis still applies, matching CommonMark). */
+ * stay plain prose, so emphasis still applies; this is a local formatter
+ * limitation, not a claim of Markdown-parser conformance. */
 function renderProseSegment(text: string, byIndex: Map<string, Citation>): string {
   let out = "";
   let last = 0;
