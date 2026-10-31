@@ -1,6 +1,8 @@
 // Marks belong to a preceding letter/number. NFC cannot compose many Indic
 // vowel signs, viramas or Arabic marks; dropping them changes word identity.
 // Requiring a base character also keeps orphan marks out of the vocabulary.
+import { isQueryStopword } from "./perfect-sets.generated";
+
 const TOKEN_PATTERN = /[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu;
 
 export const QUERY_STOPWORDS = new Set([
@@ -156,7 +158,7 @@ export function stemToken(token: string): string {
 
 export function contentTokens(text: string): string[] {
   return tokenize(text)
-    .filter((t) => t.length > 1 && !QUERY_STOPWORDS.has(t))
+    .filter((t) => t.length > 1 && !isQueryStopword(t))
     .map(stemToken);
 }
 
