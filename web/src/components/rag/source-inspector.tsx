@@ -138,7 +138,7 @@ function CandidateRow({
                 : ""}
             </p>
           )}
-          <p className="line-clamp-4 text-xs leading-relaxed text-muted">{chunkPreview(candidate.text)}</p>
+          <p className="line-clamp-4 text-xs leading-relaxed text-muted">{chunkPreview(candidate.text, candidate.chunkKind)}</p>
         </div>
       )}
     </li>
@@ -162,7 +162,7 @@ export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
               <p className="text-sm font-medium text-fg">
                 [{i + 1}] {c.title}
               </p>
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{chunkPreview(c.text)}</p>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{chunkPreview(c.text, c.chunkKind)}</p>
             </Link>
           </li>
         ))}

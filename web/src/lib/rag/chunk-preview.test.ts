@@ -194,3 +194,13 @@ describe("chunkPreview ambiguity stays verbatim", () => {
     assert.equal(chunkPreview("use `a` and `b` together"), "use a and b together");
   });
 });
+
+
+describe("source-card preview integration", () => {
+  it("passes raw-code metadata at both preview render sites", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("../../components/rag/source-inspector.tsx", import.meta.url), "utf8");
+    assert.match(source, /chunkPreview\(candidate\.text, candidate\.chunkKind\)/);
+    assert.match(source, /chunkPreview\(c\.text, c\.chunkKind\)/);
+  });
+});
