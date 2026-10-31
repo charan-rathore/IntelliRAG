@@ -58,6 +58,40 @@ describe("formatAnswerHtml evidence preservation", () => {
     assert.ok(!html.includes("<code>"), `phantom code: ${html}`);
   });
 
+  it("a shorter run never closes a longer fence (Codex P2: 4-open, 3-close)", () => {
+    // The ``` line is code content; only the matching ```` closes.
+    // Everything through the real closer is shielded: no emphasis, no
+    // chips, and nothing after is swallowed into a new phantom fence.
+    const html = formatAnswerHtml("intro\\n````\\n**literal**\\n```\\nstill code [Source 1]\\n````\\noutro [Source 1]", [
+      { sourceIndex: 1, title: "Doc", slug: "doc" } as never,
+    ]);
+    assert.ok(html.includes("**literal**"), `fence content transformed: ${html}`);
+    assert.ok(html.includes("still code [Source 1]"), `shorter run closed the fence: ${html}`);
+    assert.ok(!html.includes("<strong>"), `phantom bold: ${html}`);
+    assert.equal((html.match(/cite-chip/g) ?? []).length, 1, `chip count wrong: ${html}`);
+    assert.ok(html.includes("outro <a"), `trailing prose lost: ${html}`);
+  });
+
+  it("a single-backtick span shields longer runs inside it (Codex P2: global pairing)", () => {
+    // Source-order scan: the span opened by one backtick closes at the
+    // next single run; the `` pair inside is content, not a code region.
+    const html = formatAnswerHtml("`a ``x`` b` tail", []);
+    assert.ok(html.includes("<code>a ``x`` b</code>"), `span pairing wrong: ${html}`);
+    assert.equal((html.match(/<code>/g) ?? []).length, 1, `nested code: ${html}`);
+  });
+
+  it("a longer run shields single backticks inside it", () => {
+    const html = formatAnswerHtml("``a `x` b`` tail", []);
+    assert.ok(html.includes("<code>a `x` b</code>"), `inner ticks stripped: ${html}`);
+    assert.equal((html.match(/<code>/g) ?? []).length, 1, `nested code: ${html}`);
+  });
+
+  it("an unmatched opener stays literal and a later matched pair still parses", () => {
+    const html = formatAnswerHtml("a ` stray ``pair`` end", []);
+    assert.ok(html.includes("` stray"), `unmatched run deleted: ${html}`);
+    assert.ok(html.includes("<code>pair</code>"), `later pair missed: ${html}`);
+  });
+
   it("keeps line boundaries around fenced blocks so words never merge", () => {
     const html = formatAnswerHtml("Before\n```\nx = 2**3\n```\nAfter", []);
     assert.ok(html.includes("Before<br><code>x = 2**3</code><br>After"), `boundaries lost: ${html}`);
@@ -115,5 +149,15 @@ describe("extractive answer excerpts keep code evidence through formatting", () 
     const html = formatAnswerHtml(answer, []);
     assert.ok(html.includes("2**3 + 4**5"), `formatter ate operators: ${html}`);
     assert.ok(!html.includes("<strong>"), `phantom bold in excerpt: ${html}`);
+  });
+});
+
+
+describe("exact crossed-run review case", () => {
+  it("retains the intervening prose citation outside both single spans", () => {
+    const html = formatAnswerHtml("`literal `` first` prose [Source 1] `second `` literal`", []);
+    assert.ok(html.startsWith("<code>literal `` first</code> prose "), html);
+    assert.equal((html.match(/cite-chip/g) ?? []).length, 1);
+    assert.ok(html.endsWith("<code>second `` literal</code>"), html);
   });
 });

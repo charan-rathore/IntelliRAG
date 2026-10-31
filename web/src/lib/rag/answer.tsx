@@ -14,17 +14,20 @@ function escapeHtml(value: string) {
 // never treated as fences: ambiguous stays verbatim.
 const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})[ \t]*([^\n]*?)[ \t]*$/;
 
-function fenceMarker(line: string): string | null {
+function fenceMarker(line: string): { marker: string; length: number } | null {
   const m = line.match(FENCE_LINE);
   if (!m) return null;
-  const marker = m[1]![0]!;
+  const run = m[1]!;
   const info = m[2] ?? "";
-  if (info.includes(marker)) return null;
-  return marker;
+  if (info.includes(run[0]!)) return null;
+  return { marker: run[0]!, length: run.length };
 }
 
-function isClosingLine(line: string, marker: string): boolean {
-  return (marker === "`" ? /^ {0,3}`{3,}[ \t]*$/ : /^ {0,3}~{3,}[ \t]*$/).test(line);
+/** Closing fence: same marker character, run length at least the
+ * opener's - a shorter run is code content, never a closer. */
+function isClosingLine(line: string, marker: string, minLength: number): boolean {
+  const m = line.match(marker === "`" ? /^ {0,3}(`+)[ \t]*$/ : /^ {0,3}(~+)[ \t]*$/);
+  return !!m && m[1]!.length >= minLength;
 }
 
 type Segment = { kind: "code" | "prose"; text: string };
@@ -35,16 +38,18 @@ function segmentAnswer(text: string): Segment[] {
   let prose: string[] = [];
   let code: string[] | null = null;
   let marker = "";
+  let markerLength = 0;
   for (const line of text.split("\n")) {
     if (code === null) {
       const fence = fenceMarker(line);
       if (fence) {
-        marker = fence;
+        marker = fence.marker;
+        markerLength = fence.length;
         code = [];
       } else {
         prose.push(line);
       }
-    } else if (isClosingLine(line, marker)) {
+    } else if (isClosingLine(line, marker, markerLength)) {
       segments.push({ kind: "prose", text: prose.join("\n") });
       prose = [];
       segments.push({ kind: "code", text: code.join("\n") });
@@ -82,33 +87,64 @@ function renderProse(piece: string, byIndex: Map<string, Citation>): string {
   return html;
 }
 
-/** Single-backtick spans within prose: exactly one per side, not
- * adjacent to other backticks. Strays stay visible. */
-function renderInlineSpans(text: string, byIndex: Map<string, Citation>): string {
-  const pieces = text.split(/((?<!`)`[^`\n]+`(?!`))/g);
-  return pieces
-    .map((piece, j) =>
-      j % 2 === 1 ? `<code>${escapeHtml(piece.slice(1, -1))}</code>` : renderProse(piece, byIndex),
-    )
-    .join("");
+type InlinePiece = { kind: "code" | "prose"; text: string };
+
+/**
+ * Source-order inline span scan. At each backtick run of length N, the
+ * next run of EXACTLY length N on the same line closes a code span;
+ * everything between is shielded (no emphasis, no chips, no nested
+ * interpretation), so a span opened by one backtick shields longer runs
+ * inside it and vice versa. A run with no matching close stays literal
+ * prose and scanning continues after it.
+ */
+export function scanInlineSpans(text: string): InlinePiece[] {
+  const pieces: InlinePiece[] = [];
+  let proseStart = 0;
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] !== "`") {
+      i += 1;
+      continue;
+    }
+    let runEnd = i;
+    while (runEnd < text.length && text[runEnd] === "`") runEnd += 1;
+    const runLength = runEnd - i;
+    let closeStart = -1;
+    let j = runEnd;
+    while (j < text.length && text[j] !== "\n") {
+      if (text[j] === "`") {
+        let closeEnd = j;
+        while (closeEnd < text.length && text[closeEnd] === "`") closeEnd += 1;
+        if (closeEnd - j === runLength) {
+          closeStart = j;
+          break;
+        }
+        j = closeEnd;
+      } else {
+        j += 1;
+      }
+    }
+    if (closeStart === -1) {
+      i = runEnd;
+      continue;
+    }
+    if (i > proseStart) pieces.push({ kind: "prose", text: text.slice(proseStart, i) });
+    pieces.push({ kind: "code", text: text.slice(runEnd, closeStart) });
+    i = closeStart + runLength;
+    proseStart = i;
+  }
+  if (proseStart < text.length) pieces.push({ kind: "prose", text: text.slice(proseStart) });
+  return pieces;
 }
 
-/** Render one prose segment. Matched multi-backtick regions (equal-length
- * runs, single line) are protected as a WHOLE: their content is escaped
- * verbatim inside <code>, never emphasis- or chip-transformed - so
- * ``x **bold** y`` and `` `__init__` `` keep every byte. Unmatched runs
- * stay plain prose, so emphasis still applies; this is a local formatter
- * limitation, not a claim of Markdown-parser conformance. */
+/** Render one prose segment: shielded code spans (escaped verbatim, no
+ * emphasis or chips inside) interleaved with prose pieces. */
 function renderProseSegment(text: string, byIndex: Map<string, Citation>): string {
-  let out = "";
-  let last = 0;
-  for (const m of text.matchAll(/(?<!`)(`{2,})(?!`)(.*?)(?<!`)\1(?!`)/g)) {
-    out += renderInlineSpans(text.slice(last, m.index), byIndex);
-    out += `<code>${escapeHtml(m[2]!)}</code>`;
-    last = m.index! + m[0].length;
-  }
-  out += renderInlineSpans(text.slice(last), byIndex);
-  return out;
+  return scanInlineSpans(text)
+    .map((piece) =>
+      piece.kind === "code" ? `<code>${escapeHtml(piece.text)}</code>` : renderProse(piece.text, byIndex),
+    )
+    .join("");
 }
 
 export function formatAnswerHtml(text: string, citations: Citation[]) {
