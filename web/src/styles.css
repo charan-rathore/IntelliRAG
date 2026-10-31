@@ -117,3 +117,9 @@
 .ir-feature-card {
   background: var(--color-surface);
 }
+
+/* Jumping to a citation (answer chip -> #cite-N) outlines the target card. */
+[id^="cite-"]:target {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
