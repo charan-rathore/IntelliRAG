@@ -70,9 +70,11 @@ const pack = (ids: string[]) => {
   return ids.filter(id => { const n = byId.get(id)!.chunk.token_count; if (tokens + n > 1400) return false; tokens += n; return true; });
 };
 type Evidence = { quote: string; start: number; end: number; line: number };
-function metrics(ids: string[], gold: Evidence[]) {
+// Scored on the text actually packed: a chunk trimmed to a passage only
+// covers the quotes that survived the trim. `texts` defaults to whole chunks.
+function metrics(ids: string[], gold: Evidence[], texts?: Map<string, string>) {
   if (!gold.length) return { evidenceRecall: null, completeEvidence: null, reciprocalRank: null, evidencePrecision: null };
-  const covers = (id: string, e: Evidence) => normalize(byId.get(id)!.chunk.text).includes(normalize(e.quote));
+  const covers = (id: string, e: Evidence) => normalize(texts?.get(id) ?? byId.get(id)!.chunk.text).includes(normalize(e.quote));
   const found = gold.filter(e => ids.some(id => covers(id, e))).length;
   const first = ids.findIndex(id => gold.some(e => covers(id, e)));
   return { evidenceRecall: found / gold.length, completeEvidence: Number(found === gold.length),
@@ -115,12 +117,13 @@ for (const [index, item] of dataset.cases.entries()) {
   const result = retrieveFromRows({ query: item.question, queryVector: null, mode: 'keyword', topK: 8, embeddingModel: null, rows,
     corpusScope: { kind: 'corpus', corpusId: 'repo-support' }, storage: { backend: 'ephemeral', durable: false, denseAvailable: false, warning: null } });
   const ids = result.chunks.map(c => c.chunkId);
+  const packedText = new Map(result.chunks.map(c => [c.chunkId, c.text] as [string, string]));
   const oracle = rows.filter(r => r.slug === 'p-queue' && item.evidence.some((e: Evidence) => normalize(r.chunk.text).includes(normalize(e.quote)))).map(r => r.chunk.id);
   const existing = report.results.find((r: any) => r.id === item.id);
   const row: any = existing ?? { id: item.id, split: item.split, category: item.category, answerable: item.answerable,
     question: item.question, requiredClaims: item.requiredClaims, evidence: item.evidence,
     bm25: { ids: baselineIds, metrics: metrics(baselineIds, item.evidence), wallMs: baselineMs },
-    intellirag: { ids, metrics: metrics(ids, item.evidence), gate: result.evidenceGate, tokens: result.contextTokens,
+    intellirag: { ids, metrics: metrics(ids, item.evidence, packedText), trimmed: result.chunks.filter(c => c.text !== byId.get(c.chunkId)!.chunk.text).map(c => c.chunkId), gate: result.evidenceGate, tokens: result.contextTokens,
       stages: { keywordMs: result.keywordMs, rerankMs: result.rerankMs, assembleMs: result.assembleMs }, candidates: result.candidates },
     oracle: { ids: oracle, metrics: metrics(oracle, item.evidence) } };
   if (!existing) report.results.push(row); save();
@@ -133,7 +136,7 @@ for (const [index, item] of dataset.cases.entries()) {
       try {
         if (existsSync(file)) { row.answers[arm] = JSON.parse(readFileSync(file, 'utf8')); continue; }
         const selected = arm === 'bm25' ? baselineIds : arm === 'intellirag' ? ids : oracle;
-        const context = arm === 'full-context' ? `[Source 1] p-queue README\n${source}` : selected.map((id, i) => `[Source ${i + 1}] ${byId.get(id)!.title}\n${byId.get(id)!.chunk.text}`).join('\n\n');
+        const context = arm === 'full-context' ? `[Source 1] p-queue README\n${source}` : selected.map((id, i) => `[Source ${i + 1}] ${byId.get(id)!.title}\n${(arm === 'intellirag' ? packedText.get(id) : undefined) ?? byId.get(id)!.chunk.text}`).join('\n\n');
         const response = arm === 'intellirag' && result.evidence === 'insufficient'
           ? { answer: 'Not in the indexed corpus.', model: 'grounding-gate', wallMs: 0 }
           : await complete(arm === 'no-context' ? 'Answer the repository support question using your knowledge. If unknown, say so. Do not fabricate evidence.' : GROUNDED_SYSTEM,

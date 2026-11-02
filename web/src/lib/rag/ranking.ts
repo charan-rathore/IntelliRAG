@@ -455,6 +455,16 @@ export function selectContext(
       continue;
     }
     if (used + chunk.tokenCount > maxTokens && packed.length) {
+      // A supported chunk that does not fit whole still has a passage that
+      // does: pack its most question-relevant contiguous paragraphs into the
+      // remaining budget instead of dropping it (small-to-big in reverse).
+      const part = bestPassage(chunk, opts.query, opts.idf, maxTokens - used);
+      if (part && !seenText.has(part.text.replace(/\s+/g, " ").trim())) {
+        packed.push({ ...part, rank: packed.length + 1 });
+        seenText.add(part.text.replace(/\s+/g, " ").trim());
+        used += part.tokenCount;
+        continue;
+      }
       dropReasons.set(chunk.chunkId, "Outside the context token budget.");
       continue;
     }
@@ -463,6 +473,51 @@ export function selectContext(
     used += chunk.tokenCount;
   }
   return { packed, dropReasons };
+}
+
+/** Smallest passage worth packing; below this a trimmed chunk is noise. */
+export const MIN_PASSAGE_TOKENS = 120;
+
+/**
+ * The most question-relevant contiguous run of paragraphs from a chunk that
+ * fits `room` tokens, or null. Paragraphs are scored by the idf weight of
+ * the distinctive question terms they contain; the window grows from the
+ * best paragraph toward whichever neighbour adds more relevant weight. The
+ * returned chunk keeps its id and source; its text is the verbatim passage
+ * and its token count is scaled from the chunk's own count.
+ */
+export function bestPassage(
+  chunk: RetrievedChunk,
+  query: string,
+  idf: IdF,
+  room: number,
+): RetrievedChunk | null {
+  if (room < MIN_PASSAGE_TOKENS || !chunk.text || chunk.tokenCount <= 0) return null;
+  const paras = chunk.text.split(/\n\s*\n/).filter((p) => p.trim());
+  if (paras.length < 2) return null;
+  const terms = [...new Set(distinctiveTerms(query))];
+  if (!terms.length) return null;
+  const perChar = chunk.tokenCount / Math.max(1, chunk.text.length);
+  const cost = paras.map((p) => Math.ceil((p.length + 2) * perChar));
+  const weight = paras.map((p) => {
+    const doc = new Set(contentTokens(p));
+    return terms.reduce((s, t) => (tokenSetMatches(t, doc) ? s + (idf.get(t) ?? 1) : s), 0);
+  });
+  let best = -1;
+  for (let i = 0; i < paras.length; i++)
+    if (cost[i]! <= room && (best < 0 || weight[i]! > weight[best]!)) best = i;
+  if (best < 0 || weight[best]! <= 0) return null;
+  let lo = best,
+    hi = best,
+    spent = cost[best]!;
+  for (;;) {
+    const left = lo > 0 && spent + cost[lo - 1]! <= room ? weight[lo - 1]! : -1;
+    const right = hi < paras.length - 1 && spent + cost[hi + 1]! <= room ? weight[hi + 1]! : -1;
+    if (left < 0 && right < 0) break;
+    if (right >= left) spent += cost[++hi]!;
+    else spent += cost[--lo]!;
+  }
+  return { ...chunk, text: paras.slice(lo, hi + 1).join("\n\n"), tokenCount: spent };
 }
 
 export function payloadQuery(query: string): string {
