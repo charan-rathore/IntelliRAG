@@ -1,6 +1,9 @@
 import { it } from 'node:test';
 import assert from 'node:assert/strict';
 import { bestPassage, buildIdf, MIN_PASSAGE_TOKENS } from './ranking.ts';
+import { estimateTokens } from './text.ts';
+import { chunkDocument } from './chunking.ts';
+import { CONTEXT_TOKEN_BUDGET } from './types.ts';
 import type { RetrievedChunk } from './types.ts';
 
 const chunk = (text: string, tokenCount: number): RetrievedChunk => ({
@@ -35,4 +38,27 @@ it('returns nothing when the room is too small or nothing matches', () => {
   assert.equal(bestPassage(chunk(text, 400), q, idf, MIN_PASSAGE_TOKENS - 1), null);
   assert.equal(bestPassage(chunk(text, 400), 'kubernetes ingress annotations', idf, 300), null);
   assert.equal(bestPassage(chunk('One single paragraph only.', 200), q, idf, 150), null);
+});
+
+it('stays an exact slice when paragraphs are separated by extra blank or whitespace-only lines', () => {
+  for (const sep of ['\n\n\n', '\n  \n', '\n\t\n\n']) {
+    const t = paras.map((p) => p + ' filler'.repeat(30)).join(sep);
+    const c = chunk(t, estimateTokens(t));
+    const p = bestPassage(c, q, idf, 200);
+    assert.ok(p, JSON.stringify(sep));
+    assert.ok(c.text.includes(p.text), `verbatim with ${JSON.stringify(sep)}`);
+    assert.equal(p.tokenCount, estimateTokens(p.text));
+    assert.ok(p.tokenCount <= 200);
+  }
+});
+
+it('no chunk the chunker makes exceeds the context budget on its own', () => {
+  const huge = [
+    'export function big() {\n' + Array.from({ length: 900 }, (_, i) => `  const v${i} = f(${i});`).join('\n') + '\n}\n',
+    'word '.repeat(9000),
+    'x'.repeat(20000),
+  ];
+  for (const [i, body] of huge.entries())
+    for (const c of chunkDocument(body, { filepath: i === 0 ? 'src/big.ts' : 'notes.md' }))
+      assert.ok(c.tokenCount <= CONTEXT_TOKEN_BUDGET, `chunk of ${c.tokenCount}`);
 });

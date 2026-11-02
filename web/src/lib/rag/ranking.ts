@@ -3,6 +3,7 @@ import {
   QUERY_STOPWORDS,
   bigrams,
   contentTokens,
+  estimateTokens,
   expandTypos,
   tokenSetMatches,
 } from "./text";
@@ -484,7 +485,7 @@ export const MIN_PASSAGE_TOKENS = 120;
  * the distinctive question terms they contain; the window grows from the
  * best paragraph toward whichever neighbour adds more relevant weight. The
  * returned chunk keeps its id and source; its text is the verbatim passage
- * and its token count is scaled from the chunk's own count.
+ * and its token count is measured on that text with the chunker's estimator.
  */
 export function bestPassage(
   chunk: RetrievedChunk,
@@ -493,7 +494,17 @@ export function bestPassage(
   room: number,
 ): RetrievedChunk | null {
   if (room < MIN_PASSAGE_TOKENS || !chunk.text || chunk.tokenCount <= 0) return null;
-  const paras = chunk.text.split(/\n\s*\n/).filter((p) => p.trim());
+  // Paragraph spans in the chunk's own text, so the passage is an exact
+  // slice of it (separators kept as written: "\n\n\n", "\n  \n", ...).
+  const spans: Array<[number, number]> = [];
+  for (let at = 0, m: RegExpExecArray | null, re = /\n[^\S\n]*\n\s*/g; ; ) {
+    m = re.exec(chunk.text);
+    const end = m ? m.index : chunk.text.length;
+    if (chunk.text.slice(at, end).trim()) spans.push([at, end]);
+    if (!m) break;
+    at = m.index + m[0].length;
+  }
+  const paras = spans.map(([a, b]) => chunk.text.slice(a, b));
   if (paras.length < 2) return null;
   const terms = [...new Set(distinctiveTerms(query))];
   if (!terms.length) return null;
@@ -517,7 +528,11 @@ export function bestPassage(
     if (right >= left) spent += cost[++hi]!;
     else spent += cost[--lo]!;
   }
-  return { ...chunk, text: paras.slice(lo, hi + 1).join("\n\n"), tokenCount: spent };
+  const text = chunk.text.slice(spans[lo]![0], spans[hi]![1]);
+  // the same estimator the chunk's own count came from
+  const tokenCount = estimateTokens(text);
+  if (tokenCount > room) return null;
+  return { ...chunk, text, tokenCount };
 }
 
 export function payloadQuery(query: string): string {
