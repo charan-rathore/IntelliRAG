@@ -19,8 +19,11 @@ The first eight cases are marked development and the remaining twelve evaluation
 | Plain BM25 with token budget | 73.3% | 10 / 15 |
 | IntelliRAG before passage fix | 36.7% | 4 / 15 |
 | IntelliRAG after passage fix | 70.0% | 9 / 15 |
+| IntelliRAG with budget-aware passage trimming (2 Nov 2026) | 73.3% | 10 / 15 |
 
 The old packer treated two passages from one file as duplicate evidence. The fix deduplicates repeated passage text instead. It improves five questions without changing their source, question, or annotation. It does **not** establish superiority over BM25. The paired mean gain over the old implementation is 33.3 percentage points; a seeded, 10,000-resample question bootstrap gives [13.3, 60.0] points. Questions from one README are correlated, so this interval is descriptive and does not establish cross-repository generalization.
+
+**2 November 2026, budget-aware passage trimming.** Re-running the diagnostic reproduced 70.0% vs BM25's 73.3%, and the whole gap was one question (`pause-resume`): the third supported chunk scored 0.383 against the second's 0.385 and was dropped only because the whole chunk did not fit the remaining 1,400-token budget. The packer now packs the most question-relevant contiguous paragraphs of such a chunk that do fit (`bestPassage` in `web/src/lib/rag/ranking.ts`), and the runner scores and generates from the text actually packed, so a quote trimmed away is not credited. Result: 73.3% and 10/15 complete, equal to BM25 on the same budget, with trimming used on 4 questions and no question losing evidence. The evidence gate refused 5 of 5 unsupported probes in this run (1 of 5 in September); plain BM25 has no refusal. This is a tie on retrieval, not a win: [`17:58` raw results](runs/2026-11-02T17-58-25-377Z/results.json).
 
 Before: [`15:15` raw results](runs/2026-09-16T15-15-18-135Z/results.json). After: [`15:18` raw results](runs/2026-09-16T15-18-44-879Z/results.json). The earlier `15:11` run is an exploratory mixed-corpus noise test and is not included in this comparison. All artifacts retain candidates, selected text, decisions and timings. There were **no model answers in these runs**.
 
