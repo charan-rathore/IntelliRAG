@@ -13,6 +13,7 @@ import { citedSourceSlugs } from "./graphify/story";
 import { EXAMPLE_QUESTIONS } from "./corpus";
 import { INSUFFICIENT_ANSWER, negativeAnswer } from "./evidence";
 import { embedQuery, GeminiError, generationModelLabel, streamGenerate } from "./gemini.server";
+import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable } from "./local-embed.server";
 import { bumpCacheHit, findCachedAnswer, saveQueryResult, vectorGraphLookup, rememberRetrievedVectors } from "./graphify/persist.server";
 import { resolveRuntime } from "./keys.server";
 import { classifyIntent } from "./intents";
@@ -256,17 +257,35 @@ export async function runQueryStream(
   const requested = input.retrievalMode ?? "hybrid";
   const canDense = storage.denseAvailable && requested !== "keyword";
 
-  if (canDense && runtime.embed) {
-    try {
-      const embedded = await embedQuery(question, signal);
-      queryVector = embedded.vector;
-      embeddingModel = embedded.model;
-    } catch (err) {
-      signal?.throwIfAborted();
-      if (requested === "dense") {
-        const message = err instanceof GeminiError ? err.message : "Embedding failed";
-        emit({ type: "error", message });
-        return;
+  if (canDense) {
+    if (runtime.embed) {
+      try {
+        const embedded = await embedQuery(question, signal);
+        queryVector = embedded.vector;
+        embeddingModel = embedded.model;
+      } catch (err) {
+        signal?.throwIfAborted();
+        if (requested === "dense") {
+          const message = err instanceof GeminiError ? err.message : "Embedding failed";
+          emit({ type: "error", message });
+          return;
+        }
+      }
+    } else if (await localEmbeddingsAvailable()) {
+      // No hosted key: embed the query on this machine with the same local
+      // model the ingest fallback stores, so the vectors actually match.
+      try {
+        const [vec] = await localEmbed([question], "query");
+        if (vec?.length) {
+          queryVector = Array.from(vec);
+          embeddingModel = LOCAL_EMBED_MODEL;
+        }
+      } catch (err) {
+        signal?.throwIfAborted();
+        if (requested === "dense") {
+          emit({ type: "error", message: "Local embedding failed" });
+          return;
+        }
       }
     }
   }
