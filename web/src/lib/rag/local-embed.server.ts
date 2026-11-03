@@ -77,14 +77,16 @@ export async function localEmbed(
 ): Promise<Float32Array[]> {
   const pipe = await load();
   if (!pipe) throw new Error(`Local embeddings unavailable: ${state.failed ?? "not loaded"}`);
-  const out: Float32Array[] = [];
-  for (let i = 0; i < texts.length; i += batchSize) {
-    const batch = texts
-      .slice(i, i + batchSize)
-      .map((t) => (task === "query" ? LOCAL_EMBED_QUERY_PREFIX + t : t));
+  // Batch texts of similar length together: every text in a batch is padded
+  // to the longest one, so mixed lengths waste most of the compute.
+  const order = texts.map((_, i) => i).sort((a, b) => texts[a]!.length - texts[b]!.length);
+  const out: Float32Array[] = new Array(texts.length);
+  for (let i = 0; i < order.length; i += batchSize) {
+    const idx = order.slice(i, i + batchSize);
+    const batch = idx.map((k) => (task === "query" ? LOCAL_EMBED_QUERY_PREFIX : "") + texts[k]!);
     const t = await pipe(batch, { pooling: POOLING, normalize: true });
     const dim = t.dims.at(-1)!;
-    for (let j = 0; j < batch.length; j += 1) out.push(t.data.slice(j * dim, (j + 1) * dim));
+    idx.forEach((k, j) => (out[k] = t.data.slice(j * dim, (j + 1) * dim)));
   }
   return out;
 }
