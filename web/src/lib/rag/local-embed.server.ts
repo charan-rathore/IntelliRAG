@@ -8,6 +8,8 @@
  * optional: when it is not installed, `localEmbeddingsAvailable()` resolves
  * false and callers keep BM25.
  */
+import { isServerlessRuntime } from "./storage";
+
 export const LOCAL_EMBED_MODEL = process.env.RAG_LOCAL_EMBED_MODEL || "Xenova/bge-small-en-v1.5";
 export const LOCAL_EMBED_QUERY_PREFIX =
   process.env.RAG_LOCAL_EMBED_QUERY_PREFIX ??
@@ -30,7 +32,39 @@ const state: {
   failed: null,
 };
 
+/**
+ * Whether the local pipeline may load at all. The model downloads tens of MB
+ * on first use and loads a native ONNX runtime, so on a serverless function
+ * (ephemeral disk, cold starts) the default is OFF: an operator opts in with
+ * RAG_LOCAL_EMBED=on after checking the runtime fits. On a persistent node
+ * process the default is ON, which is the deployment this fallback is for.
+ * RAG_LOCAL_EMBED=off disables it anywhere. A failed load is cached for the
+ * process, so a missing package or unreachable hub does not retry per query.
+ */
+export type LocalEmbedSetting = "on" | "off" | "auto";
+
+export function resolveLocalEmbedEnabled(env: {
+  RAG_LOCAL_EMBED?: string;
+  serverless: boolean;
+}): boolean {
+  const setting = (env.RAG_LOCAL_EMBED || "auto").toLowerCase();
+  if (setting === "on") return true;
+  if (setting === "off") return false;
+  return !env.serverless;
+}
+
+function configured(): boolean {
+  return resolveLocalEmbedEnabled({
+    RAG_LOCAL_EMBED: process.env.RAG_LOCAL_EMBED,
+    serverless: isServerlessRuntime(),
+  });
+}
+
 function load(): Promise<Extractor | null> {
+  if (!configured()) {
+    state.failed ??= "Local embeddings disabled (RAG_LOCAL_EMBED=off, or auto on a serverless runtime)";
+    return Promise.resolve(null);
+  }
   state.loading ??= (async () => {
     try {
       // A variable specifier keeps bundlers and the type checker from
