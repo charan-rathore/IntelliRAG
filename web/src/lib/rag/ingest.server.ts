@@ -4,6 +4,8 @@
  * A blob URL still indexes that one file. Code files use function/class chunking.
  */
 import { embedTexts, GeminiError } from "./gemini.server";
+import { resolveEmbedRoute } from "./embed-route";
+import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable } from "./local-embed.server";
 import {
   GITHUB_MAX_TOTAL_BYTES,
   githubRawUrl,
@@ -413,16 +415,30 @@ export async function embedPendingBatch() {
     );
   }
   const runtime = resolveRuntime();
-  if (!runtime.embed) {
+  // resolveEmbedRoute short-circuits on a hosted key: it never probes the
+  // local pipeline, so a hosted deploy never loads a model just to choose.
+  const route = await resolveEmbedRoute(Boolean(runtime.embed), localEmbeddingsAvailable);
+  if (route === "none") {
     throw new GeminiError("Add a Gemini or OpenRouter API key to embed documents", 401);
   }
-  const pending = await listPendingChunks(8, EMBEDDING_MODEL);
+  const pending = await listPendingChunks(8, route === "local" ? LOCAL_EMBED_MODEL : EMBEDDING_MODEL);
   if (!pending.length) {
     return { embedded: 0, remaining: 0, model: null as string | null };
   }
-  const { model, vectors } = await embedTexts(
-    pending.map((c) => ({ title: c.title, text: c.text, task: "document" as const })),
-  );
+  // Local embeddings are the no-key fallback: computed on this machine, the
+  // text never leaves it. Hosted embeddings stay the default when a key
+  // exists, and chunks pending for one model do not mask the other.
+  const { model, vectors } =
+    route === "local"
+      ? {
+          model: LOCAL_EMBED_MODEL,
+          vectors: (await localEmbed(pending.map((c) => `${c.title}\n${c.text}`), "document")).map((v) =>
+            Array.from(v),
+          ),
+        }
+      : await embedTexts(
+          pending.map((c) => ({ title: c.title, text: c.text, task: "document" as const })),
+        );
   await saveChunkEmbeddings(
     pending.map((c, i) => ({
       id: c.id,
@@ -430,6 +446,6 @@ export async function embedPendingBatch() {
       model,
     })),
   );
-  const remaining = await pendingEmbeddingCount(EMBEDDING_MODEL);
+  const remaining = await pendingEmbeddingCount(route === "local" ? LOCAL_EMBED_MODEL : EMBEDDING_MODEL);
   return { embedded: pending.length, remaining, model };
 }

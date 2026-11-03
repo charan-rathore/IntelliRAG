@@ -1,0 +1,75 @@
+# Local semantic search vs BM25 on outside-authored benchmarks (BEIR SciFact,
+# NFCorpus, FiQA test judgements). Needs the embedding and cross-encoder
+# models from Hugging Face, which the quality gate does not download. Results
+# go to the job summary, an artifact, and a pull request comment.
+name: Semantic search bench
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'web/src/lib/rag/bm25.ts'
+      - 'web/src/lib/rag/vector-index.ts'
+      - 'web/src/lib/rag/local-embed.server.ts'
+      - 'web/src/lib/rag/ranking.ts'
+      - 'web/scripts/semantic-bench.ts'
+      - 'web/scripts/beir/**'
+      - '.github/workflows/semantic-bench.yml'
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  bench:
+    # One job per dataset: FiQA alone embeds 57k documents.
+    strategy:
+      fail-fast: false
+      matrix:
+        dataset: [scifact, nfcorpus, fiqa]
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/cache@v4
+        with:
+          path: |
+            web/.cache/models
+            web/.cache/beir
+          key: semantic-bench-${{ matrix.dataset }}-bge-small-en-v1.5-msmarco-minilm-v2
+          restore-keys: semantic-bench-${{ matrix.dataset }}-
+      # The bench's only extra package, installed beside the app (not into
+      # its lockfile) and linked where the app's dynamic import looks for it.
+      - name: Install @huggingface/transformers for the bench
+        run: |
+          mkdir -p /tmp/hf && (cd /tmp/hf && npm init -y >/dev/null && npm install --no-audit --no-fund @huggingface/transformers@3.8.1)
+          mkdir -p node_modules/@huggingface
+          ln -sfn /tmp/hf/node_modules/@huggingface/transformers node_modules/@huggingface/transformers
+      - run: npx --yes tsx --test src/lib/rag/semantic-index.test.ts
+      - run: bash scripts/beir/fetch.sh .cache/beir ${{ matrix.dataset }}
+      - name: BM25 vs dense vs hybrid vs hybrid + cross-encoder (CLS pooling, model card)
+        run: npx --yes tsx scripts/semantic-bench.ts --data .cache/beir --datasets ${{ matrix.dataset }} --out semantic-bench-${{ matrix.dataset }}.json | tee bench.md | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          RAG_MODEL_CACHE: .cache/models
+      - name: Pooling ablation, mean instead of CLS (SciFact only)
+        if: matrix.dataset == 'scifact'
+        continue-on-error: true
+        run: npx --yes tsx scripts/semantic-bench.ts --data .cache/beir --datasets scifact --out semantic-bench-mean.json | tee mean.md | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          RAG_MODEL_CACHE: .cache/models
+          RAG_LOCAL_EMBED_POOLING: mean
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semantic-bench-${{ matrix.dataset }}
+          path: web/semantic-bench*.json
+      - name: Post results on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          { echo "### Semantic search bench, ${{ matrix.dataset }} ($(git rev-parse --short HEAD))"; cat bench.md; if [ -s mean.md ]; then echo; echo "#### Pooling ablation: mean (SciFact)"; cat mean.md; fi; } > comment.md
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments -F body=@comment.md >/dev/null
