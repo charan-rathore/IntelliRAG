@@ -11,6 +11,7 @@ import { retrieveFromRows, type SearchRow } from '../src/lib/rag/retrieve-core';
 import { BM25Index } from '../src/lib/rag/bm25';
 import { GROUNDED_SYSTEM } from '../src/lib/rag/evidence';
 import { SEED_DOCUMENTS } from '../src/lib/rag/corpus';
+import { buildGeneratorContext } from './repo-support-eval-context.mjs';
 
 const root = resolve(import.meta.dirname, '../../eval/repo-support');
 const datasetText = readFileSync(root + '/dataset.json', 'utf8');
@@ -136,13 +137,17 @@ for (const [index, item] of dataset.cases.entries()) {
       try {
         if (existsSync(file)) { row.answers[arm] = JSON.parse(readFileSync(file, 'utf8')); continue; }
         const selected = arm === 'bm25' ? baselineIds : arm === 'intellirag' ? ids : oracle;
-        const context = arm === 'full-context' ? `[Source 1] p-queue README\n${source}` : selected.map((id, i) => `[Source ${i + 1}] ${byId.get(id)!.title}\n${(arm === 'intellirag' ? packedText.get(id) : undefined) ?? byId.get(id)!.chunk.text}`).join('\n\n');
+        // The exact text the generator sees, per selected chunk (trimmed
+        // passage for intellirag, full chunk otherwise). Stored contexts for
+        // judging must be these same texts, never the untrimmed originals.
+        const { context, seenTexts } = buildGeneratorContext({ arm, selectedIds: selected,
+          packedText, chunkById: (id: string) => ({ title: byId.get(id)!.title, text: byId.get(id)!.chunk.text }), source });
         const response = arm === 'intellirag' && result.evidence === 'insufficient'
           ? { answer: 'Not in the indexed corpus.', model: 'grounding-gate', wallMs: 0 }
           : await complete(arm === 'no-context' ? 'Answer the repository support question using your knowledge. If unknown, say so. Do not fabricate evidence.' : GROUNDED_SYSTEM,
             arm === 'no-context' ? item.question : `Sources:\n${context}\n\nQuestion: ${item.question}\n\nAnswer with a complete, readable response:`);
         row.answers[arm] = response;
-        row.answers[arm].contexts = arm === 'no-context' ? [] : arm === 'full-context' ? [source] : selected.map(id => byId.get(id)!.chunk.text);
+        row.answers[arm].contexts = seenTexts;
         writeFileSync(file, JSON.stringify(response, null, 2));
       } catch (error) {
         row.answers[arm] = { error: error instanceof Error ? error.message : 'Generation failed' };

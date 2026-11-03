@@ -532,6 +532,10 @@ export function bestPassage(
   // the same estimator the chunk's own count came from
   const tokenCount = estimateTokens(text);
   if (tokenCount > room) return null;
+  // The floor applies to the SELECTED passage, not just the room: a tiny
+  // matching fragment (a heading line, one short paragraph) is noise, not
+  // evidence, and must not consume a budget slot.
+  if (tokenCount < MIN_PASSAGE_TOKENS) return null;
   return { ...chunk, text, tokenCount };
 }
 
