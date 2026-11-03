@@ -13,7 +13,7 @@ import { citedSourceSlugs } from "./graphify/story";
 import { EXAMPLE_QUESTIONS } from "./corpus";
 import { INSUFFICIENT_ANSWER, negativeAnswer } from "./evidence";
 import { embedQuery, GeminiError, generationModelLabel, streamGenerate } from "./gemini.server";
-import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable } from "./local-embed.server";
+import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable, selectedEmbedModel } from "./local-embed.server";
 import { bumpCacheHit, findCachedAnswer, saveQueryResult, vectorGraphLookup, rememberRetrievedVectors } from "./graphify/persist.server";
 import { resolveRuntime } from "./keys.server";
 import { classifyIntent } from "./intents";
@@ -222,7 +222,7 @@ export async function runQueryStream(
       type: "sources",
       chunks,
       candidates,
-      pendingEmbeddings: await pendingEmbeddingCount(EMBEDDING_MODEL),
+      pendingEmbeddings: await pendingEmbeddingCount(selectedEmbedModel(Boolean(runtime.embed))),
       contextTokens: graphLook.hit.contextTokens,
       storage,
     });
@@ -301,7 +301,7 @@ export async function runQueryStream(
   const retrieved=routed.result;
   emit({type:"graph",nodes:graphLook.subgraph.nodes,links:graphLook.subgraph.links,slugs:graphLook.preferred,
     cache:input.skipCache?"bypass":"miss",durationMs:routed.vectorTrace.durationMs,vector:routed.vectorTrace});
-  const pending = await pendingEmbeddingCount(EMBEDDING_MODEL);
+  const pending = await pendingEmbeddingCount(selectedEmbedModel(Boolean(runtime.embed)));
   emit({
     type: "sources",
     chunks: retrieved.chunks,

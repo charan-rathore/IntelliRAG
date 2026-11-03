@@ -4,7 +4,8 @@ import { PLATFORM_AUDIT } from "./corpus";
 import { loadLastEvalSummary } from "./eval.server";
 import { graphSnapshot, recordOutcome } from "./graphify/persist.server";
 import { embedPendingBatch, ingestFromUrl, ingestText } from "./ingest.server";
-import { keyStatus, setMemoryKeys } from "./keys.server";
+import { keyStatus, resolveRuntime, setMemoryKeys } from "./keys.server";
+import { selectedEmbedModel } from "./local-embed.server";
 import {
   deleteDocument,
   getDocumentBySlug,
@@ -47,7 +48,7 @@ export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async ()
   try {
     const documents = await listDocuments();
     const corpora = await listCorpora();
-    const pending = await pendingEmbeddingCount(EMBEDDING_MODEL);
+    const pending = await pendingEmbeddingCount(selectedEmbedModel(Boolean(resolveRuntime().embed)));
     const traces = await recentTraces(6);
     const graph = await graphSnapshot();
     const suggestions = await listSuggestedQuestions(REPO_DEMO_CORPUS, 6);

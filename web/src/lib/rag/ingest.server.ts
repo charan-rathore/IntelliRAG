@@ -4,7 +4,7 @@
  * A blob URL still indexes that one file. Code files use function/class chunking.
  */
 import { embedTexts, GeminiError } from "./gemini.server";
-import { chooseEmbedRoute } from "./embed-route";
+import { resolveEmbedRoute } from "./embed-route";
 import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable } from "./local-embed.server";
 import {
   GITHUB_MAX_TOTAL_BYTES,
@@ -415,7 +415,9 @@ export async function embedPendingBatch() {
     );
   }
   const runtime = resolveRuntime();
-  const route = chooseEmbedRoute(Boolean(runtime.embed), await localEmbeddingsAvailable());
+  // resolveEmbedRoute short-circuits on a hosted key: it never probes the
+  // local pipeline, so a hosted deploy never loads a model just to choose.
+  const route = await resolveEmbedRoute(Boolean(runtime.embed), localEmbeddingsAvailable);
   if (route === "none") {
     throw new GeminiError("Add a Gemini or OpenRouter API key to embed documents", 401);
   }

@@ -9,6 +9,7 @@
  * false and callers keep BM25.
  */
 import { isServerlessRuntime } from "./storage";
+import { EMBEDDING_MODEL } from "./types";
 
 export const LOCAL_EMBED_MODEL = process.env.RAG_LOCAL_EMBED_MODEL || "Xenova/bge-small-en-v1.5";
 export const LOCAL_EMBED_QUERY_PREFIX =
@@ -123,4 +124,20 @@ export async function localEmbed(
     idx.forEach((k, j) => (out[k] = t.data.slice(j * dim, (j + 1) * dim)));
   }
   return out;
+}
+
+/**
+ * Which model's backlog a pending-embedding count should report: the model
+ * that would actually embed next. Pure and non-loading — it reads config
+ * only, so a status check never downloads a model.
+ */
+export function selectedEmbedModel(
+  hostedAvailable: boolean,
+  env: { RAG_LOCAL_EMBED?: string; serverless: boolean } = {
+    RAG_LOCAL_EMBED: process.env.RAG_LOCAL_EMBED,
+    serverless: isServerlessRuntime(),
+  },
+): string {
+  if (!hostedAvailable && resolveLocalEmbedEnabled(env)) return LOCAL_EMBED_MODEL;
+  return EMBEDDING_MODEL;
 }

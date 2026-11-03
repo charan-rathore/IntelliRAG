@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { resolveLocalEmbedEnabled } from "./local-embed.server.ts";
+import { resolveLocalEmbedEnabled, selectedEmbedModel } from "./local-embed.server.ts";
 
 describe("resolveLocalEmbedEnabled", () => {
   it("defaults on for a persistent node process (the fallback's target)", () => {
@@ -14,5 +14,18 @@ describe("resolveLocalEmbedEnabled", () => {
   });
   it("an operator can disable it anywhere", () => {
     assert.equal(resolveLocalEmbedEnabled({ RAG_LOCAL_EMBED: "off", serverless: false }), false);
+  });
+});
+
+describe("selectedEmbedModel (pending-count keying)", () => {
+  it("keys pending counts on the hosted model when a key exists", () => {
+    assert.equal(selectedEmbedModel(true, { serverless: false }), "gemini-embedding-2");
+  });
+  it("keys pending counts on the local model when local would embed", () => {
+    assert.equal(selectedEmbedModel(false, { serverless: false }), "Xenova/bge-small-en-v1.5");
+    assert.equal(selectedEmbedModel(false, { RAG_LOCAL_EMBED: "on", serverless: true }), "Xenova/bge-small-en-v1.5");
+  });
+  it("stays on the hosted model when nothing will embed", () => {
+    assert.equal(selectedEmbedModel(false, { RAG_LOCAL_EMBED: "off", serverless: false }), "gemini-embedding-2");
   });
 });

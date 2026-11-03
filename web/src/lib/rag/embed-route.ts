@@ -11,3 +11,17 @@ export function chooseEmbedRoute(hostedAvailable: boolean, localAvailable: boole
   if (localAvailable) return "local";
   return "none";
 }
+
+/**
+ * Resolves the route for a live operation. The local probe is a callback so
+ * a hosted key short-circuits WITHOUT probing: probing loads the model
+ * pipeline (tens of MB on first use), and a hosted deployment must never
+ * pay that just to choose.
+ */
+export async function resolveEmbedRoute(
+  hostedAvailable: boolean,
+  probeLocal: () => Promise<boolean>,
+): Promise<EmbedRoute> {
+  if (hostedAvailable) return "hosted";
+  return chooseEmbedRoute(false, await probeLocal());
+}
