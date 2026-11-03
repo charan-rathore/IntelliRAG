@@ -26,7 +26,7 @@ Repository support answers you can trace back to evidence.
 
 ![Actual evidence-retention measurements](eval/repo-support/retrieval-results.svg)
 
-On 15 answerable questions from one pinned p-queue README, fixing document-level deduplication raised required-evidence recall from **36.7% to 70.0%**. Plain BM25 scored **73.3%**. This is a narrow improvement over our previous implementation, **not a win over the baseline or a generated-answer accuracy claim**. Five additional probes test unsupported questions. No LLM ran in this retrieval experiment.
+On 15 answerable questions from one pinned p-queue README, fixing document-level deduplication raised required-evidence recall from **36.7% to 70.0%**, and budget-aware passage trimming (Nov 2026) brought it to **73.3%, equal to plain BM25** on the same 1,400-token budget, while the evidence gate refused all 5 unsupported probes. This is a tie with the baseline on retrieval, **not a win and not a generated-answer accuracy claim**. Five additional probes test unsupported questions. No LLM ran in this retrieval experiment.
 
 ![Measured local retrieval stage times](eval/repo-support/stage-latency.svg)
 
