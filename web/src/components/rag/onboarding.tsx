@@ -2,13 +2,13 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COACH_COPY, DEMO_RUNS } from "@/lib/rag/onboarding";
 import type { SuggestedQuestion } from "@/lib/rag/predict-questions";
-import type { ConsoleView, CoverageKind } from "@/lib/rag/types";
+import type { ConsoleView, DisplayCoverageKind } from "@/lib/rag/types";
 
 export function FirstRunCoach({
   kind,
   onDismiss,
 }: {
-  kind: CoverageKind;
+  kind: DisplayCoverageKind;
   onDismiss: () => void;
 }) {
   const copy = COACH_COPY[kind];

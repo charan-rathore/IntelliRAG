@@ -1,11 +1,16 @@
-import type { CoverageKind } from "@/lib/rag/types";
+import type { DisplayCoverageKind } from "@/lib/rag/types";
 import { cn } from "@/lib/utils";
 
-const COPY: Record<CoverageKind, { label: string; hint: string; tone: string }> = {
+const COPY: Record<DisplayCoverageKind, { label: string; hint: string; tone: string }> = {
   grounded: {
     label: "Grounded",
     hint: "Answered from indexed runbooks with citations",
     tone: "text-good border-good/30",
+  },
+  excerpts: {
+    label: "Source excerpts",
+    hint: "Quoted indexed passages. Answer completeness has not been established.",
+    tone: "text-muted border-border",
   },
   general: {
     label: "General Flash",
@@ -24,7 +29,7 @@ const COPY: Record<CoverageKind, { label: string; hint: string; tone: string }> 
   },
 };
 
-export function CoverageChip({ kind }: { kind: CoverageKind }) {
+export function CoverageChip({ kind }: { kind: DisplayCoverageKind }) {
   const copy = COPY[kind];
   return (
     <span

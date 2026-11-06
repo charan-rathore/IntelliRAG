@@ -32,6 +32,8 @@ export type QueryIntent = "greeting" | "capability" | "document";
 export type KeyProvider = "google" | "openrouter" | "xai" | "ollama";
 export type ConsoleView = "reading" | "lab";
 export type CoverageKind = "grounded" | "general" | "refused" | "guide";
+export type AnswerKind = "source_excerpts";
+export type DisplayCoverageKind = CoverageKind | "excerpts";
 export type ChunkKind = "prose" | "code";
 export type StorageBackend = "neon" | "pglite" | "ephemeral";
 export type EvidenceKind = "positive" | "negative_not_found" | "insufficient" | "ambiguous";
@@ -178,6 +180,8 @@ export type Citation = {
   documentId: string;
   title: string;
   textSnippet: string;
+  /** UTF-16 offsets into this returned packed chunk text, not the original document. */
+  excerptRange?: { basis: "packed_chunk"; start: number; end: number };
 };
 
 export type LayerLatencies = Record<string, number>;

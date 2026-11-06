@@ -21,7 +21,7 @@ import { FirstRunCoach, RunPreview, SuggestedQuestions, WelcomeOnboarding } from
 import { ProductTour } from "@/components/rag/product-tour";
 import { PackedSources, SourceInspector } from "@/components/rag/source-inspector";
 import { ViewToggle } from "@/components/rag/view-toggle";
-import { formatAnswerHtml } from "@/lib/rag/answer";
+import { formatAnswerHtml, formatSourceExcerptsHtml } from "@/lib/rag/answer";
 import {
   embedNextBatch,
   getCorpusSuggestions,
@@ -78,6 +78,8 @@ type Message = {
   error?: string;
   pendingEmbeddings?: number;
   coverage?: CoverageKind;
+  answerKind?: "source_excerpts";
+  answerCompleteness?: "unassessed";
   contextTokens?: number;
   cacheHit?: boolean;
   graphSlugs?: string[];
@@ -400,6 +402,8 @@ export function Console({ initial }: { initial: Snapshot }) {
               latencies: data.latencies as LayerLatencies,
               candidates: (data.candidates as RetrievalCandidate[]) ?? m.candidates,
               coverage: data.coverage as CoverageKind,
+              answerKind: data.answerKind as "source_excerpts" | undefined,
+              answerCompleteness: data.answerCompleteness as "unassessed" | undefined,
               contextTokens: data.contextTokens as number,
               cacheHit: Boolean(data.cacheHit),
               graphSlugs: data.graphSlugs as string[] | undefined,
@@ -633,7 +637,7 @@ export function Console({ initial }: { initial: Snapshot }) {
                       m.role === "assistant" &&
                       m.coverage &&
                       i === messages.findIndex((x) => x.role === "assistant" && x.coverage) ? (
-                        <FirstRunCoach kind={m.coverage} onDismiss={dismissCoach} />
+                        <FirstRunCoach kind={m.answerKind === "source_excerpts" ? "excerpts" : m.coverage} onDismiss={dismissCoach} />
                       ) : null
                     }
                   />
@@ -883,7 +887,7 @@ function Turn({
   return (
     <article className="rounded-lg border border-border bg-surface px-4 py-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        {message.coverage ? <CoverageChip kind={message.coverage} /> : <span />}
+        {message.coverage ? <CoverageChip kind={message.answerKind === "source_excerpts" ? "excerpts" : message.coverage} /> : <span />}
         <span className="flex items-center gap-2">
           {message.cacheHit && (
             <span className="rounded-full border border-good/30 px-2 py-0.5 text-xs text-good">Graph cache</span>
@@ -912,7 +916,7 @@ function Turn({
       {message.text && (
         <div
           className="text-base leading-relaxed text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
-          dangerouslySetInnerHTML={{ __html: formatAnswerHtml(message.text, message.citations ?? []) }}
+          dangerouslySetInnerHTML={{ __html: message.answerKind === "source_excerpts" && message.chunks ? formatSourceExcerptsHtml(message.chunks) : formatAnswerHtml(message.text, message.citations ?? []) }}
         />
       )}
       {coach ? <div className="mt-4">{coach}</div> : null}

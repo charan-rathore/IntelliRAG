@@ -1,4 +1,4 @@
-import type { CoverageKind, RetrievalCandidate } from "./types";
+import type { CoverageKind, DisplayCoverageKind, RetrievalCandidate } from "./types";
 
 /** Guided empty-state demos. Keep questions in sync with intents + seed corpus. */
 export type DemoRun = {
@@ -64,10 +64,14 @@ export const RUN_STORY = [
   "Lab shows Used vs Inspect only, so you can see why a chunk was dropped.",
 ] as const;
 
-export const COACH_COPY: Record<CoverageKind, { title: string; body: string }> = {
+export const COACH_COPY: Record<DisplayCoverageKind, { title: string; body: string }> = {
   grounded: {
     title: "This answer includes source evidence.",
     body: "Open Lab to compare Used evidence with passages retrieved for inspection. The trace shows whether retrieval or generation ran, or whether an answer was reused from the graph cache.",
+  },
+  excerpts: {
+    title: "These are source excerpts, not a verified complete answer.",
+    body: "The passages come from indexed sources. They may omit premises or the requested fact. No model-generated synthesis ran; inspect the sources before drawing a conclusion.",
   },
   general: {
     title: "Not in the indexed corpus.",

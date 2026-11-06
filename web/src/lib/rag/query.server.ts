@@ -71,6 +71,8 @@ export type QueryEvent =
       embeddingModel: string | null;
       intent: string;
       coverage: CoverageKind;
+      answerKind?: "source_excerpts";
+      answerCompleteness?: "unassessed";
       candidates: RetrievalCandidate[];
       contextTokens: number;
       cacheHit?: boolean;
@@ -206,7 +208,7 @@ export async function runQueryStream(
   const runtime = resolveRuntime();
   const edits = input.graphEdits ?? EMPTY_EDITS;
   // Source revisions are checked by ensureGraph. Settings and credentials isolate answer variants.
-  const policy = createHash("sha256").update(JSON.stringify({ version: 6, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
+  const policy = createHash("sha256").update(JSON.stringify({ version: runtime.generate ? 6 : 8, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
     model: runtime.generate ? generationModelLabel(runtime.generate.provider) : "extractive", runtime, edits })).digest("hex");
   const graphStart = performance.now();
   emit({ type: "stage", name: "graph-lookup" });
@@ -240,6 +242,7 @@ export async function runQueryStream(
       embeddingModel: null,
       intent,
       coverage: (graphLook.hit.coverage as CoverageKind) || "grounded",
+      ...(graphLook.hit.answerKind === "source_excerpts" ? { answerKind: "source_excerpts" as const, answerCompleteness: "unassessed" as const } : {}),
       candidates,
       contextTokens: graphLook.hit.contextTokens,
       cacheHit: true,
@@ -436,7 +439,11 @@ export async function runQueryStream(
   if (!runtime.generate) {
     const answer = extractiveAnswer(question, retrieved.chunks);
     emit({ type: "token", text: answer });
-    const citations = citationsFrom(answer, retrieved.chunks);
+    const citations: Citation[] = retrieved.chunks.slice(0, 3).map((chunk, index) => ({
+      sourceIndex: index + 1, chunkId: chunk.chunkId, documentId: chunk.documentId,
+      title: chunk.title, textSnippet: snippet(chunk.text),
+      excerptRange: { basis: "packed_chunk", start: 0, end: chunk.text.length },
+    }));
     const candidates = markCited(retrieved.candidates, citations);
     const latencies = {
       embed: embedMs,
@@ -460,7 +467,7 @@ export async function runQueryStream(
     if (!input.skipCache) {
       const sourceSlugs = citedSourceSlugs(retrieved.chunks, citations);
       await saveQueryResult({ question, policy, answer, sourceNodes: sourceSlugs.map(s => `doc:${s}`), sourceSlugs,
-        coverage: "grounded", citations, candidates, chunks: retrieved.chunks,
+        coverage: "grounded", answerKind: "source_excerpts", citations, candidates, chunks: retrieved.chunks,
         contextTokens: retrieved.contextTokens, corpusId: corpusKey });
     }
     emit({
@@ -473,6 +480,8 @@ export async function runQueryStream(
       embeddingModel,
       intent,
       coverage: "grounded",
+      answerKind: "source_excerpts",
+      answerCompleteness: "unassessed",
       candidates,
       contextTokens: retrieved.contextTokens,
       cacheHit: false,
