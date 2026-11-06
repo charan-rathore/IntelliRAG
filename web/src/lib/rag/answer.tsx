@@ -27,3 +27,10 @@ export function formatAnswerHtml(text: string, citations: Citation[]) {
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\n/g, "<br>");
 }
+
+/** Literal source text: never interpret source markup or source-like citation markers. */
+export function formatSourceExcerptsHtml(chunks: {text:string;title:string}[]) {
+  const excerpts = chunks.slice(0,3).map((chunk,index) =>
+    `<div class="whitespace-pre-wrap break-words">${escapeHtml(chunk.text)}</div><a class="cite-chip" href="#cite-${index+1}" title="${escapeHtml(chunk.title)}">[${index+1}]</a>`);
+  return '<p>Relevant source excerpts</p><br>' + excerpts.join('<br><br>') + '<br><br><p>These are retrieved passages, not a generated recommendation. Only the packed source windows are shown, not necessarily whole documents or a complete answer. Add a model in Settings to reason across them.</p>';
+}

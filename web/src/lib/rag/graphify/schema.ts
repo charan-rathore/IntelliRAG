@@ -64,6 +64,7 @@ export type CacheEntry = {
   sourceSlugs: string[];
   sourceNodes: string[];
   coverage: string;
+  answerKind?: "source_excerpts";
   citations: unknown;
   candidates: unknown;
   chunks: unknown;

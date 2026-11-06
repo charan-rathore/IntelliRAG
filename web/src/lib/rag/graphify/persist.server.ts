@@ -151,6 +151,7 @@ export async function saveQueryResult(input: {
   sourceNodes: string[];
   sourceSlugs: string[];
   coverage: string;
+  answerKind?: "source_excerpts";
   citations: unknown;
   candidates: unknown;
   chunks: unknown;
@@ -219,6 +220,7 @@ export async function saveQueryResult(input: {
     sourceSlugs: input.sourceSlugs,
     sourceNodes: input.sourceNodes,
     coverage: input.coverage,
+    answerKind: input.answerKind,
     citations: input.citations,
     candidates: input.candidates,
     chunks: input.chunks,

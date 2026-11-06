@@ -148,12 +148,35 @@ test("query runtime promises", async (t) => {
         const done = events.find(event => event.type === "done");
         assert.ok(done?.type === "done", JSON.stringify(events));
         assert.equal(done.model, "extractive");
+        assert.equal(done.coverage, "grounded", "legacy enum unchanged");
+        assert.equal(done.answerKind,"source_excerpts");
+        assert.equal(done.answerCompleteness,"unassessed");
+        assert.equal(done.refused, false, "excerpts are not automatically a refusal");
         assert.ok(done.answer.includes(fixture.fact), done.answer);
         assert.ok(done.answer.includes("[Source 1]"));
         assert.ok(done.answer.includes("not a generated recommendation"));
       }
       assert.equal(network.mock.callCount(), 0);
     } finally { network.mock.restore(); }
+  });
+  await t.test("extractive cache preserves excerpt status on replay", async () => {
+    const { ingestText } = await import("./ingest.server");
+    const imported = await ingestText({title:"Amber cache fixture",body:"The amber cache service has a retry limit of 4. This source records operational configuration for the internal processing service.",sourceType:"markdown",slugHint:"amber-excerpt-cache",sourceUri:"fixture://amber-excerpt-cache"});
+    const ask = async () => {
+      const events: QueryEvent[] = [];
+      await runQueryStream({question:"What is the amber cache retry limit?",corpus:imported.corpusId,retrievalMode:"keyword"}, e=>events.push(e));
+      const done=events.find(e=>e.type==="done");
+      assert.ok(done?.type==="done");
+      return done;
+    };
+    const first=await ask(), cached=await ask();
+    assert.equal(first.answerKind,"source_excerpts");
+    assert.equal(cached.cacheHit,true);
+    assert.equal(cached.answerKind,"source_excerpts");
+    assert.equal(cached.answerCompleteness,"unassessed");
+    assert.equal(cached.coverage,"grounded");
+    assert.equal(cached.refused,false);
+    assert.equal(cached.answer,first.answer);
   });
   await t.test("no-provider runtime keeps conditions and retractions inside a small source", async () => {
     const { ingestText } = await import("./ingest.server");
@@ -171,6 +194,10 @@ test("query runtime promises", async (t) => {
         const done = events.find(event => event.type === "done");
         assert.ok(done?.type === "done", JSON.stringify(events));
         assert.equal(done.model, "extractive");
+        assert.equal(done.coverage, "grounded", "legacy enum unchanged");
+        assert.equal(done.answerKind,"source_excerpts");
+        assert.equal(done.answerCompleteness,"unassessed");
+        assert.equal(done.refused, false, "excerpts are not automatically a refusal");
         assert.ok(done.answer.includes(fixture.required), done.answer);
         assert.ok(done.citations.length > 0);
         assert.ok(done.answer.includes("not a generated recommendation"));
