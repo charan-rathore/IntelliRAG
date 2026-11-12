@@ -1,0 +1,135 @@
+{
+  "$comment": "Shared by memoRABLE and IntelliRAG. Regenerate both copies together; see docs/adr/001-evidence-core.md.",
+  "contractSha256": "3d2adb0c81309d668336c8971099e1cc106c37dd657fe16a216dee92cdf252ac",
+  "sourceText": {
+    "sv_pqueue_5b553a992bc1": {
+      "lines": [
+        49,
+        49
+      ],
+      "text": "Here we run only one promise at a time. For example, set `concurrency` to 4 to run four promises at the same time."
+    }
+  },
+  "package": {
+    "contractVersion": "evidence-core/1",
+    "workspaceId": "ws_fixture",
+    "sourceVersions": [
+      {
+        "id": "sv_pqueue_5b553a992bc1",
+        "workspaceId": "ws_fixture",
+        "sourceId": "src_pqueue_readme",
+        "contentHash": "5b553a992bc1cd3ebb675384f89ea39d9bf6e75e5b448691d7f3c30affd9aadc",
+        "parserVersion": "intellirag-chunker@4",
+        "storageUri": "https://github.com/sindresorhus/p-queue/blob/180ab9e25cd10b6f548767d7176076b50d25e188/readme.md",
+        "createdAt": "2026-11-12T00:00:00.000Z"
+      },
+      {
+        "id": "sv_scan_invoice",
+        "workspaceId": "ws_fixture",
+        "sourceId": "src_scanned_invoice",
+        "contentHash": "170932910cd65f74cfd519182bf2be1177229ec9827d8ee9313492548f4f5956",
+        "parserVersion": "memorable-pdf@5+tesseract",
+        "storageUri": "inline:",
+        "createdAt": "2026-11-12T00:00:00.000Z",
+        "unreadable": [
+          {
+            "page": 2,
+            "reason": "no readable text after OCR"
+          }
+        ]
+      }
+    ],
+    "spans": [
+      {
+        "id": "span_pqueue_concurrency",
+        "sourceVersionId": "sv_pqueue_5b553a992bc1",
+        "locator": {
+          "kind": "lines",
+          "start": 49,
+          "end": 49
+        },
+        "exactText": "Here we run only one promise at a time. For example, set `concurrency` to 4 to run four promises at the same time.",
+        "extractionMethod": "text",
+        "confidence": 1
+      },
+      {
+        "id": "span_invoice_total",
+        "sourceVersionId": "sv_scan_invoice",
+        "locator": {
+          "kind": "page",
+          "page": 1
+        },
+        "exactText": "Invoice total: 4,180.00 USD",
+        "extractionMethod": "ocr",
+        "confidence": 0.71
+      }
+    ],
+    "claims": [
+      {
+        "id": "claim_brief_concurrency",
+        "workspaceId": "ws_fixture",
+        "sourceVersionId": "sv_pqueue_5b553a992bc1",
+        "evidenceSpanIds": [
+          "span_pqueue_concurrency"
+        ],
+        "type": "signals",
+        "text": "Concurrency is a single number: 1 runs one promise at a time, 4 runs four.",
+        "status": "supported",
+        "authoredBy": "parser"
+      },
+      {
+        "id": "claim_answer_concurrency",
+        "workspaceId": "ws_fixture",
+        "sourceVersionId": "sv_pqueue_5b553a992bc1",
+        "evidenceSpanIds": [
+          "span_pqueue_concurrency"
+        ],
+        "type": "answer-sentence",
+        "text": "Set concurrency to 4 to run four promises at the same time.",
+        "status": "supported",
+        "authoredBy": "model"
+      },
+      {
+        "id": "claim_invoice_total",
+        "workspaceId": "ws_fixture",
+        "sourceVersionId": "sv_scan_invoice",
+        "evidenceSpanIds": [
+          "span_invoice_total"
+        ],
+        "type": "signals",
+        "text": "Invoice total is 4,180.00 USD.",
+        "status": "needs_review",
+        "authoredBy": "parser"
+      },
+      {
+        "id": "claim_page_two",
+        "workspaceId": "ws_fixture",
+        "sourceVersionId": "sv_scan_invoice",
+        "evidenceSpanIds": [],
+        "type": "risks",
+        "text": "Page 2 could not be read; nothing on it is claimed.",
+        "status": "unsupported",
+        "authoredBy": "parser"
+      }
+    ],
+    "answers": [
+      {
+        "id": "ans_pqueue_concurrency",
+        "workspaceId": "ws_fixture",
+        "corpusId": "github:sindresorhus/p-queue@180ab9e25cd10b6f548767d7176076b50d25e188",
+        "sourceVersionIds": [
+          "sv_pqueue_5b553a992bc1"
+        ],
+        "policyVersion": "evidence-gate@2",
+        "modelVersion": "extractive",
+        "citations": [
+          "span_pqueue_concurrency"
+        ],
+        "outcome": "extractive",
+        "costUsd": 0,
+        "latencyMs": 412,
+        "cacheKey": "evidence-core/1|ws=ws_fixture|corpus=github:sindresorhus/p-queue@180ab9e25cd10b6f548767d7176076b50d25e188|src=sv_pqueue_5b553a992bc1|policy=evidence-gate@2|model=extractive"
+      }
+    ]
+  }
+}
