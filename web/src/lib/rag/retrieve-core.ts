@@ -13,6 +13,42 @@ import {
 } from "./ranking";
 import { classifyEvidence } from "./evidence";
 import { BM25Index } from "./bm25";
+
+// BM25 index cache. Building the index tokenizes every chunk, so rebuilding
+// it per query made retrieval O(corpus) per question. The index is cached
+// per rows array and scope, keyed by an FNV-1a fingerprint of the scoped
+// chunk ids and content hashes: an array mutated in place, or a different
+// scope, can never be served a stale index.
+const INDEX_CACHE = new WeakMap<SearchRow[], Map<string, { fp: number; index: BM25Index }>>();
+const indexStats = { builds: 0, hits: 0 };
+export function retrieveIndexStats() {
+  return { ...indexStats };
+}
+function fingerprint(rows: SearchRow[]): number {
+  let h = 0x811c9dc5;
+  for (const r of rows) {
+    const s = r.chunk.id + (r.chunk.content_hash ?? "") + r.title;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+  }
+  return h >>> 0;
+}
+function indexFor(all: SearchRow[], scoped: SearchRow[], scopeKey: string): BM25Index {
+  let byScope = INDEX_CACHE.get(all);
+  if (!byScope) INDEX_CACHE.set(all, (byScope = new Map()));
+  const fp = fingerprint(scoped);
+  const hit = byScope.get(scopeKey);
+  if (hit && hit.fp === fp) {
+    indexStats.hits++;
+    return hit.index;
+  }
+  indexStats.builds++;
+  const index = new BM25Index(scoped.map((r) => ({ id: r.chunk.id, text: `${r.title}\n${r.chunk.text}` })));
+  byScope.set(scopeKey, { fp, index });
+  return index;
+}
 import { overlapTerms } from "./trace";
 import type {
   ChunkKind,
@@ -200,7 +236,7 @@ export function retrieveFromRows(opts: {
 
   const kwStart = performance.now();
   if (opts.mode !== "dense" || !dense.length) {
-    const index = new BM25Index(scopedRows.map((r) => ({ id: r.chunk.id, text: `${r.title}\n${r.chunk.text}` })));
+    const index = indexFor(opts.rows, scopedRows, scope.kind === "all" ? "*" : scope.corpusId);
     const lexicalQuery = terms.join(" ") || bm25Query;
     const hits = index.search(lexicalQuery, retrieveN);
     for (const s of hits) keywordScores.set(s.id, s.score);
