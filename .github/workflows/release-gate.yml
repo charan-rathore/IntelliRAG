@@ -28,8 +28,22 @@ jobs:
         with:
           node-version: '24'
       - run: node --test scripts/release-gate.test.mjs
-      - name: Probe deployment
+      - name: Decide whether this deployment is readable
+        id: scope
         env:
+          ENVIRONMENT: ${{ github.event.deployment.environment || 'manual' }}
+          HAS_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET != '' }}
+        run: |
+          if [ "$ENVIRONMENT" = "Production" ] || [ "$ENVIRONMENT" = "manual" ] || [ "$HAS_BYPASS" = "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Preview is behind Vercel Deployment Protection. Add VERCEL_AUTOMATION_BYPASS_SECRET to gate previews; production is always gated."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Probe deployment
+        if: steps.scope.outputs.run == 'true'
+        env:
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
           EXPECT: ${{ github.event.inputs.expect || (github.event.deployment.environment == 'Production' && vars.INTELLIRAG_RELEASE_MODE) || 'demo' }}
         run: node scripts/release-gate.mjs "$URL" "$EXPECT"

@@ -37,6 +37,12 @@ export function evaluateHealth(health, expect) {
   return failures;
 }
 
+/** Vercel previews sit behind Deployment Protection; a bypass secret lets CI read them. */
+function headers(extra = {}) {
+  const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  return bypass ? { "x-vercel-protection-bypass": bypass, ...extra } : extra;
+}
+
 async function main() {
   const base = (process.argv[2] || process.env.RELEASE_GATE_URL || "").replace(/\/$/, "");
   const expect = process.argv[3] || process.env.RELEASE_GATE_EXPECT || "demo";
@@ -47,7 +53,7 @@ async function main() {
   const report = { base, expect, checkedAt: new Date().toISOString(), failures: [] };
   let health = null;
   try {
-    const res = await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(15000) });
+    const res = await fetch(`${base}/api/health`, { headers: headers(), signal: AbortSignal.timeout(15000) });
     health = await res.json();
   } catch (err) {
     report.failures.push(`Health unreachable: ${err instanceof Error ? err.message : err}`);
@@ -58,7 +64,7 @@ async function main() {
   if (health?.deployment?.mode === "demo") {
     // Behavioural probes: the page and the API must agree with the health JSON.
     try {
-      const html = await (await fetch(base, { signal: AbortSignal.timeout(15000) })).text();
+      const html = await (await fetch(base, { headers: headers(), signal: AbortSignal.timeout(15000) })).text();
       if (!html.includes("Interactive demo")) report.failures.push("Demo host does not tell visitors it is a demo.");
     } catch (err) {
       report.failures.push(`Homepage unreachable: ${err instanceof Error ? err.message : err}`);
@@ -66,7 +72,7 @@ async function main() {
     try {
       const res = await fetch(`${base}/api/keys`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: headers({ "content-type": "application/json" }),
         body: JSON.stringify({ openrouter: "sk-or-release-gate-probe" }),
         signal: AbortSignal.timeout(15000),
       });
