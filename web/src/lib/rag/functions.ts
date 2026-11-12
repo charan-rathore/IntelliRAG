@@ -18,7 +18,7 @@ import { listSuggestedQuestions } from "./suggested-questions.server";
 import { EMBEDDING_MODEL, GENERATION_MODEL } from "./types";
 import { getStorageStatus } from "./storage";
 import { REPO_DEMO_CORPUS } from "./repo-demo";
-import { assertCustomSourcesAllowed } from "./deployment-mode";
+import { assertCustomSourcesAllowed, assertVisitorKeysAllowed } from "./deployment-mode";
 import { currentPosture } from "./deployment-posture.server";
 
 export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async () => {
@@ -79,7 +79,7 @@ export const saveLabKeys = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     if (data.gemini || data.openrouter) {
-      assertCustomSourcesAllowed(currentPosture(), "Adding a model key");
+      assertVisitorKeysAllowed(currentPosture(), "Adding a model key");
     }
     return setMemoryKeys(data);
   });

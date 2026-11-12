@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   assertCustomSourcesAllowed,
+  assertVisitorKeysAllowed,
   classifyDeployment,
   DEMO_HEADLINE,
   DemoModeRefusal,
@@ -15,7 +16,8 @@ describe("deployment mode", () => {
     });
     assert.equal(posture.mode, "demo");
     assert.deepEqual(posture.reasons, ["ephemeral_storage", "database_unreachable"]);
-    assert.equal(posture.customSources, false);
+    assert.equal(posture.customSources, true, "imports keep working on a temporary host");
+    assert.equal(posture.temporaryImports, true);
     assert.equal(posture.visitorKeys, false);
     assert.equal(posture.headline, DEMO_HEADLINE);
   });
@@ -39,10 +41,11 @@ describe("deployment mode", () => {
     assert.deepEqual(posture.reasons, ["forced_by_operator"]);
   });
 
-  it("refuses persistence with a visitor-readable reason", () => {
+  it("refuses a visitor key on a demo host with a visitor-readable reason", () => {
     const posture = classifyDeployment({ storage: { durable: false, backend: "ephemeral" } });
+    assert.doesNotThrow(() => assertCustomSourcesAllowed(posture, "Importing a source"));
     assert.throws(
-      () => assertCustomSourcesAllowed(posture, "Importing a source"),
+      () => assertVisitorKeysAllowed(posture, "Importing a source"),
       (err: unknown) =>
         err instanceof DemoModeRefusal &&
         err.code === "demo_mode" &&

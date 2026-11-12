@@ -23,8 +23,8 @@ export function evaluateHealth(health, expect) {
   if (posture.mode === "product" && (!durable || !reachable)) {
     failures.push("Server claims product mode without durable, reachable storage.");
   }
-  if (posture.customSources && !durable) {
-    failures.push("Custom sources are accepted on non-durable storage.");
+  if (posture.customSources && !durable && posture.temporaryImports !== true) {
+    failures.push("Custom sources are accepted on non-durable storage without saying imports are temporary.");
   }
   if (expect === "product") {
     if (posture.mode !== "product") failures.push(`Expected product mode, host is ${posture.mode} (${(posture.reasons ?? []).join(", ")}).`);

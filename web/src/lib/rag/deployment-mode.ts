@@ -25,6 +25,8 @@ export type DeploymentPosture = {
   reasons: DemoReason[];
   /** Visitors may add or remove their own sources. */
   customSources: boolean;
+  /** Imports work but are lost when the server restarts (no durable storage). */
+  temporaryImports: boolean;
   /** Visitors may hand the server their own provider keys. */
   visitorKeys: boolean;
   /** One sentence a visitor can read without knowing what Postgres is. */
@@ -32,7 +34,7 @@ export type DeploymentPosture = {
 };
 
 export const DEMO_HEADLINE =
-  "Interactive demo · seed corpus only. Nothing you add here is kept.";
+  "Interactive demo · you can import sources, but they are temporary and disappear when the server restarts.";
 export const PRODUCT_HEADLINE = "Your sources are stored durably.";
 
 export function classifyDeployment(input: {
@@ -49,10 +51,15 @@ export function classifyDeployment(input: {
   if (input.databaseReachable === false) reasons.push("database_unreachable");
   if (input.forceDemo) reasons.push("forced_by_operator");
   const demo = reasons.length > 0;
+  const temporaryImports = reasons.includes("ephemeral_storage") || reasons.includes("database_unreachable");
   return {
     mode: demo ? "demo" : "product",
     reasons,
-    customSources: !demo,
+    // Pasted sources and URL imports keep working on a temporary host; the page
+    // says plainly that they do not survive a restart. Only an operator pin
+    // turns them off.
+    customSources: !reasons.includes("forced_by_operator"),
+    temporaryImports,
     visitorKeys: !demo,
     headline: demo ? DEMO_HEADLINE : PRODUCT_HEADLINE,
   };
@@ -62,14 +69,19 @@ export class DemoModeRefusal extends Error {
   readonly code = "demo_mode";
   constructor(action: string) {
     super(
-      `${action} is turned off on this public demo because its storage does not survive restarts. ` +
-        "Ask the seeded sources instead, or run IntelliRAG with a database to keep your own.",
+      `${action} is turned off on this public demo. ` +
+        "Ask the seeded sources instead, or run IntelliRAG with a database and your own keys.",
     );
     this.name = "DemoModeRefusal";
   }
 }
 
-/** Throw before doing any work a visitor would expect to persist. */
+/** Throw before accepting a visitor's model key on a host that cannot keep it safe. */
+export function assertVisitorKeysAllowed(posture: DeploymentPosture, action: string) {
+  if (!posture.visitorKeys) throw new DemoModeRefusal(action);
+}
+
+/** Throw when the operator has switched source changes off. */
 export function assertCustomSourcesAllowed(posture: DeploymentPosture, action: string) {
   if (!posture.customSources) throw new DemoModeRefusal(action);
 }

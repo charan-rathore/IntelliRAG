@@ -6,7 +6,7 @@ const liveDemo = {
   status: "setup-required",
   databaseReachable: false,
   storage: { backend: "ephemeral", durable: false },
-  deployment: { mode: "demo", reasons: ["ephemeral_storage", "database_unreachable"], customSources: false },
+  deployment: { mode: "demo", reasons: ["ephemeral_storage", "database_unreachable"], customSources: true, temporaryImports: true },
 };
 const durable = {
   status: "index-ready",
@@ -27,10 +27,10 @@ describe("release gate", () => {
   });
 
   it("blocks a host that accepts sources it will lose", () => {
-    const lying = { ...liveDemo, deployment: { ...liveDemo.deployment, mode: "product", customSources: true } };
+    const lying = { ...liveDemo, deployment: { ...liveDemo.deployment, mode: "product", customSources: true, temporaryImports: false } };
     const failures = evaluateHealth(lying, "demo");
     assert.ok(failures.includes("Server claims product mode without durable, reachable storage."));
-    assert.ok(failures.includes("Custom sources are accepted on non-durable storage."));
+    assert.ok(failures.includes("Custom sources are accepted on non-durable storage without saying imports are temporary."));
   });
 
   it("blocks a health payload that predates deployment modes", () => {

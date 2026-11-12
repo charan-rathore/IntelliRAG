@@ -23,7 +23,11 @@ export function DemoBanner({ posture }: { posture: DeploymentPosture }) {
         <span className="ir-breathe relative inline-flex size-2 shrink-0 rounded-full bg-primary" aria-hidden />
         <p className="min-w-0 flex-1 text-sm text-fg">
           <span className="font-medium">Interactive demo</span>
-          <span className="text-muted"> · seed corpus only. Nothing you add here is kept.</span>
+          <span className="text-muted">
+            {posture.temporaryImports
+              ? " · you can import sources, but they are temporary and disappear when the server restarts."
+              : " · sources are managed by the operator."}
+          </span>
         </p>
         <button
           type="button"
@@ -46,8 +50,9 @@ export function DemoBanner({ posture }: { posture: DeploymentPosture }) {
                 <li key={r}>{REASON_COPY[r]}</li>
               ))}
               <li>
-                Importing sources, removing them and adding model keys are switched off here. Every
-                answer still cites the pinned sources, or says plainly when they do not establish it.
+                Pasted sources and URL imports work here but live in memory, so they are lost when the
+                server restarts. Adding model keys is switched off. Every answer cites its source, or
+                says plainly when the source does not establish it.
               </li>
             </ul>
           </div>
