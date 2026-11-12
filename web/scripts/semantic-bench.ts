@@ -17,7 +17,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } 
 import { createInterface } from "node:readline";
 import { join, resolve } from "node:path";
 import { BM25Index } from "../src/lib/rag/bm25";
-import { rrfFuse } from "../src/lib/rag/ranking";
+import { linearFuse, rrfFuse } from "../src/lib/rag/ranking";
 import { VectorIndex } from "../src/lib/rag/vector-index";
 import { LOCAL_EMBED_MODEL, localEmbed, localEmbedStatus } from "../src/lib/rag/local-embed.server";
 
@@ -200,6 +200,7 @@ for (const name of datasets) {
     rerank: [],
   };
   let binaryAgree = 0;
+  const lists: Array<{ dense: Array<{ id: string; score: number }>; kw: Array<{ id: string; score: number }> }> = [];
   for (const q of queries) {
     const rel = qrels.get(q.id)!;
     t = performance.now();
@@ -255,6 +256,7 @@ for (const name of datasets) {
         rel,
       ),
     );
+    lists.push({ dense, kw });
     per.hybrid!.push(metrics(fused, rel));
     per.hybridRerank!.push(metrics(reranked, rel));
   }
@@ -287,6 +289,53 @@ for (const name of datasets) {
         per.bm25!.map((x) => x.ndcg10),
       );
   }
+
+  // Linear fusion with a corpus-level dense weight. Odd-indexed queries are the
+  // dev split used to choose alpha; even-indexed queries are the held-out split
+  // every arm is compared on. No test query influences alpha.
+  const ALPHAS = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+  const isDev = (i: number) => i % 2 === 1;
+  const ndcgFor = (alpha: number, idx: number[]) =>
+    mean(
+      idx.map((i) =>
+        metrics(
+          linearFuse(lists[i]!.dense, lists[i]!.kw, alpha, DEPTH).map((h) => h.id),
+          qrels.get(queries[i]!.id)!,
+        ).ndcg10,
+      ),
+    );
+  const devIdx = queries.map((_, i) => i).filter(isDev);
+  const holdIdx = queries.map((_, i) => i).filter((i) => !isDev(i));
+  const devScores = ALPHAS.map((a) => ({ alpha: a, ndcg10: ndcgFor(a, devIdx) }));
+  const bestAlpha = devScores.reduce((b, x) => (x.ndcg10 > b.ndcg10 ? x : b)).alpha;
+  const hold = (a: string) => holdIdx.map((i) => per[a]![i]!);
+  const holdLinear = holdIdx.map((i) =>
+    metrics(
+      linearFuse(lists[i]!.dense, lists[i]!.kw, bestAlpha, DEPTH).map((h) => h.id),
+      qrels.get(queries[i]!.id)!,
+    ),
+  );
+  summary.holdout = {
+    queries: holdIdx.length,
+    alpha: bestAlpha,
+    devScores,
+    arms: {} as Record<string, any>,
+  };
+  const holdArms: Record<string, Array<ReturnType<typeof metrics>>> = {
+    bm25: hold("bm25"),
+    dense: hold("dense"),
+    hybridRRF: hold("hybrid"),
+    hybridLinear: holdLinear,
+  };
+  for (const [a, m] of Object.entries(holdArms)) {
+    summary.holdout.arms[a] = {
+      ndcg10: mean(m.map((x) => x.ndcg10)),
+      mrr10: mean(m.map((x) => x.mrr10)),
+      recall100: mean(m.map((x) => x.recall100)),
+      vsBm25: a === "bm25" ? null : pairedCI(m.map((x) => x.ndcg10), holdArms.bm25!.map((x) => x.ndcg10)),
+      vsDense: a === "dense" || a === "bm25" ? null : pairedCI(m.map((x) => x.ndcg10), holdArms.dense!.map((x) => x.ndcg10)),
+    };
+  }
   report.datasets[name] = summary;
   writeFileSync(outFile, JSON.stringify(report, null, 2) + "\n");
   console.log(`\n### ${name} (${corpus.length} docs, ${queries.length} test queries)\n`);
@@ -298,6 +347,14 @@ for (const name of datasets) {
     console.log(
       `| ${a} | ${r.ndcg10.toFixed(3)} | ${r.mrr10.toFixed(3)} | ${r.recall100.toFixed(3)} | ${c ? `${c.diff >= 0 ? "+" : ""}${c.diff.toFixed(3)} [${c.lo.toFixed(3)}, ${c.hi.toFixed(3)}]` : "-"} |`,
     );
+  }
+
+  console.log(`\nHeld-out half (${holdIdx.length} queries), alpha=${bestAlpha} chosen on the other half (dev nDCG@10 by alpha: ${devScores.map((d) => `${d.alpha}:${d.ndcg10.toFixed(3)}`).join(" ")})\n`);
+  console.log("| arm | nDCG@10 | MRR@10 | Recall@100 | vs BM25 (95% CI) | vs dense (95% CI) |");
+  console.log("|---|---|---|---|---|---|");
+  const fmt = (c: any) => (c ? `${c.diff >= 0 ? "+" : ""}${c.diff.toFixed(3)} [${c.lo.toFixed(3)}, ${c.hi.toFixed(3)}]` : "-");
+  for (const [a, r] of Object.entries<any>(summary.holdout.arms)) {
+    console.log(`| ${a} | ${r.ndcg10.toFixed(3)} | ${r.mrr10.toFixed(3)} | ${r.recall100.toFixed(3)} | ${fmt(r.vsBm25)} | ${fmt(r.vsDense)} |`);
   }
   const L = summary.latencyMs;
   console.log(

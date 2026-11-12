@@ -191,6 +191,39 @@ export function calibratedScore(input: {
   );
 }
 
+/**
+ * Score-level fusion: min-max normalise each retriever's top list, then
+ * `alpha * dense + (1 - alpha) * keyword`. A chunk missing from one list gets 0
+ * there. Unlike rank-only RRF this keeps how far ahead a rank-1 hit is, which
+ * matters when one retriever is much stronger on the corpus. `alpha` is a
+ * corpus-level weight chosen on a dev split, never on the test queries.
+ */
+export function linearFuse(
+  dense: Array<{ id: string; score: number }>,
+  keyword: Array<{ id: string; score: number }>,
+  alpha: number,
+  topK: number,
+): Array<{ id: string; score: number }> {
+  const norm = (hits: Array<{ id: string; score: number }>) => {
+    if (hits.length === 0) return new Map<string, number>();
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (const h of hits) {
+      if (h.score < lo) lo = h.score;
+      if (h.score > hi) hi = h.score;
+    }
+    const span = hi - lo;
+    return new Map(hits.map((h) => [h.id, span > 0 ? (h.score - lo) / span : 1] as const));
+  };
+  const d = norm(dense);
+  const k = norm(keyword);
+  const ids = new Set<string>([...d.keys(), ...k.keys()]);
+  return [...ids]
+    .map((id) => ({ id, score: alpha * (d.get(id) ?? 0) + (1 - alpha) * (k.get(id) ?? 0) }))
+    .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
+    .slice(0, topK);
+}
+
 export function rrfFuse(
   dense: RetrievedChunk[],
   keyword: RetrievedChunk[],
