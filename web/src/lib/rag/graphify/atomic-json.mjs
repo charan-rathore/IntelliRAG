@@ -20,10 +20,10 @@ export function writeAtomicJson(path, value) {
     closeSync(fd);
     fd = undefined;
     renameSync(pending, path);
-  } finally {
+  } catch (error) {
     if (fd !== undefined) closeSync(fd);
-    try { unlinkSync(pending); } catch (error) {
-      if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-    }
+    // Remove the pending file; a failure here must not hide the write error.
+    try { unlinkSync(pending); } catch { /* already gone or unwritable */ }
+    throw error;
   }
 }
