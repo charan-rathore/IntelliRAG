@@ -2,8 +2,9 @@
  * Graphify sidecar store: graph.json + memory/ + .graphify_learning.json
  * kept together. Mirrors graphify-out/ so repeat queries skip Flash.
  */
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { readFileSync } from "node:fs";
+import { writeAtomicJson } from "./atomic-json.mjs";
+import { singleFlight } from "./single-flight.mjs";
 import { listGraphDocumentVersions, getDocumentBySlug, loadChunksByIds } from "../store.server";
 import { SEED_DOCUMENTS } from "../corpus";
 import { getSql, vercelWithoutDatabase } from "@/lib/db";
@@ -12,11 +13,11 @@ import { lookupCache, preferredSlugs, queryGraph } from "./query";
 import { applyGraphEdits, scopeGraph, EMPTY_EDITS, type GraphEdits } from "./edits";
 import { emptyVectorMemory, learnVectors, lookupVectors } from "./vector";
 import { parseCorpusScope } from "../corpus-scope";
+import { graphStatePath } from "../storage";
 import { reflect } from "./reflect";
 import type { CacheEntry, GraphOutcome, GraphState, MemoryDoc } from "./schema";
 
-const TMP = "/tmp/intellirag-graphify.json";
-type G = typeof globalThis & { __intelliragGraph?: GraphState };
+type G = typeof globalThis & { __intelliragGraph?: GraphState; __intelliragGraphRefresh?: { pending?: Promise<GraphState> } };
 
 function empty(): GraphState {
   return {
@@ -29,7 +30,7 @@ function empty(): GraphState {
 
 function loadDisk(): GraphState | null {
   try {
-    return JSON.parse(readFileSync(TMP, "utf8")) as GraphState;
+    return JSON.parse(readFileSync(graphStatePath(), "utf8")) as GraphState;
   } catch {
     return null;
   }
@@ -37,8 +38,7 @@ function loadDisk(): GraphState | null {
 
 function saveDisk(state: GraphState) {
   try {
-    mkdirSync(dirname(TMP), { recursive: true });
-    writeFileSync(TMP, JSON.stringify(state), { mode: 0o600 });
+    writeAtomicJson(graphStatePath(), state);
   } catch {
     // /tmp is best-effort on serverless
   }
@@ -85,6 +85,12 @@ async function loadSql(): Promise<GraphState | null> {
 }
 
 export async function ensureGraph(): Promise<GraphState> {
+  const g = globalThis as G;
+  g.__intelliragGraphRefresh ??= {};
+  return singleFlight(g.__intelliragGraphRefresh, refreshGraph);
+}
+
+async function refreshGraph(): Promise<GraphState> {
   const g = globalThis as G;
   if (!g.__intelliragGraph) {
     const fromSql = await loadSql();

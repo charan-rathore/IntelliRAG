@@ -29,6 +29,11 @@ export function getDatabaseUrl(): string | undefined {
   return runtimeEnv("DATABASE_URL");
 }
 
+/** Separate local worktrees and test runs can isolate their graph snapshots. */
+export function graphStatePath(): string {
+  return runtimeEnv("INTELLIRAG_GRAPH_PATH") ?? "/tmp/intellirag-graphify.json";
+}
+
 /**
  * True on Vercel/Lambda even when `process.env.VERCEL` was stripped at build.
  * The live crash was `ENOENT … /var/task/_libs/pglite.data`. cwd is the

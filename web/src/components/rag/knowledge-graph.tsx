@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { GraphLink, GraphNode, LearningSidecar } from "@/lib/rag/graphify/schema";
 import { applyGraphEdits, scopeGraph, edgeKey, loadGraphEdits, GRAPH_EDITS_STORAGE, EMPTY_EDITS, type GraphEdits } from "@/lib/rag/graphify/edits";
 import { explainConnection } from "@/lib/rag/graphify/story";
+import { MEMORY_VIEWS, explorerNodes, matchesMemoryView, type MemoryView } from "@/lib/rag/graphify/explorer";
 import { cn } from "@/lib/utils";
 
 type Props = { nodes: GraphNode[]; links: GraphLink[]; learning?: LearningSidecar | null; nodeCount?: number; edgeCount?: number; cacheCount?: number; preferred?: number; durable?: boolean };
@@ -13,6 +14,7 @@ export function KnowledgeGraph(props: Props) {
   const [neighborPage, setNeighborPage] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<MemoryView>("sources");
   const [scope, setScope] = useState("all");
   const [expanded, setExpanded] = useState(false);
   const [edits, setEdits] = useState<GraphEdits>(EMPTY_EDITS);
@@ -31,7 +33,7 @@ export function KnowledgeGraph(props: Props) {
   const byId = useMemo(() => new Map(graph.nodes.map(n => [n.id, n])), [graph.nodes]);
   const active = selected ? byId.get(selected) : undefined;
   const connections = useMemo(() => active ? graph.links.filter(e => e.source === active.id || e.target === active.id) : [], [graph.links, active]);
-  const matches = useMemo(() => graph.nodes.filter(n => search.trim() ? n.label.toLowerCase().includes(search.trim().toLowerCase()) : n.kind === "document"), [graph.nodes, search]);
+  const matches = useMemo(() => explorerNodes(graph.nodes, view, search), [graph.nodes, view, search]);
   const visible = useMemo(() => {
     if (!active) {
       const seeds = matches.slice(0, 8), ids = new Set(seeds.map(n => n.id));
@@ -82,9 +84,14 @@ export function KnowledgeGraph(props: Props) {
       <div><p className="text-xs uppercase tracking-[0.16em] text-primary">Knowledge graph</p><p className="mt-1 text-xs text-muted">{graph.nodes.length} nodes · {graph.links.length} connections</p></div>
       <button className={control} onClick={() => setExpanded(!expanded)} aria-expanded={expanded}>{expanded ? "Close explorer" : "Expand graph ↗"}</button>
     </div>
-    <p className="mt-3 text-xs leading-relaxed text-muted">Start with a source. Follow one clue at a time: the original text, the connections it creates, and the answers that cited it. Your edits guide search; the source stays the evidence.</p>
+    <p className="mt-3 text-xs leading-relaxed text-muted">Explore the sources behind your answers, revisit saved questions, or inspect learned vector memory. Follow any connection back to its evidence.</p>
+    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Memory view">
+      {MEMORY_VIEWS.map(item => <button key={item.id} aria-pressed={view === item.id} onClick={() => { setView(item.id); clear(); setLimit(12); }} className={cn("rounded-lg border p-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary", view === item.id ? "border-primary bg-primary/10 text-primary" : "border-border bg-bg text-muted hover:text-fg")}>
+        <span className="block text-xs">{item.label}</span><span className="mt-1 block text-xl font-medium tabular-nums">{graph.nodes.filter(node => matchesMemoryView(node, item.id)).length}</span>
+      </button>)}
+    </div>
     <div className={cn("mt-3 grid gap-3", expanded && "sm:grid-cols-2")}>
-      <label className="text-xs text-muted">Find a source or term<input value={search} onChange={e => { setSearch(e.target.value); clear(); }} placeholder="Search Redis, SQL, or a source…" className={cn(control, "mt-1 w-full")} /></label>
+      <label className="text-xs text-muted">Search this memory view<input value={search} onChange={e => { setSearch(e.target.value); clear(); }} placeholder="Search a label, file, or source line…" className={cn(control, "mt-1 w-full")} /></label>
       <label className="text-xs text-muted">Graph corpus<select value={scope} onChange={e => { setScope(e.target.value); clear(); }} className={cn(control, "mt-1 w-full")}><option value="all">All indexed sources</option>{scopes.map(c => <option key={c} value={c}>{c === "seed-lab" ? "Built-in runbooks" : c}</option>)}</select></label>
     </div>
     <nav aria-label="Evidence trail" className="mt-3 flex flex-wrap items-center gap-1 text-xs"><button className={control} onClick={clear}>All sources</button>{trail.map(id => { const n = byId.get(id); return n && <span key={id} className="inline-flex max-w-full items-center gap-1"><span aria-hidden="true">→</span><button className={cn(control, "max-w-56 truncate", id === selected && "border-primary text-primary")} aria-current={id === selected ? "step" : undefined} onClick={() => choose(n)}>{n.label}</button></span>; })}</nav>
@@ -104,7 +111,7 @@ export function KnowledgeGraph(props: Props) {
         {active && connections.length > 6 && <button className={cn(control, "mt-2")} onClick={() => setNeighborPage((neighborPage + 1) % Math.ceil(connections.length / 6))}>Next clues · {neighborPage + 1}/{Math.ceil(connections.length / 6)}</button>}
         <div className="mt-3 flex max-h-48 flex-wrap gap-2 overflow-auto" aria-label="Matching graph nodes">
           {matches.slice(0, limit).map(n => <button key={n.id} className={cn(control, "max-w-full break-words py-2 text-left", selected === n.id && "border-primary text-primary")} onClick={() => choose(n)}>{n.label}</button>)}
-          {!matches.length && <p className="text-xs text-muted">No matching nodes in this corpus.</p>}
+          {!matches.length && <p className="text-xs leading-relaxed text-muted">{search.trim() ? "No matches in this view. Try another view or search by source file." : view === "questions" ? "Saved questions appear after you ask an answerable question." : view === "vectors" ? "Validated source chunks appear here as retrieval learns vector memory." : "No nodes in this view for the selected corpus."}</p>}
           {matches.length > limit && <button className={control} onClick={() => setLimit(limit + 24)}>Show more matches ({matches.length - limit})</button>}
         </div>
         <div className="mt-3 flex flex-wrap gap-2"><button className={control} onClick={download}>Export graph + edits</button><button className={control} disabled={!edits.edges.length && !edits.labels.length} onClick={() => save({ labels: [], edges: [] })}>Reset my edits</button></div>
