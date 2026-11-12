@@ -144,6 +144,33 @@
 }
 .ir-breathe { animation: ir-breathe 2.4s var(--ease-smooth-out) infinite; }
 
+/* Sheets and dialogs. Phones: the sheet rises from the edge it lives on.
+ * Wider screens: a short settle from 97% scale. Exit runs at ~60% of entry. */
+@keyframes ir-scrim-in { from { opacity: 0; } }
+@keyframes ir-scrim-out { to { opacity: 0; } }
+@keyframes ir-sheet-in { from { transform: translateY(100%); } }
+@keyframes ir-sheet-out { to { transform: translateY(100%); } }
+@keyframes ir-dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+@keyframes ir-dialog-out { to { opacity: 0; transform: translateY(4px) scale(0.98); } }
+.ir-scrim { animation: ir-scrim-in var(--dur-base) var(--ease-smooth-out) both; }
+.ir-sheet { animation: ir-sheet-in var(--dur-slow) var(--ease-smooth-out) both; }
+[data-closing="true"] .ir-scrim { animation: ir-scrim-out var(--dur-fast) var(--ease-in-quick) both; }
+[data-closing="true"] .ir-sheet { animation: ir-sheet-out var(--dur-base) var(--ease-in-quick) both; }
+@media (min-width: 640px) {
+  .ir-sheet { animation: ir-dialog-in var(--dur-base) var(--ease-smooth-out) both; }
+  [data-closing="true"] .ir-sheet { animation: ir-dialog-out var(--dur-fast) var(--ease-in-quick) both; }
+}
+
+/* Citation chips lift a hair on hover: they are the most important link on
+ * the page, and the only one that should feel touchable. */
+a.cite-chip {
+  display: inline-block;
+  transition:
+    transform var(--dur-fast) var(--ease-smooth-out),
+    background-color var(--dur-fast) var(--ease-smooth-out);
+}
+a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab, var(--color-primary) 18%, var(--color-raised)) !important; }
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -152,6 +179,8 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+  .ir-sheet, [data-closing="true"] .ir-sheet { transform: none !important; }
+  a.cite-chip:hover { transform: none; }
 }
 
 .ir-feature-card {

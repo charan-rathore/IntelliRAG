@@ -23,6 +23,7 @@ import { ProductTour } from "@/components/rag/product-tour";
 import { PackedSources, SourceInspector } from "@/components/rag/source-inspector";
 import { ViewToggle } from "@/components/rag/view-toggle";
 import { DemoBanner } from "@/components/rag/demo-banner";
+import { StageStepper } from "@/components/rag/stage-stepper";
 import { formatAnswerHtml, formatSourceExcerptsHtml } from "@/lib/rag/answer";
 import {
   embedNextBatch,
@@ -826,6 +827,12 @@ export function Console({ initial }: { initial: Snapshot }) {
           </>)}
           {keyError && <p className="mt-3 text-xs text-bad">{keyError}</p>}
 
+          {view !== "lab" ? (
+            <p className="mt-5 text-xs leading-relaxed text-subtle">
+              Retrieval mode and the number of passages live in Lab. Reading uses hybrid search with
+              five passages.
+            </p>
+          ) : (<>
           <label className="mt-5 block text-sm text-muted">Retrieval</label>
           <select
             value={mode}
@@ -853,6 +860,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             }}
             className="mt-2 h-11 w-full rounded-md border border-border bg-raised px-3 text-fg"
           />
+          </>)}
           <div className="mt-6 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setSettingsOpen(false)}>
               Close
@@ -890,7 +898,7 @@ function Turn({
   const [copied, setCopied] = useState(false);
   if (message.role === "user") {
     return (
-      <div className="ml-8 rounded-lg bg-raised px-4 py-3 text-base leading-relaxed text-fg">
+      <div className="ir-rise ml-8 rounded-lg bg-raised px-4 py-3 text-base leading-relaxed text-fg">
         {message.text}
       </div>
     );
@@ -905,7 +913,7 @@ function Turn({
     }
   };
   return (
-    <article className="rounded-lg border border-border bg-surface px-4 py-4">
+    <article className="ir-rise rounded-lg border border-border bg-surface px-4 py-4 [animation-delay:60ms]">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         {message.coverage ? <CoverageChip kind={message.answerKind === "source_excerpts" ? "excerpts" : message.coverage} /> : <span />}
         <span className="flex items-center gap-2">
@@ -925,10 +933,11 @@ function Turn({
         </span>
       </div>
       {message.stage && (
-        <p className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted">
-          <LoaderCircle className="size-3.5 animate-spin" />
-          {message.stage}
-        </p>
+        <StageStepper
+          stage={message.stage}
+          hasSources={Boolean(message.chunks)}
+          hasText={message.text.length > 0}
+        />
       )}
       {message.error && (
         <p className="text-sm text-bad">{message.error}</p>
@@ -1295,13 +1304,35 @@ function Modal({
   onClose: () => void;
   children: ReactNode;
 }) {
+  // Exits are faster than entrances: the panel has already been understood.
+  const [closing, setClosing] = useState(false);
+  const close = useCallback(() => {
+    if (closing) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return onClose();
+    setClosing(true);
+  }, [closing, onClose]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [close]);
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-bg/70 p-0 sm:items-center sm:p-6">
-      <button type="button" className="absolute inset-0" aria-label="Close" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-label={title} className={cn("relative z-10 max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl", title === "Evidence" ? "max-w-5xl" : "max-w-lg")}>
+    <div className="fixed inset-0 z-40 flex items-end justify-center p-0 sm:items-center sm:p-6" data-closing={closing}>
+      <button type="button" className="ir-scrim absolute inset-0 bg-bg/70" aria-label="Close" onClick={close} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onAnimationEnd={(e) => {
+          if (closing && e.target === e.currentTarget) onClose();
+        }}
+        className={cn("ir-sheet relative z-10 max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl", title === "Evidence" ? "max-w-5xl" : "max-w-lg")}
+      >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl tracking-[-0.02em]">{title}</h2>
-          <button type="button" onClick={onClose} className="inline-flex size-11 items-center justify-center" aria-label="Close dialog">
+          <button type="button" onClick={close} className="inline-flex size-11 items-center justify-center" aria-label="Close dialog">
             <X className="size-5" />
           </button>
         </div>
