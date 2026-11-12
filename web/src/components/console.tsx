@@ -791,8 +791,8 @@ export function Console({ initial }: { initial: Snapshot }) {
               <div className="mt-2 flex items-center justify-between gap-2">
                 <p className="text-xs leading-relaxed text-muted">
                   {snapshot.hasOpenRouterKey
-                    ? "Held on the server for this device. Routes to google/gemini-3.7-flash and google/gemini-embedding-2."
-                    : "Sent once to the server, never stored in page JavaScript. Use this for budget-capped Gemini calls."}
+                    ? "Kept in an HttpOnly cookie in this browser. The server does not store it. Routes to google/gemini-3.7-flash and google/gemini-embedding-2."
+                    : "Saved as an HttpOnly cookie in this browser, never in page JavaScript. The server sees it only on requests that call the provider. Use this for budget-capped Gemini calls."}
                 </p>
                 {snapshot.hasOpenRouterKey && !snapshot.openRouterFromEnv && (
                   <Button variant="ghost" size="sm" disabled={keyBusy} onClick={() => void clearKeys("openrouter")}>
@@ -877,7 +877,7 @@ export function Console({ initial }: { initial: Snapshot }) {
                 disabled={keyBusy || (!geminiDraft.trim() && !openrouterDraft.trim())}
                 onClick={() => void saveKeys()}
               >
-                {keyBusy ? "Saving…" : "Save to server"}
+                {keyBusy ? "Saving…" : "Save key"}
               </Button>
             )}
           </div>
