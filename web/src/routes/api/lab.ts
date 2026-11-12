@@ -4,6 +4,8 @@ import { embedPendingBatch, ingestFromUrl } from "@/lib/rag/ingest.server";
 import { deleteDocument, listCorpora, listDocuments, pendingEmbeddingCount } from "@/lib/rag/store.server";
 import { getStorageStatus } from "@/lib/rag/storage";
 import { EMBEDDING_MODEL } from "@/lib/rag/types";
+import { DemoModeRefusal, assertCustomSourcesAllowed } from "@/lib/rag/deployment-mode";
+import { currentPosture } from "@/lib/rag/deployment-posture.server";
 
 export const Route = createFileRoute("/api/lab")({
   server: {
@@ -18,6 +20,7 @@ export const Route = createFileRoute("/api/lab")({
           pendingEmbeddings,
           corpora,
           storage: getStorageStatus(),
+          deployment: currentPosture(),
           ...keyStatus(),
         });
       },
@@ -36,6 +39,18 @@ export const Route = createFileRoute("/api/lab")({
               { error: err instanceof Error ? err.message : "embed failed" },
               { status: 500 },
             );
+          }
+        }
+        if (body.action === "ingest" || body.action === "purge-empty") {
+          try {
+            assertCustomSourcesAllowed(
+              currentPosture(),
+              body.action === "ingest" ? "Importing a source" : "Removing sources",
+            );
+          } catch (err) {
+            if (err instanceof DemoModeRefusal)
+              return Response.json({ error: err.message, code: err.code }, { status: 403 });
+            throw err;
           }
         }
         if (body.action === "ingest" && body.url) {

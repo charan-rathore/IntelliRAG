@@ -25,4 +25,5 @@ jobs:
       - run: npm run test:generation
       - run: npm run test:hardening
       - run: npm run test:persistence
+      - run: node --test scripts/release-gate.test.mjs
       - run: npx --yes tsx --test src/lib/rag/*.test.ts

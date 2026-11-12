@@ -5,6 +5,7 @@ import {
   KeyRound,
   Layers,
   LoaderCircle,
+  Lock,
   Plus,
   ShieldAlert,
   X,
@@ -21,6 +22,7 @@ import { FirstRunCoach, RunPreview, SuggestedQuestions, WelcomeOnboarding } from
 import { ProductTour } from "@/components/rag/product-tour";
 import { PackedSources, SourceInspector } from "@/components/rag/source-inspector";
 import { ViewToggle } from "@/components/rag/view-toggle";
+import { DemoBanner } from "@/components/rag/demo-banner";
 import { formatAnswerHtml, formatSourceExcerptsHtml } from "@/lib/rag/answer";
 import {
   embedNextBatch,
@@ -176,6 +178,8 @@ export function Console({ initial }: { initial: Snapshot }) {
   const indexLoop = useRef(false);
 
   const hasKey = snapshot.hasServerKey;
+  const posture = snapshot.deployment;
+  const demo = posture.mode === "demo";
   const denseAvailable = snapshot.storage?.denseAvailable !== false;
   const staleCount = snapshot.documents.filter(
     (d) => visibleStaleReasons(d.staleReasons, denseAvailable).length > 0,
@@ -529,6 +533,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             ingestError={ingestError}
             indexing={indexing}
             pending={snapshot.pendingEmbeddings}
+            customSources={posture.customSources}
             onUrl={setIngestUrl}
             onBody={setIngestBody}
             onTitle={setIngestTitle}
@@ -592,7 +597,9 @@ export function Console({ initial }: { initial: Snapshot }) {
         </div>
       </header>
 
-      {!hasKey && (
+      <DemoBanner posture={posture} />
+
+      {!hasKey && !demo && (
         <div className="border-b border-border bg-raised px-4 py-3 md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-fg">
@@ -620,6 +627,7 @@ export function Console({ initial }: { initial: Snapshot }) {
                 importing={ingestBusy}
                 importError={ingestError}
                 suggestions={suggestions}
+                customSources={posture.customSources}
               />
             ) : (
               <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -750,6 +758,15 @@ export function Console({ initial }: { initial: Snapshot }) {
             </p>
           )}
 
+          {!posture.visitorKeys ? (
+            <div className="mt-5 rounded-md border border-border bg-raised px-3 py-3">
+              <p className="text-sm font-medium text-fg">Model keys are off on the public demo</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted">
+                A demo host should never hold a visitor&rsquo;s secret. Answers here use cited
+                extracts from the pinned sources. Keys return with signed-in, durable workspaces.
+              </p>
+            </div>
+          ) : (<>
           <label className="mt-5 block text-sm text-muted">OpenRouter key</label>
           {snapshot.openRouterFromEnv ? (
             <p className="mt-2 text-sm text-good">Configured on the server. Not shown here, not in the browser.</p>
@@ -806,6 +823,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             </>
           )}
 
+          </>)}
           {keyError && <p className="mt-3 text-xs text-bad">{keyError}</p>}
 
           <label className="mt-5 block text-sm text-muted">Retrieval</label>
@@ -839,12 +857,14 @@ export function Console({ initial }: { initial: Snapshot }) {
             <Button variant="ghost" onClick={() => setSettingsOpen(false)}>
               Close
             </Button>
-            <Button
-              disabled={keyBusy || (!geminiDraft.trim() && !openrouterDraft.trim())}
-              onClick={() => void saveKeys()}
-            >
-              {keyBusy ? "Saving…" : "Save to server"}
-            </Button>
+            {posture.visitorKeys && (
+              <Button
+                disabled={keyBusy || (!geminiDraft.trim() && !openrouterDraft.trim())}
+                onClick={() => void saveKeys()}
+              >
+                {keyBusy ? "Saving…" : "Save to server"}
+              </Button>
+            )}
           </div>
         </Modal>
       )}
@@ -962,6 +982,7 @@ function CorpusPanel(props: {
   ingestError: string | null;
   indexing: boolean;
   pending: number;
+  customSources: boolean;
   onUrl: (v: string) => void;
   onBody: (v: string) => void;
   onTitle: (v: string) => void;
@@ -1016,10 +1037,21 @@ function CorpusPanel(props: {
             key={doc.id}
             doc={doc}
             denseAvailable={props.snapshot.storage?.denseAvailable !== false}
-            onRemove={props.onRemove}
+            onRemove={props.customSources ? props.onRemove : undefined}
           />
         ))}
       </ul>
+      {!props.customSources ? (
+        <div className="rounded-lg border border-dashed border-border p-3">
+          <p className="flex items-center gap-2 text-sm font-medium text-fg">
+            <Lock className="size-3.5 text-muted" /> Importing is off on this demo
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            Storage here does not survive restarts, so we don&rsquo;t pretend to keep your
+            documents. Ask the pinned sources above.
+          </p>
+        </div>
+      ) : (
       <div className="rounded-lg border border-border bg-surface p-3">
         <p className="flex items-center gap-2 text-sm font-medium">
           <Plus className="size-4" /> Ingest
@@ -1063,6 +1095,7 @@ function CorpusPanel(props: {
         </Button>
         {props.ingestError && <p className="mt-2 text-xs text-bad">{props.ingestError}</p>}
       </div>
+      )}
     </div>
   );
 }
@@ -1074,7 +1107,7 @@ function DocRow({
 }: {
   doc: DocumentHealth;
   denseAvailable: boolean;
-  onRemove: (id: string) => void;
+  onRemove?: (id: string) => void;
 }) {
   const stale = visibleStaleReasons(doc.staleReasons, denseAvailable);
   return (
@@ -1087,7 +1120,7 @@ function DocRow({
         >
           {doc.title}
         </Link>
-        {doc.sourceType !== "seed" && doc.corpusId !== REPO_DEMO_CORPUS && (
+        {onRemove && doc.sourceType !== "seed" && doc.corpusId !== REPO_DEMO_CORPUS && (
           <button
             type="button"
             aria-label={`Remove ${doc.title}`}

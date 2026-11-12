@@ -18,6 +18,8 @@ import { listSuggestedQuestions } from "./suggested-questions.server";
 import { EMBEDDING_MODEL, GENERATION_MODEL } from "./types";
 import { getStorageStatus } from "./storage";
 import { REPO_DEMO_CORPUS } from "./repo-demo";
+import { assertCustomSourcesAllowed } from "./deployment-mode";
+import { currentPosture } from "./deployment-posture.server";
 
 export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async () => {
   const keys = keyStatus();
@@ -31,6 +33,7 @@ export const getLabSnapshot = createServerFn({ method: "GET" }).handler(async ()
     embeddingModel: EMBEDDING_MODEL,
     lastEval: await loadLastEvalSummary(),
     storage: getStorageStatus(),
+    deployment: currentPosture(),
     suggestions: [] as Awaited<ReturnType<typeof listSuggestedQuestions>>,
     graph: {
       nodeCount: 0,
@@ -75,6 +78,9 @@ export const saveLabKeys = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    if (data.gemini || data.openrouter) {
+      assertCustomSourcesAllowed(currentPosture(), "Adding a model key");
+    }
     return setMemoryKeys(data);
   });
 
@@ -86,6 +92,7 @@ export const ingestPastedDocument = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    assertCustomSourcesAllowed(currentPosture(), "Importing a source");
     return ingestText({
       title: data.title,
       body: data.body,
@@ -96,6 +103,7 @@ export const ingestPastedDocument = createServerFn({ method: "POST" })
 export const ingestRemoteUrl = createServerFn({ method: "POST" })
   .validator(z.object({ url: z.string().url() }))
   .handler(async ({ data }) => {
+    assertCustomSourcesAllowed(currentPosture(), "Importing a source");
     const remote = await ingestFromUrl(data.url);
     return remote;
   });
@@ -109,6 +117,7 @@ export const embedNextBatch = createServerFn({ method: "POST" })
 export const removeDocument = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().min(1) }))
   .handler(async ({ data }) => {
+    assertCustomSourcesAllowed(currentPosture(), "Removing a source");
     await deleteDocument(data.id);
     return { ok: true as const };
   });

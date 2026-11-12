@@ -3,6 +3,7 @@ import { getSql, vercelWithoutDatabase } from "@/lib/db";
 import { getStorageStatus } from "@/lib/rag/storage";
 import { keyStatus } from "@/lib/rag/keys.server";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "@/lib/rag/types";
+import { currentPosture } from "@/lib/rag/deployment-posture.server";
 const instanceId = crypto.randomUUID();
 
 export const Route = createFileRoute("/api/health")({
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/api/health")({
               ...base,
               status: "setup-required",
               databaseReachable: false,
+              deployment: currentPosture(false),
               reason:
                 "Configure persistent Postgres before indexing and production acceptance tests.",
             },
@@ -57,6 +59,7 @@ export const Route = createFileRoute("/api/health")({
               ...base,
               status: vectorsReady ? "index-ready" : "index-incomplete",
               databaseReachable: true,
+              deployment: currentPosture(true),
               indexFingerprint: fingerprint[0].hash,
               counts,
               storedDimensions: dimensions,
@@ -70,6 +73,7 @@ export const Route = createFileRoute("/api/health")({
               ...base,
               status: "database-error",
               databaseReachable: false,
+              deployment: currentPosture(false),
               reason: "Check database connectivity and applied migrations.",
             },
             { status: 503, headers: { "Cache-Control": "no-store" } },

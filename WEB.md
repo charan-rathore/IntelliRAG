@@ -10,6 +10,17 @@ Use the repository root and its checked-in `vercel.json`. It installs/builds `we
 
 The public app works without provider keys in **ephemeral keyword/extractive mode**. Imported documents and graph memory can disappear across workers. This is not persistent semantic RAG. Check [`/api/health`](https://intellirag-live-own-track.vercel.app/api/health) for the current storage, migration and index state; it exposes no credentials.
 
+### Deployment mode (demo vs product)
+
+`/api/health` reports `deployment.mode`. It is derived on the server from storage facts, never from a request or a UI toggle (`src/lib/rag/deployment-mode.ts`):
+
+| Mode | When | What the server allows |
+| --- | --- | --- |
+| `demo` | storage is ephemeral, the database is unreachable, or `INTELLIRAG_PUBLIC_DEMO=1` | Seeded sources only. Paste/URL import, removal and visitor model keys return a demo refusal (HTTP 403 on `/api/keys` and `/api/lab`). The page shows an "Interactive demo" strip. |
+| `product` | durable Postgres is configured and reachable | Custom sources and keys as before. |
+
+`.github/workflows/release-gate.yml` runs `web/scripts/release-gate.mjs` on every successful deployment. It blocks promotion when the host's promise and its storage disagree. Set the repository variable `INTELLIRAG_RELEASE_MODE=product` once Postgres is live so production also requires durable storage.
+
 ## Enable persistent hybrid retrieval
 
 Configure these variables privately in the Vercel project's Production environment:

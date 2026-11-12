@@ -82,8 +82,10 @@ export function WelcomeOnboarding({
   importing,
   importError,
   suggestions,
+  customSources = true,
 }: {
   view: ConsoleView;
+  customSources?: boolean;
   hasKey: boolean;
   onAsk: (q: string) => void;
   onSources: () => void;
@@ -111,8 +113,9 @@ export function WelcomeOnboarding({
           Ask what your documents mean for your situation.
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-          Bring a GitHub README or paste a doc. We suggest likely questions from that source, and
-          remember the ones people actually ask.
+          {customSources
+            ? "Bring a GitHub README or paste a doc. We suggest likely questions from that source, and remember the ones people actually ask."
+            : "This public demo answers from a pinned source. Every claim cites the passage it came from, or says plainly when the source does not establish it."}
         </p>
       </div>
 
@@ -131,11 +134,11 @@ export function WelcomeOnboarding({
             <ArrowRight className="size-4" />
           </Button>
           <Button variant="ghost" onClick={onSources}>
-            Use your own source
+            {customSources ? "Use your own source" : "See the sources"}
           </Button>
         </div>
         <p className="mt-3 text-xs text-muted">
-          {hasKey
+          {hasKey || !customSources
             ? "Answers cite the loaded document. Follow-ups stay in that corpus."
             : "No model key yet: you still get cited extracts. Add a key in Settings for generated answers."}
         </p>

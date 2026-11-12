@@ -1,0 +1,35 @@
+name: Release gate
+# Runs against every successful Vercel deployment. A production host must keep
+# the promise it makes: demo hosts must say so and refuse visitor secrets;
+# product hosts must have durable, reachable storage.
+# Set the repository variable INTELLIRAG_RELEASE_MODE=product once Postgres is live.
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Deployment URL to check
+        required: true
+        default: https://intellirag-live-own-track.vercel.app
+      expect:
+        description: demo or product
+        required: true
+        default: demo
+jobs:
+  gate:
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test scripts/release-gate.test.mjs
+      - name: Probe deployment
+        env:
+          URL: ${{ github.event.inputs.url || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+          EXPECT: ${{ github.event.inputs.expect || (github.event.deployment.environment == 'Production' && vars.INTELLIRAG_RELEASE_MODE) || 'demo' }}
+        run: node scripts/release-gate.mjs "$URL" "$EXPECT"
