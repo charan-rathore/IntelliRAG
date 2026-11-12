@@ -1,24 +1,11 @@
 import type { Citation } from "../rag/types";
-import { locateExactText, type Claim, type EvidenceSpan, type SourceVersion } from "./contracts.ts";
-
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+import { locateExactText, recoverExactText, type Claim, type EvidenceSpan, type SourceVersion } from "./contracts.ts";
 
 /**
- * Recover the source's own characters for a cited passage.
- *
- * Citation snippets are whitespace-collapsed and may end in "…", and their
- * offsets point into the packed chunk rather than the document. We match the
- * cited words in order, tolerant only of whitespace, and return the body's
- * exact substring, so the span still quotes the source verbatim.
+ * Citation → canonical EvidenceSpan, or null when the source does not contain it.
+ * Citation offsets point into the packed chunk, not the document, so the span
+ * is located by its text in the source version's body.
  */
-export function recoverExactText(body: string, cited: string): string | null {
-  const words = cited.replace(/…$/u, "").trim().split(/\s+/).filter(Boolean);
-  if (!words.length) return null;
-  const match = new RegExp(words.map(escape).join("\\s+")).exec(body.replace(/\r\n?/g, "\n"));
-  return match ? match[0] : null;
-}
-
-/** Citation → canonical EvidenceSpan, or null when the source does not contain it. */
 export function citationToSpan(
   citation: Pick<Citation, "chunkId" | "textSnippet">,
   source: { version: SourceVersion; body: string },

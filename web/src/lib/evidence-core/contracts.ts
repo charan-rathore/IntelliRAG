@@ -123,6 +123,23 @@ export function locateExactText(
   };
 }
 
+/**
+ * Recover the source's own characters for a quoted passage.
+ *
+ * Both products store display excerpts that are whitespace-collapsed and may
+ * be truncated with "…" (memoRABLE provenance excerpts, IntelliRAG citation
+ * snippets). This matches the quoted words in order, tolerant only of
+ * whitespace, and returns the body's exact substring, so a span still quotes
+ * the source verbatim. Null means the source does not contain the passage.
+ */
+export function recoverExactText(body: string, quoted: string): string | null {
+  const words = quoted.replace(/…$/u, "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+  const esc = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(words.map(esc).join("\\s+")).exec(body.replace(/\r\n?/g, "\n"));
+  return match ? match[0] : null;
+}
+
 /* ───────────────────────────── invariants ───────────────────────────── */
 
 export type ContractIssue = { path: string; rule: string; message: string };

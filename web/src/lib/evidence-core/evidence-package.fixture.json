@@ -1,6 +1,6 @@
 {
   "$comment": "Shared by memoRABLE and IntelliRAG. Regenerate both copies together; see docs/adr/001-evidence-core.md.",
-  "contractSha256": "f2a42625075b91e70553f1982d3a228bd29b9b553126345517d291f39699852b",
+  "contractSha256": "3d2adb0c81309d668336c8971099e1cc106c37dd657fe16a216dee92cdf252ac",
   "sourceText": {
     "sv_pqueue_5b553a992bc1": {
       "lines": [
