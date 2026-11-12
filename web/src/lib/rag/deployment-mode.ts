@@ -60,7 +60,9 @@ export function classifyDeployment(input: {
     // turns them off.
     customSources: !reasons.includes("forced_by_operator"),
     temporaryImports,
-    visitorKeys: !demo,
+    // Visitor keys live in the visitor's own HttpOnly cookie and are read per request,
+    // never stored on the server. Only an operator pin turns them off.
+    visitorKeys: !reasons.includes("forced_by_operator"),
     headline: demo ? DEMO_HEADLINE : PRODUCT_HEADLINE,
   };
 }

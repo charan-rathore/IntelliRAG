@@ -51,7 +51,7 @@ export function DemoBanner({ posture }: { posture: DeploymentPosture }) {
               ))}
               <li>
                 Pasted sources and URL imports work here but live in memory, so they are lost when the
-                server restarts. Adding model keys is switched off. Every answer cites its source, or
+                server restarts. A model key you add stays in your browser cookie and is sent with requests that call your provider; the server does not store it. Every answer cites its source, or
                 says plainly when the source does not establish it.
               </li>
             </ul>

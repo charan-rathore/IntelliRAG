@@ -768,10 +768,10 @@ export function Console({ initial }: { initial: Snapshot }) {
 
           {!posture.visitorKeys ? (
             <div className="mt-5 rounded-md border border-border bg-raised px-3 py-3">
-              <p className="text-sm font-medium text-fg">Model keys are off on the public demo</p>
+              <p className="text-sm font-medium text-fg">Model keys are turned off by the operator</p>
               <p className="mt-1 text-xs leading-relaxed text-muted">
-                A demo host should never hold a visitor&rsquo;s secret. Answers here use cited
-                extracts from the pinned sources. Keys return with signed-in, durable workspaces.
+                The operator of this host has switched off visitor keys. Answers here use cited
+                extracts from the sources.
               </p>
             </div>
           ) : (<>

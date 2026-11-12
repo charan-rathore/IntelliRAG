@@ -70,13 +70,25 @@ async function main() {
       report.failures.push(`Homepage unreachable: ${err instanceof Error ? err.message : err}`);
     }
     try {
+      const keysOn = health?.deployment?.visitorKeys === true;
       const res = await fetch(`${base}/api/keys`, {
         method: "POST",
         headers: headers({ "content-type": "application/json" }),
         body: JSON.stringify({ openrouter: "sk-or-release-gate-probe" }),
         signal: AbortSignal.timeout(15000),
       });
-      if (res.status !== 403) report.failures.push(`Demo host accepted a visitor key (HTTP ${res.status}).`);
+      if (keysOn && res.status !== 200) report.failures.push(`Host advertises visitor keys but refused one (HTTP ${res.status}).`);
+      if (!keysOn && res.status !== 403) report.failures.push(`Host pins keys off but accepted one (HTTP ${res.status}).`);
+      if (keysOn) {
+        const body = await res.text();
+        if (body.includes("sk-or-release-gate-probe")) report.failures.push("Key probe response echoed the key.");
+        await fetch(`${base}/api/keys`, {
+          method: "POST",
+          headers: headers({ "content-type": "application/json" }),
+          body: JSON.stringify({ clearOpenRouter: true }),
+          signal: AbortSignal.timeout(15000),
+        });
+      }
     } catch (err) {
       report.failures.push(`Key probe failed: ${err instanceof Error ? err.message : err}`);
     }
