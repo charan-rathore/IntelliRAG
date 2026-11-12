@@ -18,7 +18,7 @@ dependencies = [
 eval = [
 	"ragas>=0.4.0",
 	"datasets>=5.1.0",
-	"langchain-ollama>=0.2.0",
+	"langchain-ollama>=1.1.0",
 	"sentence-transformers>=3.0.0",
 ]
 test = [
@@ -28,14 +28,14 @@ test = [
 eval-openai = [
 	"ragas>=0.4.0",
 	"datasets>=5.1.0",
-	"langchain-openai>=0.2.0",
+	"langchain-openai>=1.7.4",
 	"sentence-transformers>=3.0.0",
 ]
 eval-all = [
 	"ragas>=0.4.0",
 	"datasets>=5.1.0",
-	"langchain-ollama>=0.2.0",
-	"langchain-openai>=0.2.0",
+	"langchain-ollama>=1.1.0",
+	"langchain-openai>=1.7.4",
 	"langchain-huggingface>=0.1.0",
 	"sentence-transformers>=3.0.0",
 ]
