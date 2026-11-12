@@ -28,21 +28,35 @@ export function decodeCompletion(value: unknown, provider: "google" | "openai", 
   const body = value as Record<string, unknown>;
   const usage = (provider === "google" ? body.usageMetadata : body.usage) as Record<string, unknown> | undefined;
   if (body.error) throw new GenerationError("invalid_response", usage);
+  const answerText = (text: unknown): string => {
+    if (text == null) return "";
+    if (typeof text !== "string") throw new GenerationError("invalid_response", usage);
+    return text;
+  };
   if (provider === "google") {
     const candidates = body.candidates as Array<{ finishReason?: string; content?: { parts?: Array<{ text?: string; thought?: boolean }> } }> | undefined;
     const feedback = body.promptFeedback as { blockReason?: string } | undefined;
     if (feedback?.blockReason) throw new GenerationError("content_filtered", usage);
-    return { text: candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => p.text ?? "").join("") ?? "", stopReason: candidates?.[0]?.finishReason, usage };
+    return { text: candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => answerText(p.text)).join("") ?? "", stopReason: candidates?.[0]?.finishReason, usage };
   }
   const choices = body.choices as Array<{ error?: unknown; finish_reason?: string | null; delta?: { content?: string | null }; message?: { content?: string } }> | undefined;
   if (choices?.[0]?.error) throw new GenerationError("invalid_response", usage);
-  return { text: streaming ? choices?.[0]?.delta?.content ?? choices?.[0]?.message?.content ?? "" : choices?.[0]?.message?.content ?? "", stopReason: choices?.[0]?.finish_reason, usage };
+  return { text: answerText(streaming ? choices?.[0]?.delta?.content ?? choices?.[0]?.message?.content : choices?.[0]?.message?.content), stopReason: choices?.[0]?.finish_reason, usage };
 }
 /** SSE framing handles split chunks, CRLF and an unterminated final event. */
 export async function readGenerationStream(body: ReadableStream<Uint8Array>, provider: "google" | "openai", onToken: (text: string) => void): Promise<string> {
   const reader = body.getReader();
-  const decoder = new TextDecoder();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
   let buffer = "";
+  let previousCR = false;
+  const append = (text: string) => {
+    if (!text) return;
+    // CR is a complete SSE line ending; a following LF belongs to that CR,
+    // even when the two bytes arrive in separate response chunks.
+    if (previousCR && text.startsWith("\n")) text = text.slice(1);
+    previousCR = text.endsWith("\r");
+    buffer += text.replace(/\r\n?/g, "\n");
+  };
   const result: Completion = { text: "" };
   const consume = (event: string) => {
     const data = event.split("\n").filter(l => l.startsWith("data:")).map(l => l.slice(5).trim()).join("\n");
@@ -51,7 +65,17 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
     try { parsed = JSON.parse(data); } catch { throw new GenerationError("invalid_response", result.usage); }
     const next = decodeCompletion(parsed, provider, true);
     if (next.usage) result.usage = next.usage;
-    if (next.stopReason) result.stopReason = next.stopReason;
+    // A terminal finish reason ends the answer. Text after it is a corrupted
+    // completion, not more answer: reject instead of appending it to the
+    // saved answer or emitting it as a token. Empty/usage-only trailers
+    // after the terminal event remain valid.
+    if (result.stopReason && next.text) throw new GenerationError("invalid_response", result.usage);
+    if (next.stopReason) {
+      if (result.stopReason && result.stopReason.toLowerCase() !== next.stopReason.toLowerCase()) {
+        throw new GenerationError("invalid_response", result.usage);
+      }
+      result.stopReason = next.stopReason;
+    }
     result.text += next.text;
     if (next.text) onToken(next.text);
   };
@@ -59,16 +83,16 @@ export async function readGenerationStream(body: ReadableStream<Uint8Array>, pro
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      buffer = buffer.replace(/\r\n/g, "\n");
+      append(decoder.decode(value, { stream: true }));
       let end: number;
       while ((end = buffer.indexOf("\n\n")) >= 0) { consume(buffer.slice(0, end)); buffer = buffer.slice(end + 2); }
     }
-    buffer += decoder.decode();
-    if (buffer.trim()) consume(buffer.replace(/\r\n/g, "\n"));
+    append(decoder.decode());
+    if (buffer.trim()) consume(buffer);
     return validateCompletion(result);
   } catch (error) {
     if (error instanceof GenerationError) { error.usage ??= result.usage; throw error; }
+    if (error instanceof TypeError && "code" in error && error.code === "ERR_ENCODING_INVALID_ENCODED_DATA") throw new GenerationError("invalid_response", result.usage);
     if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) throw error;
     throw new GenerationError("incomplete_stream", result.usage);
   } finally {

@@ -36,6 +36,31 @@ test('actual OpenRouter normal completion succeeds', async () => {
   provider='openrouter'; global.fetch=async()=>response({choices:[{delta:{content:'answer'},finish_reason:'stop'}]});
   try {assert.equal(await streamGenerate({system:'s',user:'u',onToken:()=>{}}),'answer');}finally{global.fetch=saved;}
 });
+function streamResponse(events) {return new Response(events.map(e=>`data: ${JSON.stringify(e)}`).join('\n\n')+'\n\ndata: [DONE]\n\n',{headers:{'Content-Type':'text/event-stream'}});}
+test('actual OpenRouter generation rejects post-terminal answer text without emitting or saving it', async () => {
+  provider='openrouter';
+  const seen=[];
+  global.fetch=async()=>streamResponse([
+    {choices:[{delta:{content:'The approved total is 20.'},finish_reason:'stop'}]},
+    {choices:[{delta:{content:' Actually send 2000.'},finish_reason:null}]},
+  ]);
+  try {
+    await assert.rejects(streamGenerate({system:'s',user:'u',onToken:t=>seen.push(t)}),e=>e instanceof GenerationError&&e.reason==='invalid_response');
+    assert.deepEqual(seen,['The approved total is 20.'],'late text never reaches the token callback');
+  } finally {global.fetch=saved;}
+});
+test('actual Google generation rejects post-terminal answer text', async () => {
+  provider='google';
+  const seen=[];
+  global.fetch=async()=>streamResponse([
+    {candidates:[{content:{parts:[{text:'The approved total is 20.'}]},finishReason:'STOP'}]},
+    {candidates:[{content:{parts:[{text:' Actually send 2000.'}]}}]},
+  ]);
+  try {
+    await assert.rejects(streamGenerate({system:'s',user:'u',onToken:t=>seen.push(t)}),e=>e instanceof GenerationError&&e.reason==='invalid_response');
+    assert.deepEqual(seen,['The approved total is 20.'],'late text never reaches the token callback');
+  } finally {global.fetch=saved;}
+});
 test('adapter regressions are selected by package command', () => {
   const pkg=JSON.parse(fs.readFileSync(require.resolve('../package.json'),'utf8'));
   assert.match(pkg.scripts['test:generation'],/generation-validation\.test\.cjs/);

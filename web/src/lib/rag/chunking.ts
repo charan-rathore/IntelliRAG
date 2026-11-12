@@ -300,16 +300,31 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
   }
   // Track the heading path across pieces so a chunk deep inside a long
   // section still carries its section context ("Guide > Install > Linux").
+  // Scan the intact document, not split chunks: a fence may span many
+  // pieces, and Markdown headings inside code are examples, not sections.
+  const sourceHeadings: Array<{ offset: number; level: number; title: string }> = [];
+  let headingFence: string | null = null;
+  let lineOffset = 0;
+  for (const line of lines) {
+    const fence = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (headingFence) {
+      if (fence && fence[1]![0] === headingFence[0] && fence[1]!.length >= headingFence.length && !fence[2]!.trim()) headingFence = null;
+    } else if (fence && (fence[1]![0] !== "`" || !fence[2]!.includes("`"))) {
+      headingFence = fence[1]!;
+    } else {
+      const heading = /^(#{1,4})\s+(.+)$/.exec(line);
+      if (heading) sourceHeadings.push({ offset: lineOffset, level: heading[1]!.length, title: heading[2]!.trim() });
+    }
+    lineOffset += line.length + 1;
+  }
   const stack: Array<{ level: number; title: string }> = [];
+  let headingIndex = 0;
+  let pieceEnd = 0;
   const paths: Array<string | null> = merged.map((piece) => {
-    // Label the chunk with the path as of its FIRST heading (the section the
-    // chunk starts in); later headings in a merged piece only inform the
-    // stack for following chunks.
-    const headings = piece.matchAll(/^(#{1,4})\s+(.+)$/gm);
+    pieceEnd += piece.length;
     let label: string | null = null;
-    for (const m of headings) {
-      const level = m[1]!.length;
-      const title = m[2]!.trim();
+    while (headingIndex < sourceHeadings.length && sourceHeadings[headingIndex]!.offset < pieceEnd) {
+      const { level, title } = sourceHeadings[headingIndex++]!;
       while (stack.length && stack[stack.length - 1]!.level >= level) stack.pop();
       stack.push({ level, title });
       if (!label) label = stack.map((f) => f.title).join(" > ");
