@@ -161,6 +161,7 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState(false);
   const [indexing, setIndexing] = useState(false);
+  const [indexStop, setIndexStop] = useState<{ message: string; remaining: number } | null>(null);
   const [ingestUrl, setIngestUrl] = useState("");
   const [ingestBody, setIngestBody] = useState("");
   const [ingestTitle, setIngestTitle] = useState("Pasted document");
@@ -233,12 +234,17 @@ export function Console({ initial }: { initial: Snapshot }) {
       if (indexLoop.current) return;
       indexLoop.current = true;
       setIndexing(true);
+      setIndexStop(null);
       try {
         let remaining = 1;
         while (remaining > 0) {
           const result = await embedNextBatch({ data: {} });
           remaining = result.remaining;
           await refresh();
+          if (result.stop) {
+            setIndexStop({ message: result.stop.message, remaining: result.remaining });
+            break;
+          }
           if (result.embedded === 0) break;
         }
       } catch {
@@ -533,6 +539,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             ingestBusy={ingestBusy}
             ingestError={ingestError}
             indexing={indexing}
+            indexStop={indexStop}
             pending={snapshot.pendingEmbeddings}
             customSources={posture.customSources}
             onUrl={setIngestUrl}
@@ -990,6 +997,7 @@ function CorpusPanel(props: {
   ingestBusy: boolean;
   ingestError: string | null;
   indexing: boolean;
+  indexStop: { message: string; remaining: number } | null;
   pending: number;
   customSources: boolean;
   onUrl: (v: string) => void;
@@ -1010,6 +1018,11 @@ function CorpusPanel(props: {
                 props.snapshot.storage?.denseAvailable === false ? " · keyword index" : ""
               }`}
         </p>
+        {!props.indexing && props.indexStop && (
+          <p className="mt-1 text-xs text-bad" data-testid="index-stop">
+            {props.indexStop.message} {props.indexStop.remaining} chunks still pending.
+          </p>
+        )}
         <label className="mt-3 block text-xs text-muted">
           Active corpus
           <select

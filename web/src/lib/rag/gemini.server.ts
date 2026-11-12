@@ -30,9 +30,19 @@ function openRouterHeaders(apiKey: string) {
 
 export class GeminiError extends Error {
   status: number;
-  constructor(message: string, status = 400) {
+  /** True ONLY when status came from an actual provider HTTP response. */
+  fromProviderResponse: boolean;
+  /** True when the provider responded OK but the payload failed validation. */
+  contractViolation: boolean;
+  constructor(
+    message: string,
+    status = 400,
+    flags?: { fromProviderResponse?: boolean; contractViolation?: boolean },
+  ) {
     super(message);
     this.status = status;
+    this.fromProviderResponse = flags?.fromProviderResponse ?? false;
+    this.contractViolation = flags?.contractViolation ?? false;
   }
 }
 
@@ -73,6 +83,8 @@ function assertDimension(values: number[]) {
   ) {
     throw new GeminiError(
       `Invalid embedding: expected ${EMBEDDING_DIMENSIONS} finite values with a non-zero norm; received length ${values.length}. Re-index with ${EMBEDDING_MODEL}.`,
+      502,
+      { contractViolation: true },
     );
   }
   return l2Normalize(values);
@@ -89,7 +101,7 @@ async function embedOneGoogle(apiKey: string, item: EmbedRequest, signal?: Abort
     }),
     signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
   });
-  if (!res.ok) throw new GeminiError(await readError(res), res.status);
+  if (!res.ok) throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
   const body = (await res.json()) as { embedding?: { values?: number[] } };
   return assertDimension(body.embedding?.values ?? []);
 }
@@ -113,12 +125,12 @@ async function embedBatchGoogle(apiKey: string, items: EmbedRequest[], signal?: 
       for (const item of items) out.push(await embedOneGoogle(apiKey, item, signal));
       return out;
     }
-    throw new GeminiError(await readError(res), res.status);
+    throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
   }
   const body = (await res.json()) as { embeddings?: Array<{ values?: number[] }> };
   const vectors = body.embeddings ?? [];
   if (vectors.length !== items.length) {
-    throw new GeminiError("Embedding batch size mismatch");
+    throw new GeminiError("Embedding batch size mismatch", 502, { contractViolation: true });
   }
   return vectors.map((e) => assertDimension(e.values ?? []));
 }
@@ -161,14 +173,14 @@ async function embedBatchOpenRouter(apiKey: string, items: EmbedRequest[], signa
       }
       return out;
     }
-    throw new GeminiError(await readError(res), res.status);
+    throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
   }
   const body = (await res.json()) as {
     data?: Array<{ embedding?: number[]; index?: number }>;
   };
   const rows = [...(body.data ?? [])].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
   if (rows.length !== items.length) {
-    throw new GeminiError("Embedding batch size mismatch");
+    throw new GeminiError("Embedding batch size mismatch", 502, { contractViolation: true });
   }
   return rows.map((row) => assertDimension(row.embedding ?? []));
 }
@@ -224,7 +236,7 @@ async function generateGoogle(opts: {
         ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
         : AbortSignal.timeout(45000),
     });
-    if (!res.ok) throw new GeminiError(await readError(res), res.status);
+    if (!res.ok) throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
     return validateCompletion(decodeCompletion(await res.json(), "google"));
   };
   try {
@@ -264,7 +276,7 @@ async function generateOpenRouter(opts: {
     });
   let res = await send(true);
   if (!res.ok && (res.status === 400 || res.status === 404)) res = await send(false);
-  if (!res.ok) throw new GeminiError(await readError(res), res.status);
+  if (!res.ok) throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
   return validateCompletion(decodeCompletion(await res.json(), "openai"));
 }
 
@@ -287,7 +299,7 @@ async function streamGoogle(opts: {
           : AbortSignal.timeout(45000),
       },
     );
-    if (!res.ok) throw new GeminiError(await readError(res), res.status);
+    if (!res.ok) throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
     if (!res.body) return generateGoogle(opts);
 
     return readGenerationStream(res.body, "google", opts.onToken);
@@ -335,7 +347,7 @@ async function streamOpenRouter(opts: {
 
   let res = await send(true);
   if (!res.ok && (res.status === 400 || res.status === 404)) res = await send(false);
-  if (!res.ok) throw new GeminiError(await readError(res), res.status);
+  if (!res.ok) throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
   if (!res.body) {
     const text = await generateOpenRouter({
       apiKey: opts.apiKey,
@@ -378,7 +390,7 @@ async function generateXai(opts: {
       ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
       : AbortSignal.timeout(45000),
   });
-  if (!res.ok) throw new GeminiError(await readError(res), res.status);
+  if (!res.ok) throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
   return validateCompletion(decodeCompletion(await res.json(), "openai"));
 }
 
@@ -410,7 +422,7 @@ async function streamXai(opts: {
       ? AbortSignal.any([opts.signal, AbortSignal.timeout(45000)])
       : AbortSignal.timeout(45000),
   });
-  if (!res.ok) throw new GeminiError(await readError(res), res.status);
+  if (!res.ok) throw new GeminiError(await readError(res), res.status, { fromProviderResponse: true });
   if (!res.body) {
     const text = await generateXai({
       apiKey: opts.apiKey,

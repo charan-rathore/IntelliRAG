@@ -417,6 +417,74 @@ export async function fetchRemoteDocument(url: string): Promise<{
   };
 }
 
+/**
+ * Why an embedding call stopped, as a sanitized status CATEGORY. The kind is
+ * derived from the HTTP status alone: the code cannot tell whether a 400/422
+ * was about the request content or the model/config, and an auth or
+ * not-found status is a category, not a diagnosed cause. The message is a
+ * fixed string with the status code interpolated; provider payloads (which
+ * can echo request data or keys) are never copied into it.
+ */
+export type EmbedStop = {
+  kind:
+    | "request-rejected"
+    | "authentication"
+    | "not-found"
+    | "rate-limited"
+    | "server-error"
+    | "provider-error"
+    | "invalid-response"
+    | "network";
+  status?: number;
+  message: string;
+};
+
+/**
+ * Classify ONLY errors from the provider boundary (embedTexts). Anything
+ * else - persistence failures, programming errors - returns null so the
+ * caller rethrows it unchanged.
+ */
+export function classifyEmbedStop(error: unknown): EmbedStop | null {
+  if (error instanceof GeminiError) {
+    // Only an error built from an actual provider HTTP response may be
+    // labeled with a status category. A contract violation means the
+    // provider answered OK but the payload failed validation: honest
+    // label, NO status (none was observed). Any other GeminiError is a
+    // local precondition/programming error and must propagate.
+    if (error.contractViolation) {
+      return {
+        kind: "invalid-response",
+        message: "Embedding stopped: the provider response failed validation (no HTTP error was returned).",
+      };
+    }
+    if (!error.fromProviderResponse) return null;
+    const status = error.status;
+    if (status === 400 || status === 422) {
+      return { kind: "request-rejected", status, message: `Embedding stopped: the provider rejected the request (HTTP ${status}).` };
+    }
+    if (status === 401 || status === 403) {
+      return { kind: "authentication", status, message: `Embedding stopped: the provider returned an authentication error (HTTP ${status}).` };
+    }
+    if (status === 404) {
+      return { kind: "not-found", status, message: "Embedding stopped: the provider returned not found (HTTP 404)." };
+    }
+    if (status === 429) {
+      return { kind: "rate-limited", status, message: "Embedding stopped: the provider rate-limited the request (HTTP 429)." };
+    }
+    if (status >= 500 && status <= 599) {
+      return { kind: "server-error", status, message: `Embedding stopped: the provider returned a server error (HTTP ${status}).` };
+    }
+    return { kind: "provider-error", status, message: `Embedding stopped: the provider returned HTTP ${status}.` };
+  }
+  if (
+    (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) ||
+    (error instanceof TypeError && error.message.startsWith("fetch failed"))
+  ) {
+    return { kind: "network", message: "Embedding stopped: the provider could not be reached (network error)." };
+  }
+  return null;
+}
+
 export async function embedPendingBatch() {
   const storage = getStorageStatus();
   if (!storage.denseAvailable) {
@@ -439,17 +507,29 @@ export async function embedPendingBatch() {
   // Local embeddings are the no-key fallback: computed on this machine, the
   // text never leaves it. Hosted embeddings stay the default when a key
   // exists, and chunks pending for one model do not mask the other.
-  const { model, vectors } =
-    route === "local"
-      ? {
-          model: LOCAL_EMBED_MODEL,
-          vectors: (await localEmbed(pending.map((c) => `${c.title}\n${c.text}`), "document")).map((v) =>
-            Array.from(v),
-          ),
-        }
-      : await embedTexts(
-          pending.map((c) => ({ title: c.title, text: c.text, task: "document" as const })),
-        );
+  // Provider boundary ONLY: a hosted rejection stops the call with a typed,
+  // sanitized reason. Save/count errors and programming errors propagate.
+  let embedded: { model: string; vectors: number[][] };
+  if (route === "local") {
+    embedded = {
+      model: LOCAL_EMBED_MODEL,
+      vectors: (await localEmbed(pending.map((c) => `${c.title}\n${c.text}`), "document")).map((v) =>
+        Array.from(v),
+      ),
+    };
+  } else {
+    try {
+      embedded = await embedTexts(
+        pending.map((c) => ({ title: c.title, text: c.text, task: "document" as const })),
+      );
+    } catch (error) {
+      const stop = classifyEmbedStop(error);
+      if (!stop) throw error;
+      const remaining = await pendingEmbeddingCount(EMBEDDING_MODEL);
+      return { embedded: 0, remaining, model: null as string | null, stop };
+    }
+  }
+  const { model, vectors } = embedded;
   await saveChunkEmbeddings(
     pending.map((c, i) => ({
       id: c.id,

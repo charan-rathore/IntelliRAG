@@ -57,6 +57,14 @@ export type EvalSample = {
   model: string;
 };
 
+/** Thrown when embedding stops mid-eval: the eval aborts before any query or judge call. */
+export class EvalEmbedStopError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EvalEmbedStopError";
+  }
+}
+
 export type EvalReport = {
   runId: string;
   createdAt: string;
@@ -297,6 +305,13 @@ export async function runRagasEval(): Promise<EvalReport> {
     const batch = await embedPendingBatch();
     indexed += batch.embedded;
     pending = batch.remaining;
+    if (batch.stop) {
+      // Stop the ENTIRE eval before any query/judge call: a partial index
+      // makes the results meaningless and the queries would still cost.
+      throw new EvalEmbedStopError(
+        `${batch.stop.message} ${batch.remaining} chunks still pending.`,
+      );
+    }
     if (batch.embedded === 0) break;
   }
 
