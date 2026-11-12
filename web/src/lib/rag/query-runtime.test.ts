@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { syncBuiltinESMExports } from "node:module";
 import type { CacheEntry } from "./graphify/schema";
 import type { QueryEvent } from "./query.server";
@@ -19,9 +21,12 @@ test("query runtime promises", async (t) => {
     graph: globals.__intelliragGraph,
     suggestions: globals.__intelliragSuggestions,
   };
+  // The graph snapshot now goes through an atomic rename, so it is isolated
+  // with INTELLIRAG_GRAPH_PATH and checked on the real filesystem below.
+  const graphDir = fs.mkdtempSync(path.join(os.tmpdir(), "intellirag-graph-test-"));
+  const graphPath = path.join(graphDir, "graph.json");
   const paths = new Set([
     "/tmp/intellirag-memory.json",
-    "/tmp/intellirag-graphify.json",
     "/tmp/intellirag-suggested-questions.json",
   ]);
   const sidecars = new Map<string, string>();
@@ -40,6 +45,7 @@ test("query runtime promises", async (t) => {
   syncBuiltinESMExports();
   t.after(() => {
     process.env = env;
+    fs.rmSync(graphDir, { recursive: true, force: true });
     globals.__intelliragMemory = previous.memory;
     globals.__intelliragGraph = previous.graph;
     globals.__intelliragSuggestions = previous.suggestions;
@@ -49,7 +55,7 @@ test("query runtime promises", async (t) => {
   });
   // An allowlist prevents ambient provider credentials and optional flags
   // from changing this no-provider scenario.
-  process.env = { VERCEL: "1" };
+  process.env = { VERCEL: "1", INTELLIRAG_GRAPH_PATH: graphPath };
   globals.__intelliragMemory = { documents: [], chunks: [], traces: [] };
   globals.__intelliragSuggestions = { rows: [] };
   delete globals.__intelliragGraph;
@@ -232,8 +238,11 @@ test("query runtime promises", async (t) => {
       assert.equal(memory.traces.length, tracesBefore, "no completed-answer trace is recorded");
     } finally {
       network.mock.restore();
-      process.env = { VERCEL: "1" };
+      process.env = { VERCEL: "1", INTELLIRAG_GRAPH_PATH: graphPath };
     }
   });
-  assert.deepEqual([...sidecars.keys()].sort(), [...paths].sort(), "all three sidecars stay in the private store");
+  assert.deepEqual([...sidecars.keys()].sort(), [...paths].sort(), "memory and suggestion sidecars stay in the private store");
+  assert.ok(fs.existsSync(graphPath), "graph snapshot is written to the isolated path");
+  assert.equal(fs.statSync(graphPath).mode & 0o777, 0o600, "graph snapshot stays private");
+  assert.deepEqual(fs.readdirSync(graphDir), ["graph.json"], "no pending files are left behind");
 });
