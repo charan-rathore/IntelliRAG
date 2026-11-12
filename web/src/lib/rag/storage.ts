@@ -82,7 +82,7 @@ export function getStorageStatus(): StorageStatus {
       durable: false,
       denseAvailable: false,
       warning:
-        "Running without a Postgres URL on serverless. Keyword search still works on seed text; embeddings do not survive cold starts.",
+        "Running without a Postgres URL on serverless. Keyword search still works on the bundled seed text, but imported sources and their embeddings are forgotten when a worker sleeps. Re-import after a cold start.",
     };
   }
   return {
