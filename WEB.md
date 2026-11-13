@@ -19,7 +19,7 @@ The public app works without provider keys in **ephemeral keyword/extractive mod
 | `demo` | storage is ephemeral, the database is unreachable, or `INTELLIRAG_PUBLIC_DEMO=1` | Seeded sources only. Paste/URL import, removal and visitor model keys return a demo refusal (HTTP 403 on `/api/keys` and `/api/lab`). The page shows an "Interactive demo" strip. |
 | `product` | durable Postgres is configured and reachable | Custom sources and keys as before. |
 
-`.github/workflows/release-gate.yml` runs `web/scripts/release-gate.mjs` on every successful deployment. It blocks promotion when the host's promise and its storage disagree. Set the repository variable `INTELLIRAG_RELEASE_MODE=product` once Postgres is live so production also requires durable storage.
+`.github/workflows/release-gate.yml` runs `web/scripts/release-gate.mjs` after successful deployments. It checks the public **production alias** on Production events, because Vercel's immutable deployment hostname may still require Deployment Protection even when the production alias is public. Protected previews use their specific deployment URL only when an authorized bypass secret exists; otherwise the workflow reports that the preview probe was skipped. The release gate verifies the alias's actual behavior, not the deployment commit SHA. Check Vercel's production deployment metadata separately to confirm that the alias points to the intended commit. Set the repository variable `INTELLIRAG_RELEASE_MODE=product` once Postgres is live so production also requires durable storage.
 
 ## Enable persistent hybrid retrieval
 
