@@ -268,7 +268,12 @@ export function Console({ initial }: { initial: Snapshot }) {
   }, [initial.hasServerKey, initial.storage?.denseAvailable, runIndexLoop]);
 
   useEffect(() => {
-    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
+    // Follow the conversation to its newest turn. With no messages the panel
+    // holds the welcome story, which is read from the top.
+    const el = threadRef.current;
+    if (!el) return;
+    if (messages.length === 0) el.scrollTo({ top: 0 });
+    else el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
