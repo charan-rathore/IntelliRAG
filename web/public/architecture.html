@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0906">
+  <meta name="description" content="The source-to-answer execution architecture behind IntelliRAG, with exact source identity, retrieval, evidence checks, measured limits and links to code.">
+  <title>How IntelliRAG works · Source → answer → proof</title>
+  <style>
+    :root {color-scheme:dark;--bg:#0b0906;--surface:#120e0a;--raised:#21180f;--ink:#f2efe9;--soft:#b8ada0;--subtle:#a59787;--accent:#e2ae7a;--border:#4b3929;--good:#9bb89e;--max:1120px}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.58 "Source Sans 3","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:var(--accent);text-underline-offset:4px}
+    a:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;border-radius:3px}
+    button{font:inherit}
+    .wrap{width:min(var(--max),calc(100% - 44px));margin:auto}
+    .nav{display:flex;gap:18px;align-items:center;justify-content:space-between;min-height:72px;border-bottom:1px solid var(--border)}
+    .identity{font-size:18px;font-weight:690;letter-spacing:-.04em;color:var(--ink);text-decoration:none;white-space:nowrap}
+    .identity b{color:var(--accent)}
+    .nav-links{display:flex;align-items:center;gap:20px;flex-wrap:wrap;justify-content:flex-end}
+    .nav-links a{font-size:13px;color:var(--soft);text-decoration:none}
+    .nav-links a:hover{color:var(--ink)}
+    .nav-links .nav-cta{color:var(--bg);background:var(--ink);border-radius:6px;padding:9px 13px;font-weight:680}
+    main{padding-bottom:90px}
+    .eyebrow{color:var(--accent);font:600 12px/1.4 ui-monospace,"SFMono-Regular",Consolas,monospace;letter-spacing:.12em;text-transform:uppercase}
+    .hero{padding:88px 0 62px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(310px,.9fr);gap:46px;align-items:center}
+    h1{font-size:clamp(42px,6.2vw,78px);line-height:1.035;letter-spacing:-.065em;max-width:760px;font-weight:670;margin:17px 0 25px}
+    h1 em{font-style:normal;color:var(--accent)}
+    .lead{max-width:580px;font-size:clamp(17px,2vw,20px);line-height:1.55;color:var(--soft)}
+    .actions{display:flex;flex-wrap:wrap;align-items:center;gap:15px;margin-top:26px}
+    .primary{display:inline-flex;align-items:center;min-height:48px;padding:12px 19px;border-radius:7px;background:var(--ink);color:var(--bg);font-weight:700;text-decoration:none}
+    .primary:hover,.nav-cta:hover{background:#e4cfb8}
+    .secondary{font-size:14px}
+    .artifact{border:1px solid var(--border);background:linear-gradient(155deg,#24190e 0%,var(--surface) 56%);border-radius:17px;padding:23px;box-shadow:0 18px 70px #0006}
+    .artifact-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:20px}
+    .cap{color:var(--soft);font-size:12px}
+    .tiny{font:500 11px/1.45 ui-monospace,"SFMono-Regular",Consolas,monospace;letter-spacing:.02em;color:var(--subtle)}
+    .source{border:1px solid var(--border);background:#0f0c09;border-radius:10px;padding:16px 17px}
+    .source strong{font-size:14px;display:block}
+    .source p{margin:6px 0 0;font-size:12px;color:var(--soft)}
+    .path{display:flex;flex-direction:column;align-items:center;gap:9px;margin:14px 0}
+    .stem{width:1px;height:19px;background:var(--accent);opacity:.75}
+    .stage{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:1px solid var(--border);background:#171108;border-radius:8px}
+    .step{width:24px;height:24px;display:grid;place-items:center;flex:none;border-radius:6px;background:#382615;color:var(--accent);font:700 11px ui-monospace,Consolas,monospace}
+    .stage strong{display:block;font-size:12px;font-weight:650}
+    .stage small{display:block;color:var(--soft);font-size:11px}
+    .outcome{border-left:3px solid var(--good);padding:12px 15px;background:#172016;border-radius:5px;font-size:13px}
+    .outcome b{display:block;margin-bottom:3px}
+    .outcome span{color:#cad7ca}
+    section.block{padding:60px 0;border-top:1px solid var(--border)}
+    .block-head{display:flex;gap:22px;align-items:end;justify-content:space-between;margin-bottom:26px}
+    h2{font-size:clamp(28px,3.8vw,44px);line-height:1.14;letter-spacing:-.045em;font-weight:650;margin:8px 0 0}
+    .block-head p{max-width:470px;color:var(--soft);font-size:15px;margin:0}
+    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .card{padding:22px;border-radius:10px;background:var(--surface);border:1px solid var(--border);min-width:0}
+    .card .no{color:var(--accent);font:500 12px ui-monospace,Consolas,monospace}
+    h3{margin:23px 0 10px;font-size:20px;line-height:1.16;letter-spacing:-.02em}
+    .card p{color:var(--soft);font-size:14px;line-height:1.57;margin:0 0 24px}
+    .card a{font-size:12px;overflow-wrap:anywhere}
+    .proof{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:25px}
+    .proof .panel{padding:26px;border-radius:12px;border:1px solid var(--border);background:var(--surface)}
+    .metric{font:600 clamp(38px,5vw,60px)/1 ui-monospace,"SFMono-Regular",Consolas,monospace;letter-spacing:-.06em;color:var(--ink)}
+    .panel p{font-size:14px;line-height:1.5;color:var(--soft);max-width:45ch}
+    .panel strong{font-size:12px;color:var(--accent)}
+    .disclosure{border-top:1px solid var(--border);padding:19px 0}
+    summary{cursor:pointer;list-style:none;font-size:16px;font-weight:650;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    summary::after{content:"+";font:20px ui-monospace,Consolas,monospace;color:var(--accent)}
+    details[open] summary::after{content:"−"}
+    summary::-webkit-details-marker{display:none}
+    details p{max-width:810px;font-size:14px;color:var(--soft)}
+    .closing{border-top:1px solid var(--border);padding:45px 0;display:flex;gap:16px;align-items:center;justify-content:space-between}
+    .closing strong{font-size:24px;line-height:1.2;letter-spacing:-.035em}
+    footer{border-top:1px solid var(--border);padding:23px 0 55px;display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between;color:var(--subtle);font-size:12px}
+    @media(max-width:840px){.hero{grid-template-columns:1fr;gap:28px;padding:57px 0 50px}.artifact{max-width:660px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.block-head{display:block}.block-head p{margin-top:15px}.closing{display:block}.closing .primary{margin-top:22px}}
+    @media(max-width:520px){.wrap{width:min(var(--max),calc(100% - 32px))}.nav{gap:10px}.nav-links{gap:12px}.nav-links a:not(.nav-cta){display:none}.hero{padding:45px 0}.grid,.proof{grid-template-columns:1fr}.card{padding:21px}.block{padding:46px 0}.artifact{padding:15px}.source{padding:13px}h1{font-size:43px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="nav" aria-label="Main navigation">
+      <a class="identity" href="/">Intelli<b>RAG</b></a>
+      <div class="nav-links">
+        <a href="#execution">Execution</a>
+        <a href="#measurement">Evidence</a>
+        <a href="https://github.com/charan-rathore/IntelliRAG" rel="noopener noreferrer">Code</a>
+        <a class="nav-cta" href="/">Open the live console →</a>
+      </div>
+    </nav>
+    <main>
+      <header class="hero">
+        <div>
+          <p class="eyebrow">A source-to-proof system</p>
+          <h1>Ask a source.<br><em>Know what it actually says.</em></h1>
+          <p class="lead">One pinned document. One technical question. The answer is only as useful as the evidence the system can recover and let you inspect.</p>
+          <div class="actions">
+            <a class="primary" href="/">Try the pinned question →</a>
+            <a class="secondary" href="/walkthrough">Watch the actual browser journey</a>
+          </div>
+        </div>
+        <div class="artifact" aria-label="A conceptual execution trace for the pinned p-queue README; not a live result">
+          <div class="artifact-top"><span class="eyebrow">The execution path</span><span class="cap">Architecture illustration</span></div>
+          <div class="source">
+            <span class="tiny">SOURCE · PINNED REVISION</span>
+            <strong>sindresorhus/p-queue / README.md</strong>
+            <p>How should running work finish while jobs are queued?</p>
+          </div>
+          <div class="path">
+            <div class="stem" aria-hidden="true"></div>
+            <div class="stage"><span class="step">01</span><div><strong>Retrieve relevant passages</strong><small>pause · onPendingZero · onIdle · start</small></div></div>
+            <div class="stem" aria-hidden="true"></div>
+            <div class="stage"><span class="step">02</span><div><strong>Check evidence coverage</strong><small>Do the passages establish the requested behavior?</small></div></div>
+            <div class="stem" aria-hidden="true"></div>
+          </div>
+          <div class="outcome">
+            <b>Answer with sources—or show the gap.</b>
+            <span>No provider key: cited extracts. Generation requires a configured model. The real result appears in the console, not this illustration.</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="block" id="execution" aria-labelledby="exec-title">
+        <div class="block-head">
+          <div><p class="eyebrow">From source to answer</p><h2 id="exec-title">Four boundaries. One inspectable result.</h2></div>
+          <p>Each layer has a reason to exist, a cost worth measuring and a failure condition that should be visible.</p>
+        </div>
+        <div class="grid">
+          <article class="card"><span class="no">01 / Identity</span><h3>Pin the source</h3><p>The document and revision determine what may be cited. Re-ingestion is not proof the upstream source stayed fresh.</p><a href="https://github.com/charan-rathore/IntelliRAG/blob/main/web/src/lib/rag/ingest.server.ts">Source code ↗</a></article>
+          <article class="card"><span class="no">02 / Retrieval</span><h3>Find the evidence</h3><p>Chunk, rank and pack passages within a limited context budget. Compare against BM25 before trusting sophistication.</p><a href="https://github.com/charan-rathore/IntelliRAG/blob/main/web/src/lib/rag/retrieve-core.ts">Source code ↗</a></article>
+          <article class="card"><span class="no">03 / Decision</span><h3>Check the boundary</h3><p>Missing supporting context should produce an explicit limitation. A citation link alone does not prove entailment.</p><a href="https://github.com/charan-rathore/IntelliRAG/blob/main/web/src/lib/rag/evidence.ts">Source code ↗</a></article>
+          <article class="card"><span class="no">04 / Inspection</span><h3>Show the proof</h3><p>Extractive or generated output is labeled honestly, with citations and diagnostic traces available for review.</p><a href="https://github.com/charan-rathore/IntelliRAG/blob/main/web/src/components/rag/source-inspector.tsx">Source code ↗</a></article>
+        </div>
+      </section>
+
+      <section class="block" id="measurement" aria-labelledby="measure-title">
+        <div class="block-head">
+          <div><p class="eyebrow">What the experiment actually shows</p><h2 id="measure-title">Measured, including the tie.</h2></div>
+          <p>Frozen 15-question, single-README evidence-recall diagnostic; approximate 1,400-token context budget. This does not measure generated-answer accuracy.</p>
+        </div>
+        <div class="proof">
+          <div class="panel"><span class="metric">73.3%</span><p>Required-evidence recall after budget-aware passage trimming.</p><strong>Same recall as plain BM25 on this test</strong></div>
+          <div class="panel"><span class="metric">5 / 5</span><p>Unsupported probes refused by the evidence gate in this narrow diagnostic.</p><strong>Not a general hallucination or safety score</strong></div>
+        </div>
+        <p class="cap">The experiment started at 36.7% recall with incorrect document-level deduplication. The fix recovered more required passages; the next step is independent corpora and human-judged answers. <a href="https://github.com/charan-rathore/IntelliRAG/tree/main/eval/repo-support">Read the evaluation and raw runs</a>.</p>
+      </section>
+
+      <section class="block" aria-labelledby="limits-title">
+        <div class="block-head"><div><p class="eyebrow">Trust boundaries</p><h2 id="limits-title">The hard parts are explicit.</h2></div></div>
+        <details class="disclosure"><summary>When is an answer actually reused?</summary><p>Only when the relevant question, corpus, source revisions, settings, policy and model path still match. A cached answer can be fast but stale; quality tests deliberately bypass the cache. Source identity and model context are different types of state.</p></details>
+        <details class="disclosure"><summary>Does the graph make the answer smarter?</summary><p>Not established. The current visible graph links documents, headings, shared terms and feedback. It is a diagnostic, not proof of semantic relationships or better retrieval. An independent benchmark must justify graph-based execution.</p></details>
+        <details class="disclosure"><summary>Can visitors upload private documents to this public demo?</summary><p>No. The host is explicitly in an ephemeral, read-only demo posture. Custom uploads, visitor model keys and destructive mutation paths are refused server-side. Private workspaces and durable storage require separate authenticated infrastructure.</p></details>
+        <details class="disclosure"><summary>Why are extracts shown instead of a fluent answer?</summary><p>The public host has no configured server generation key. Its extractive response quotes source material; it does not pretend a model synthesized the conclusion. This makes the lack of model availability visible rather than hiding it behind sample prose.</p></details>
+      </section>
+      <section class="closing">
+        <strong>Use the real tool. Inspect the actual passages.</strong>
+        <a class="primary" href="/">Open IntelliRAG →</a>
+      </section>
+    </main>
+    <footer>
+      <span>IntelliRAG · source-aware inference engineering</span>
+      <span><a href="https://github.com/charan-rathore/IntelliRAG/blob/main/docs/architecture/web-rag-decisions.md">Architecture decisions</a> · <a href="https://github.com/charan-rathore/IntelliRAG/blob/main/WEB.md">Deployment posture</a></span>
+    </footer>
+  </div>
+</body>
+</html>
