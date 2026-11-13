@@ -24,9 +24,7 @@ export function DemoBanner({ posture }: { posture: DeploymentPosture }) {
         <p className="min-w-0 flex-1 text-sm text-fg">
           <span className="font-medium">Interactive demo</span>
           <span className="text-muted">
-            {posture.temporaryImports
-              ? " · you can import sources, but they are temporary and disappear when the server restarts."
-              : " · sources are managed by the operator."}
+            {" · pinned sources only · imports and visitor keys are off."}
           </span>
         </p>
         <button
@@ -50,9 +48,9 @@ export function DemoBanner({ posture }: { posture: DeploymentPosture }) {
                 <li key={r}>{REASON_COPY[r]}</li>
               ))}
               <li>
-                Pasted sources and URL imports work here but live in memory, so they are lost when the
-                server restarts. A model key you add stays in your browser cookie and is sent with requests that call your provider; the server does not store it. Every answer cites its source, or
-                says plainly when the source does not establish it.
+                This shared demo accepts no visitor imports or model keys. The seeded source remains available
+                without a key, and its extracts are cited. A generated answer is only available on a properly
+                configured product host. Do not submit private data to this demo.
               </li>
             </ul>
           </div>
