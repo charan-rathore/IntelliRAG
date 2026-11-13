@@ -7,11 +7,11 @@
   <meta name="description" content="The source-to-answer execution architecture behind IntelliRAG, with exact source identity, retrieval, evidence checks, measured limits and links to code.">
   <title>How IntelliRAG works · Source → answer → proof</title>
   <style>
-    @font-face{font-family:"Young Serif";src:url(/fonts/YoungSerif-Regular.woff) format("woff");font-display:swap}@font-face{font-family:"Instrument Sans";src:url(/fonts/InstrumentSans-Regular.woff) format("woff");font-weight:400 500;font-display:swap}@font-face{font-family:"Instrument Sans";src:url(/fonts/InstrumentSans-Bold.woff) format("woff");font-weight:600 700;font-display:swap}
+    @font-face{font-family:"Geist";src:url(/fonts/Geist-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
     :root {color-scheme:light;--bg:#ffffff;--surface:#f6f6f1;--raised:#efeee6;--ink:#1c1c19;--soft:#55554e;--subtle:#6b6b63;--accent:#2f6f45;--border:#e3e2da;--good:#2f6f45;--max:1120px}
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
-    body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.58 "Instrument Sans","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.58 "Geist","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
     a{color:var(--accent);text-underline-offset:4px}
     a:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;border-radius:3px}
     button{font:inherit}
@@ -24,9 +24,9 @@
     .nav-links a:hover{color:var(--ink)}
     .nav-links .nav-cta{color:var(--bg);background:var(--ink);border-radius:6px;padding:9px 13px;font-weight:680}
     main{padding-bottom:90px}
-    .eyebrow{color:var(--accent);font:600 14px/1.4 "Instrument Sans",system-ui,sans-serif}
+    .eyebrow{color:var(--accent);font:600 14px/1.4 "Geist",system-ui,sans-serif}
     .hero{padding:88px 0 62px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(310px,.9fr);gap:46px;align-items:center}
-    h1{font-family:"Young Serif",Georgia,serif;font-weight:400;font-size:clamp(42px,6.2vw,78px);line-height:1.0;letter-spacing:-.04em;max-width:760px;font-weight:670;margin:17px 0 25px}
+    h1{font-family:"Geist",system-ui,sans-serif;font-weight:620;letter-spacing:-.045em;font-size:clamp(42px,6.2vw,78px);line-height:1.0;letter-spacing:-.04em;max-width:760px;font-weight:670;margin:17px 0 25px}
     h1 em{font-style:normal}
     .lead{max-width:580px;font-size:clamp(17px,2vw,20px);line-height:1.55;color:var(--soft)}
     .actions{display:flex;flex-wrap:wrap;align-items:center;gap:15px;margin-top:26px}
@@ -51,7 +51,7 @@
     .outcome span{color:#2f6f45}
     section.block{padding:60px 0;border-top:1px solid var(--border)}
     .block-head{display:flex;gap:22px;align-items:end;justify-content:space-between;margin-bottom:26px}
-    h2{font-family:"Young Serif",Georgia,serif;font-weight:400;font-size:clamp(28px,3.8vw,44px);line-height:1.14;letter-spacing:-.045em;font-weight:650;margin:8px 0 0}
+    h2{font-family:"Geist",system-ui,sans-serif;font-weight:620;letter-spacing:-.045em;font-size:clamp(28px,3.8vw,44px);line-height:1.14;letter-spacing:-.045em;font-weight:650;margin:8px 0 0}
     .block-head p{max-width:470px;color:var(--soft);font-size:15px;margin:0}
     .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
     .card{padding:22px;border-radius:10px;background:var(--surface);border:1px solid var(--border);min-width:0}

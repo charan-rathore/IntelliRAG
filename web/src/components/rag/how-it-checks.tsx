@@ -105,7 +105,7 @@ export function HowItChecks() {
     <section ref={ref} className="ir-chapter" aria-labelledby="ir-chapter-h">
       <div className="ir-chapter-stage">
         <div className="ir-chapter-copy">
-          <h2 id="ir-chapter-h" className="font-display text-3xl leading-[1.08] tracking-[-0.015em] text-fg sm:text-[44px]">
+          <h2 id="ir-chapter-h" className="ir-h1 text-fg" style={{ fontSize: "clamp(32px, 3.6vw, 48px)" }}>
             How an answer earns its citations.
           </h2>
           <ol className="ir-steps">
