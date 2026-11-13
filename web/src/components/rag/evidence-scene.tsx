@@ -20,13 +20,13 @@ import { useTimeline } from "@/lib/motion/scene";
 
 type Line = { text: string; kind: "h" | "p" | "code"; cite?: 1 | 2 };
 const SOURCE: Line[] = [
-  { kind: "h", text: "#### .pause()" },
+  { kind: "h", text: ".pause()" },
   { kind: "p", text: "Put queue execution on hold.", cite: 2 },
-  { kind: "h", text: "#### .onPendingZero()" },
+  { kind: "h", text: ".onPendingZero()" },
   { kind: "p", text: "Returns a promise that settles when all currently running tasks have completed." },
   { kind: "p", text: "Useful when you want to drain in-flight tasks before mutating shared state.", cite: 1 },
   { kind: "code", text: "queue.pause(); await queue.onPendingZero();" },
-  { kind: "h", text: "#### .onIdle()" },
+  { kind: "h", text: ".onIdle()" },
   { kind: "p", text: "Settles when the queue is empty and all promises have completed." },
 ];
 
@@ -62,7 +62,7 @@ export function EvidenceScene() {
     const root = scene.current;
     if (!root) return;
     const box = root.getBoundingClientRect();
-    const stacked = box.width < 720;
+    const stacked = box.width < 560;
     CITED.forEach(({ i, cite }, k) => {
       const line = lines.current[i];
       const svg = marks.current[k];

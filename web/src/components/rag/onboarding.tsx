@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { EvidenceScene } from "./evidence-scene";
 import { HowItChecks } from "./how-it-checks";
+import { FeatureExplorer } from "./feature-explorer";
 import { Button } from "@/components/ui/button";
 import { COACH_COPY, DEMO_RUNS } from "@/lib/rag/onboarding";
 import type { SuggestedQuestion } from "@/lib/rag/predict-questions";
@@ -38,13 +39,34 @@ export function SuggestedQuestions({
   onAsk,
   title = "Suggested questions",
   hint,
+  layout = "list",
 }: {
   suggestions: Array<Pick<SuggestedQuestion, "question" | "askCount" | "source">>;
   onAsk: (q: string) => void;
   title?: string;
   hint?: string;
+  layout?: "list" | "grid";
 }) {
   if (!suggestions.length) return null;
+  if (layout === "grid") {
+    return (
+      <div>
+        <h2 className="ir-h2 text-fg">{title}</h2>
+        {hint ? <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted">{hint}</p> : null}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {suggestions.slice(0, 6).map((item) => (
+            <button key={item.question} type="button" onClick={() => onAsk(item.question)} className="ir-qcard group">
+              <span className="text-[15px] font-medium leading-snug text-fg">{item.question}</span>
+              <span className="mt-auto flex items-center justify-between gap-3 pt-5 text-[13px] text-subtle">
+                <span>{item.askCount > 0 ? `Asked ${item.askCount} times` : item.source === "predicted" ? "Predicted from the source" : "Popular"}</span>
+                <span className="ir-qcard-go">Ask</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <p className="text-sm font-medium text-muted">{title}</p>
@@ -85,8 +107,12 @@ export function WelcomeOnboarding({
   importError,
   suggestions,
   customSources = true,
+  onEvidence,
+  onLab,
 }: {
   view: ConsoleView;
+  onEvidence?: () => void;
+  onLab?: () => void;
   customSources?: boolean;
   hasKey: boolean;
   onAsk: (q: string) => void;
@@ -106,66 +132,68 @@ export function WelcomeOnboarding({
       }));
 
   return (
-    <section className="mx-auto flex max-w-5xl flex-col gap-10 py-6 sm:py-10">
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-end">
+    <section className="ir-welcome mx-auto flex max-w-6xl flex-col gap-14 pb-10 pt-2 sm:gap-20 sm:pt-6">
+      <div className="grid items-center gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:gap-12">
         <div>
-          <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.02em] text-fg sm:text-[68px]">
-            Ask a source. See where the answer came from.
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
+          <h1 className="ir-h1 text-fg">Ask a source. See exactly where the answer came from.</h1>
+          <p className="mt-5 max-w-[34rem] text-[17px] leading-[1.6] text-muted">
             {customSources
-              ? "Bring a GitHub README or paste a doc. Every answer is built from passages you can open, and when the source doesn’t say, IntelliRAG says so."
-              : "This public demo searches one pinned source. Without a model key it shows cited extracts, not an invented answer, and you can open every passage yourself."}
+              ? "Point IntelliRAG at a GitHub README or paste a doc. Every sentence of the answer cites a passage you can open, and when the source doesn’t say, it tells you."
+              : "Ask the pinned p-queue README anything. Every sentence of the answer cites a passage you can open, and when the README doesn’t say, it tells you."}
           </p>
-        </div>
-
-        <div className="ir-feature-card rounded-lg border border-border px-5 py-5">
-          <p className="text-sm text-muted">Try a real support question on the pinned p-queue README</p>
-          <p className="mt-2 font-display text-[22px] leading-snug text-fg">
-            Change shared configuration while jobs are still queued
-          </p>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <Button disabled={importing} onClick={onRepositoryDemo}>
-              Ask this question
+          <div className="ir-hero-ctas mt-7 flex flex-wrap items-center gap-2.5">
+            <Button size="lg" disabled={importing} onClick={onRepositoryDemo}>
+              Ask the sample question
             </Button>
-            <Button variant="ghost" onClick={onSources}>
-              {customSources ? "Use your own source" : "See the sources"}
+            <Button size="lg" variant="ghost" onClick={onSources}>
+              {customSources ? "Bring your own source" : "See the sources"}
             </Button>
           </div>
-          <p className="mt-3 text-xs leading-relaxed text-subtle">
-            {!customSources
-              ? "A read-only public demo on a pinned source. Without a configured model you get cited extracts."
-              : hasKey
-                ? "Generated answers cite the selected corpus. Open each source before relying on a conclusion."
-                : "No model key yet: you still get cited extracts. Add a key in Settings for generated answers."}
-          </p>
           {importError ? (
-            <p role="alert" className="mt-2 text-sm text-bad">
+            <p role="alert" className="mt-3 text-sm text-bad">
               {importError}
             </p>
           ) : null}
+          <ul className="ir-facts mt-8">
+            <li>Every sentence cited</li>
+            <li>Refuses when the source is silent</li>
+            <li>{hasKey ? "Generated answers with your key" : "Cited extracts without a model key"}</li>
+          </ul>
         </div>
+        <EvidenceScene />
       </div>
 
-      <EvidenceScene />
+      <div>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="ir-h2 text-fg">What’s inside</h2>
+            <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted">Each feature plays what it does. Pick one to open it for real.</p>
+          </div>
+          <Button variant="ghost" onClick={onTour}>Take the 1-minute tour</Button>
+        </div>
+        <FeatureExplorer
+          onAsk={onRepositoryDemo}
+          onEvidence={onEvidence ?? onRepositoryDemo}
+          onSources={onSources}
+          onLab={onLab ?? onRepositoryDemo}
+          onTour={onTour}
+        />
+      </div>
 
       <SuggestedQuestions
         suggestions={chips}
         onAsk={onAsk}
-        title="Other questions to try"
-        hint="Predicted from the loaded document, plus the questions people ask most about this source. Or type your own below."
+        title="Questions people ask this source"
+        hint="Predicted from the document and from what visitors ask most. Or type your own below."
+        layout="grid"
       />
 
       <HowItChecks />
 
       <p className="text-sm text-subtle">
-        Sources and Evidence open from the header when you need them.{" "}
-        <button type="button" onClick={onTour} className="text-muted underline underline-offset-4 hover:text-fg">
-          Show me the controls
-        </button>
-        {" or read "}
-        <a href="/architecture.html" className="text-muted underline underline-offset-4 hover:text-fg">
-          how the pipeline is built
+        Want the engineering detail?{" "}
+        <a href="/architecture.html" className="font-medium text-fg underline decoration-border underline-offset-4 hover:decoration-fg">
+          Read how the pipeline is built
         </a>
         .
       </p>

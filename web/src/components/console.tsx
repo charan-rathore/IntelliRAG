@@ -638,6 +638,8 @@ export function Console({ initial }: { initial: Snapshot }) {
                 onAsk={(q) => void ask(q)}
                 onTour={() => setTourOpen(true)}
                 onRepositoryDemo={() => void runRepositoryDemo()}
+                onEvidence={() => { setAuditOpen(true); void runRepositoryDemo(); }}
+                onLab={() => { setView("lab"); window.localStorage.setItem(VIEW_MODE_STORAGE, "lab"); void runRepositoryDemo(); }}
                 importing={ingestBusy}
                 importError={ingestError}
                 suggestions={suggestions}
