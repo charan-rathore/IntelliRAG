@@ -1,6 +1,8 @@
 import { localModel } from "./ollama.server";
 import { getRequest, setCookie } from "@tanstack/react-start/server";
 import type { KeyProvider } from "./types";
+import { permittedVisitorKeys } from "./deployment-mode";
+import { currentPosture } from "./deployment-posture.server";
 
 /** Browser keys belong to a request, never a process, disk file, or another visitor. */
 type Stored = { gemini?: string; openrouter?: string };
@@ -70,7 +72,9 @@ function envXai() {
 }
 
 export function getLabKeys() {
-  const mem = requestKeys();
+  // A visitor who set cookies before the demo policy changed must not retain
+  // an active model capability on this shared, unauthenticated public host.
+  const mem = permittedVisitorKeys(currentPosture(), requestKeys());
   return {
     gemini: envGemini() || mem.gemini,
     openrouter: envOpenRouter() || mem.openrouter,
