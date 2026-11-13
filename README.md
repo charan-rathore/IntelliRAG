@@ -1,77 +1,104 @@
 # IntelliRAG
 
-Repository support answers you can trace back to evidence.
+**Ask a source. Know what it actually says.**
 
-**The problem:** your docs explain each API, but a real support question asks how their rules fit together. IntelliRAG retrieves the relevant passages, passes them to a language model when configured, and keeps citations and retrieval decisions visible.
+[**Try the live source demo**](https://intellirag-live-own-track.vercel.app/) · [See the execution architecture](https://intellirag-live-own-track.vercel.app/architecture.html) · [Watch the real browser walkthrough](https://intellirag-live-own-track.vercel.app/walkthrough) · [Read the measured evaluation](eval/repo-support/README.md)
 
-**Try this:** open the preloaded, pinned `sindresorhus/p-queue` README and ask how to change shared configuration while jobs are still queued. The answer must combine pause, running-job completion and queue-idle behavior. The landing page offers this as a one-click question with the source already loaded. Without a model key, it shows cited extracts.
+IntelliRAG is a research-minded source-retrieval and inference-execution console. It starts with a narrow developer-support question: can we recover *all* the source passages needed for a correct technical answer, preserve their exact origin, and refuse to imply that absent facts have been established?
 
-[Why each architecture step exists](docs/architecture/web-rag-decisions.md) · [Evaluation protocol and raw evidence](eval/repo-support/README.md)
+The public browser demo pins a **single README** from [sindresorhus/p-queue](https://github.com/sindresorhus/p-queue) to an exact revision. It asks how to change shared configuration while jobs are queued. The user can inspect the retrieved passages and citation path, then explore how the execution made its decision.
 
-**Live web status (September 2026):** [Public Vercel console](https://intellirag-live-own-track.vercel.app/) is running from this canonical repository. It currently supports keyword retrieval, cited extracts, issue ingestion and a lexical graph. Persistent semantic/hybrid production acceptance remains dependent on Postgres and provider configuration. See [the production setup and acceptance runbook](WEB.md) and [the measured audit with open findings](audit/REPORT.md).
+The public demo is deliberately honest: without a configured server model, it presents **cited source extracts**, not generated reasoning. It uses ephemeral storage and refuses visitor imports and API keys. This is not persistent, multi-tenant RAG.
 
-[![Watch the 57-second source-to-answer experiment](web/public/demo/intellirag-walkthrough-poster.jpg)](https://intellirag-live-own-track.vercel.app/walkthrough)
+## One concrete demo
 
-[Watch the real browser experiment](https://intellirag-live-own-track.vercel.app/walkthrough). import an issue, inspect its citations and graph, test a refusal, and reuse a cached answer. Narrated, with a quiet original score and captions in the site’s own typography.
+1. [Open the console](https://intellirag-live-own-track.vercel.app/).
+2. Select **Ask this question** on the pinned p-queue example.
+3. Inspect the answer or cited extracts; click a citation to inspect the supporting passage. A synthesis of several API behaviors is an inference, not a verbatim source fact.
+4. Switch from **Reading** to **Lab** to see available retrieval decisions, evidence diagnostics and graph inspection. The graph is a diagnostic, not proof that a graph algorithm improved the answer.
+5. [Open the visual architecture](https://intellirag-live-own-track.vercel.app/architecture.html) for the same workflow, trust boundaries, concrete source files and benchmark limitations.
 
-**Pilot proposal:** [10-slide deck and PDF](https://intellirag-live-own-track.vercel.app/pilot/index.html) · [research, evidence and interview guide](docs/sales/research-and-pilot.md). Focus: technical support answers with inspectable evidence; proposed pilot targets are explicitly separate from measured results.
+No new provider keys or external setup are needed to try the pinned public demo.
 
-## Follow the web pipeline
+## What the architecture actually does
 
-[![IntelliRAG web architecture: import, retrieve, check evidence and answer](docs/architecture/web-pipeline.svg)](docs/architecture/interactive.html)
+~~~text
+source revision + corpus
+      │
+      ▼
+ingest → chunk → keyword index (+ optional compatible vectors)
+      │
+      ▼
+query + exact corpus → retrieve → rank → pack within budget
+      │
+      ▼
+evidence gate → extract / model generation when configured
+      │
+      ▼
+cited output + trace → source inspection + feedback
+~~~
 
-[Interactive stage guide](docs/architecture/interactive.html): expand each stage for its source files and failure boundaries. Clone or download the repository and open the HTML locally so its relative code links keep working; GitHub shows HTML as source. The optional second-opinion gate can only tighten the evidence gate. Model judging belongs to the separate evaluation runner, not the live answer path.
+The cache and orchestration policy must never cross corpus, source revision, request, retrieval-policy, permission or model boundaries where those affect the result. Cache hits are evaluated separately from retrieval quality. The Evidence Core provides immutable source identity, exact spans and claim status, but the original contract alone is **not** a complete response-cache key.
 
-## Measured repository-support diagnostic
+- [Visual live architecture](https://intellirag-live-own-track.vercel.app/architecture.html)
+- [Architecture decisions and known failure modes](docs/architecture/web-rag-decisions.md)
+- [Evidence Core contract and adapter](web/src/lib/evidence-core/)
+- [Web deployment, security posture and production acceptance](WEB.md)
+- [Repository-support evaluation and raw data](eval/repo-support/README.md)
+- [Security, functionality and operational audit](audit/REPORT.md)
 
-![Actual evidence-retention measurements](eval/repo-support/retrieval-results.svg)
+The application lives in [web/](web/), with retrieval implementation in [web/src/lib/rag/](web/src/lib/rag/). The Python [rag-platform/](rag-platform/) remains a separate benchmark/reference implementation, **not** the serving runtime for the public web app.
 
-On 15 answerable questions from one pinned p-queue README, fixing document-level deduplication raised required-evidence recall from **36.7% to 70.0%**, and budget-aware passage trimming (Nov 2026) brought it to **73.3%, equal to plain BM25** on the same 1,400-token budget, while the evidence gate refused all 5 unsupported probes. This is a tie with the baseline on retrieval, **not a win and not a generated-answer accuracy claim**. Five additional probes test unsupported questions. No LLM ran in this retrieval experiment.
+## Measured result—not a broad superiority claim
 
-![Measured local retrieval stage times](eval/repo-support/stage-latency.svg)
+On one pinned p-queue README, using a frozen set of 15 answerable questions and an approximate 1,400-token evidence context budget:
 
-[Dataset, before/after runs, uncertainty and limitations](eval/repo-support/README.md). Gemini 3.7 Flash generation and independent answer judging remain pending provider configuration. Local stage timings exclude network, storage and generation.
+| Evidence recovery | Required-evidence recall |
+| --- | ---: |
+| Earlier document-level deduplication | 36.7% |
+| After fixing that deduplication bug | 70.0% |
+| Budget-aware passage trimming | **73.3%** |
+| Plain BM25 at the same budget | **73.3%** |
 
-**Python platform:** [phase history and historical benchmarks](PYTHON-PLATFORM.md) describe `rag-platform/`, a separate implementation. Its deterministic/mock CI results do not measure the public web deployment.
+The current evidence-retention result **ties** BM25, rather than beating it. The evidence gate refused the five unsupported probes in this diagnostic. No LLM generation ran in this retrieval experiment. Those figures do not establish answer correctness, customer value, multi-repository generalization or cloud-serving latency.
 
-**Repository:** [github.com/charan-rathore/IntelliRAG](https://github.com/charan-rathore/IntelliRAG)
+Read the [full methodology, data, before/after runs and limitations](eval/repo-support/README.md). A future retrieval arm must beat the same frozen baseline under the same context budget and report its failures, not merely improve the design story.
 
-The live dark-theme browser lab is in [`web/`](web/). see [WEB.md](WEB.md). This is the only GitHub repo. The Python platform stays in `rag-platform/`.
+## Run it locally
 
-## Run the web app
-
-```sh
-cd web
+~~~sh
+git clone https://github.com/charan-rathore/IntelliRAG.git
+cd IntelliRAG/web
 npm ci
 npm run dev
-```
+~~~
 
-Open `http://localhost:8080`. The pinned p-queue demo and built-in runbooks are available without a key. Add a provider in Settings for generated answers. Browser keys remain request-local; never commit them. For server configuration and durable storage, follow [WEB.md](WEB.md).
+Open http://localhost:8080. The pinned source is available without a key.
 
-## A focused product hypothesis
+~~~sh
+npm run typecheck
+npm run test:hardening
+npm run test:persistence
+npx --yes tsx --test src/lib/rag/*.test.ts
+npm run build
+~~~
 
-**Customer:** a developer-tool company whose support engineers repeatedly answer questions across SDK documentation, release notes and repository issues.
+See [WEB.md](WEB.md) for the Vercel project setup and release gate. In public demo mode the server enforces read-only seeded content. Enabling durable imports, persistent semantic search, private workspaces and provider generation requires independent configuration and security acceptance—not a frontend toggle.
 
-**Job:** draft a support decision, with the exact source version and passages a reviewer needs to check it. Start with queue configuration, cancellation and safe shutdown questions. An API lookup is easy; combining several API guarantees without inventing a guarantee is the hard part.
+## What we are optimizing
 
-**Business stake:** incorrect advice creates escalations and repeated engineering work. The pilot measures time to an accepted answer, material errors and reviewer effort. We have not measured customer ROI or support deflection yet.
+The engineering target is **verified task completion per unit of computation**. That means:
 
-**First pilot:** 30 historical, permissioned support tickets from one product; two reviewers; a frozen repository version; a simple BM25 baseline; identical answer models and context budgets. Ship drafts for human approval. Success requires fewer material errors or faster accepted answers at a declared cost, not merely a nicer demo. See [the pilot brief](docs/sales/repository-support-pilot.md).
+- retrieve the required evidence with as little context and repeated work as possible;
+- reuse valid computation only when source versions, question and policy match;
+- treat cache invalidation, corpus isolation, refusal and latency as correctness properties;
+- compare simple BM25, dense retrieval, hybrids and long-context baselines before adding costly complexity;
+- separate model usage from local retrieval measurements and publish losing experiments.
 
-## Where to look
+The first customer hypothesis is a developer-tool support team answering configuration and troubleshooting questions. The proposed [human-reviewed pilot](docs/sales/repository-support-pilot.md) measures accepted answers, material errors, engineer review time and actual cost per resolved case. No proven customer ROI or production semantic-search advantage is claimed.
 
-| Need | Location |
-|---|---|
-| Try the product | [Live console](https://intellirag-live-own-track.vercel.app/) |
-| Understand the design choices | [Web architecture](docs/architecture/web-rag-decisions.md) |
-| Audit measured results | [Evaluation protocol, dataset and raw runs](eval/repo-support/README.md) |
-| Deploy and configure | [Web operations guide](WEB.md) |
-| Review commercial assumptions | [Research and pilot evidence](docs/sales/research-and-pilot.md) |
-| Inspect implementation | [`web/src/lib/rag/`](web/src/lib/rag/) |
-| Explore the separate Python implementation | [Python platform reference](PYTHON-PLATFORM.md) |
+## Limits
 
-## Verification and current limits
+The current public host has no configured durable production vector index or server generation key. Its keyword/extractive mode is inspectable but does not demonstrate production semantic RAG. The graph contains document/heading/shared-term connections and feedback; it is not verified semantic entity extraction. The evaluation is small and single-source. The original web template's entire inherited test suite has legacy failures distinct from the focused RAG gates; do not claim all tests are green until verified.
 
-The production quality workflow builds the app, checks TypeScript, and runs hardening, persistence and RAG regression tests. The current RAG suite covers pipeline stages (chunk → BM25 → retrieve → evidence gate), question prediction, and suggestion persistence. The broader template suite still contains legacy assumptions about missing `.grok` files and old template metadata; it is not all green.
-
-The public demo has no server model key or durable production vector index configured. Its no-key response shows source excerpts, not LLM reasoning. Suggested questions are predicted from each ingested document and ranked with community ask counts; without Postgres those counts are ephemeral across cold starts. Gemini answer quality, independent judge agreement, multi-repository generalization and production latency remain open measurements. The evaluation runner is ready to record those results with an explicit spending cap.
+The goal is to improve the execution architecture through measured failures—not enlarge the agent surface without need.

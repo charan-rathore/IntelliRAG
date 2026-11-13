@@ -110,12 +110,12 @@ export function WelcomeOnboarding({
           IntelliRAG
         </p>
         <h1 className="mt-4 max-w-xl text-xl font-medium leading-snug text-fg sm:text-2xl">
-          Ask what your documents mean for your situation.
+          Ask a source. Know what it actually says.
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
           {customSources
             ? "Bring a GitHub README or paste a doc. We suggest likely questions from that source, and remember the ones people actually ask."
-            : "This public demo answers from a pinned source. Every claim cites the passage it came from, or says plainly when the source does not establish it."}
+            : "This public demo searches one pinned source. Without a model key it shows cited extracts, not an invented answer; you can inspect the passages yourself."}
         </p>
       </div>
 
@@ -138,10 +138,19 @@ export function WelcomeOnboarding({
           </Button>
         </div>
         <p className="mt-3 text-xs text-muted">
-          {hasKey || !customSources
-            ? "Answers cite the loaded document. Follow-ups stay in that corpus."
-            : "No model key yet: you still get cited extracts. Add a key in Settings for generated answers."}
+          {!customSources
+            ? "Read-only public demo · pinned source · cited extracts when generation is not configured."
+            : hasKey
+              ? "Generated answers cite the selected corpus; inspect each source before relying on a conclusion."
+              : "No model key yet: you still get cited extracts. Add a key in Settings for generated answers."}
         </p>
+        <a
+          href="/architecture.html"
+          className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          See the source → answer → proof architecture
+          <ArrowRight className="ml-2 size-3.5" aria-hidden="true" />
+        </a>
         {importError ? (
           <p role="alert" className="mt-2 text-sm text-bad">
             {importError}

@@ -574,7 +574,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
             <p className="hidden text-xs text-muted sm:block">
-              Ask your documents · cited answers
+              Ask a source · inspect the proof
             </p>
           </div>
         </div>
@@ -592,6 +592,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           </span>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
+          <a href="/architecture.html" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary xl:inline-flex">Architecture</a>
           <a href="/walkthrough" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary sm:inline-flex">Watch demo</a>
           <span data-tour="tour-settings">
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>

@@ -6,8 +6,8 @@
  *
  * `product` blocks promotion unless storage is durable, the database answered,
  * and the server classifies itself as product. `demo` blocks promotion unless
- * the host *behaves* like a demo: it says so on the page and refuses a
- * visitor's model key. Exit code 1 means do not promote.
+ * the host *behaves* like a read-only seeded demo: it says so on the page
+ * and refuses both visitor imports and model keys. Exit code 1 means do not promote.
  */
 
 export function evaluateHealth(health, expect) {
@@ -23,8 +23,10 @@ export function evaluateHealth(health, expect) {
   if (posture.mode === "product" && (!durable || !reachable)) {
     failures.push("Server claims product mode without durable, reachable storage.");
   }
-  if (posture.customSources && !durable && posture.temporaryImports !== true) {
-    failures.push("Custom sources are accepted on non-durable storage without saying imports are temporary.");
+  if (posture.mode === "demo") {
+    if (posture.customSources !== false) failures.push("Demo host advertises visitor source mutations.");
+    if (posture.visitorKeys !== false) failures.push("Demo host advertises visitor model keys.");
+    if (posture.temporaryImports !== false) failures.push("Demo host advertises temporary visitor imports.");
   }
   if (expect === "product") {
     if (posture.mode !== "product") failures.push(`Expected product mode, host is ${posture.mode} (${(posture.reasons ?? []).join(", ")}).`);
@@ -70,25 +72,25 @@ async function main() {
       report.failures.push(`Homepage unreachable: ${err instanceof Error ? err.message : err}`);
     }
     try {
-      const keysOn = health?.deployment?.visitorKeys === true;
       const res = await fetch(`${base}/api/keys`, {
         method: "POST",
         headers: headers({ "content-type": "application/json" }),
         body: JSON.stringify({ openrouter: "sk-or-release-gate-probe" }),
         signal: AbortSignal.timeout(15000),
       });
-      if (keysOn && res.status !== 200) report.failures.push(`Host advertises visitor keys but refused one (HTTP ${res.status}).`);
-      if (!keysOn && res.status !== 403) report.failures.push(`Host pins keys off but accepted one (HTTP ${res.status}).`);
-      if (keysOn) {
-        const body = await res.text();
-        if (body.includes("sk-or-release-gate-probe")) report.failures.push("Key probe response echoed the key.");
-        await fetch(`${base}/api/keys`, {
-          method: "POST",
-          headers: headers({ "content-type": "application/json" }),
-          body: JSON.stringify({ clearOpenRouter: true }),
-          signal: AbortSignal.timeout(15000),
-        });
-      }
+      if (res.status !== 403) report.failures.push(`Demo accepted a visitor key (HTTP ${res.status}, expected 403).`);
+      const response = await res.text();
+      if (response.includes("sk-or-release-gate-probe")) report.failures.push("Key probe response echoed the key.");
+      // Safe import capability probe: action=ingest without a URL must be rejected
+      // BEFORE any import work. A broken guard yields 400 instead of 403, but
+      // cannot fetch a remote source or write a document.
+      const ingest = await fetch(`${base}/api/lab`, {
+        method: "POST",
+        headers: headers({ "content-type": "application/json" }),
+        body: JSON.stringify({ action: "ingest" }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (ingest.status !== 403) report.failures.push(`Demo did not refuse the import route (HTTP ${ingest.status}, expected 403).`);
     } catch (err) {
       report.failures.push(`Key probe failed: ${err instanceof Error ? err.message : err}`);
     }

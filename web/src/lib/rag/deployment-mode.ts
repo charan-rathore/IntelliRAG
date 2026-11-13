@@ -25,7 +25,7 @@ export type DeploymentPosture = {
   reasons: DemoReason[];
   /** Visitors may add or remove their own sources. */
   customSources: boolean;
-  /** Imports work but are lost when the server restarts (no durable storage). */
+  /** Reserved compatibility field; public demo imports are never permitted. */
   temporaryImports: boolean;
   /** Visitors may hand the server their own provider keys. */
   visitorKeys: boolean;
@@ -34,7 +34,7 @@ export type DeploymentPosture = {
 };
 
 export const DEMO_HEADLINE =
-  "Interactive demo · you can import sources, but they are temporary and disappear when the server restarts.";
+  "Interactive demo · pinned sources only. Visitor imports and model keys are disabled.";
 export const PRODUCT_HEADLINE = "Your sources are stored durably.";
 
 export function classifyDeployment(input: {
@@ -51,18 +51,14 @@ export function classifyDeployment(input: {
   if (input.databaseReachable === false) reasons.push("database_unreachable");
   if (input.forceDemo) reasons.push("forced_by_operator");
   const demo = reasons.length > 0;
-  const temporaryImports = reasons.includes("ephemeral_storage") || reasons.includes("database_unreachable");
   return {
     mode: demo ? "demo" : "product",
     reasons,
-    // Pasted sources and URL imports keep working on a temporary host; the page
-    // says plainly that they do not survive a restart. Only an operator pin
-    // turns them off.
-    customSources: !reasons.includes("forced_by_operator"),
-    temporaryImports,
-    // Visitor keys live in the visitor's own HttpOnly cookie and are read per request,
-    // never stored on the server. Only an operator pin turns them off.
-    visitorKeys: !reasons.includes("forced_by_operator"),
+    // No unauthenticated visitor data enters a shared ephemeral worker.
+    // A durable *and reachable* product database is the minimum prerequisite.
+    customSources: !demo,
+    temporaryImports: false,
+    visitorKeys: !demo,
     headline: demo ? DEMO_HEADLINE : PRODUCT_HEADLINE,
   };
 }
@@ -76,6 +72,16 @@ export class DemoModeRefusal extends Error {
     );
     this.name = "DemoModeRefusal";
   }
+}
+
+/** Ignore even pre-existing visitor cookies when demo posture forbids them.
+ * A 403 on new key writes alone would not prevent old keys from being used.
+ */
+export function permittedVisitorKeys(
+  posture: Pick<DeploymentPosture, "visitorKeys">,
+  visitor: { gemini?: string; openrouter?: string },
+): { gemini?: string; openrouter?: string } {
+  return posture.visitorKeys ? visitor : {};
 }
 
 /** Throw before accepting a visitor's model key on a host that cannot keep it safe. */

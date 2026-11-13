@@ -14,7 +14,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Grounded RAG console: gemini-embedding-2 for index and query, Gemini 3.7 Flash for cited answers.",
+          "Ask a pinned source and inspect the evidence. IntelliRAG offers source-backed extracts in the public demo and generated cited answers only when configured.",
       },
       { name: "theme-color", content: "#0b0906" },
     ],
