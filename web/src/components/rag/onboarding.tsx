@@ -1,4 +1,6 @@
 import { ArrowRight } from "lucide-react";
+import { EvidenceScene } from "./evidence-scene";
+import { HowItChecks } from "./how-it-checks";
 import { Button } from "@/components/ui/button";
 import { COACH_COPY, DEMO_RUNS } from "@/lib/rag/onboarding";
 import type { SuggestedQuestion } from "@/lib/rag/predict-questions";
@@ -45,7 +47,7 @@ export function SuggestedQuestions({
   if (!suggestions.length) return null;
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">{title}</p>
+      <p className="text-sm font-medium text-muted">{title}</p>
       {hint ? <p className="mt-1 text-xs leading-relaxed text-subtle">{hint}</p> : null}
       <div className="mt-3 flex flex-col divide-y divide-border border-y border-border">
         {suggestions.slice(0, 6).map((item) => (
@@ -58,11 +60,11 @@ export function SuggestedQuestions({
             <span className="text-sm leading-snug text-fg">{item.question}</span>
             <span className="flex shrink-0 items-center gap-2 pt-0.5">
               {item.askCount > 0 ? (
-                <span className="text-[10px] uppercase tracking-[0.14em] text-subtle">
+                <span className="text-xs text-subtle">
                   asked {item.askCount}×
                 </span>
               ) : item.source === "predicted" ? (
-                <span className="text-[10px] uppercase tracking-[0.14em] text-subtle">predicted</span>
+                <span className="text-xs text-subtle">predicted</span>
               ) : null}
               <ArrowRight className="size-3.5 text-primary opacity-70 transition-opacity group-hover:opacity-100" />
             </span>
@@ -104,72 +106,68 @@ export function WelcomeOnboarding({
       }));
 
   return (
-    <section className="mx-auto flex max-w-3xl flex-col gap-6 py-4">
-      <div>
-        <p className="font-display text-4xl leading-[1.05] tracking-[-0.04em] text-fg sm:text-5xl">
-          IntelliRAG
-        </p>
-        <h1 className="mt-4 max-w-xl text-xl font-medium leading-snug text-fg sm:text-2xl">
-          Ask a source. Know what it actually says.
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">
-          {customSources
-            ? "Bring a GitHub README or paste a doc. We suggest likely questions from that source, and remember the ones people actually ask."
-            : "This public demo searches one pinned source. Without a model key it shows cited extracts, not an invented answer; you can inspect the passages yourself."}
-        </p>
+    <section className="mx-auto flex max-w-5xl flex-col gap-10 py-6 sm:py-10">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-end">
+        <div>
+          <h1 className="font-display text-[44px] font-semibold leading-[0.98] tracking-[-0.035em] text-fg sm:text-[64px]">
+            Ask a source. See where the answer came from.
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
+            {customSources
+              ? "Bring a GitHub README or paste a doc. Every answer is built from passages you can open, and when the source doesn’t say, IntelliRAG says so."
+              : "This public demo searches one pinned source. Without a model key it shows cited extracts, not an invented answer, and you can open every passage yourself."}
+          </p>
+        </div>
+
+        <div className="ir-feature-card rounded-lg border border-border px-5 py-5">
+          <p className="text-sm text-muted">Try a real support question on the pinned p-queue README</p>
+          <p className="mt-2 font-display text-xl font-semibold leading-snug tracking-[-0.01em] text-fg">
+            Change shared configuration while jobs are still queued
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button disabled={importing} onClick={onRepositoryDemo}>
+              Ask this question
+            </Button>
+            <Button variant="ghost" onClick={onSources}>
+              {customSources ? "Use your own source" : "See the sources"}
+            </Button>
+          </div>
+          <p className="mt-3 text-xs leading-relaxed text-subtle">
+            {!customSources
+              ? "A read-only public demo on a pinned source. Without a configured model you get cited extracts."
+              : hasKey
+                ? "Generated answers cite the selected corpus. Open each source before relying on a conclusion."
+                : "No model key yet: you still get cited extracts. Add a key in Settings for generated answers."}
+          </p>
+          {importError ? (
+            <p role="alert" className="mt-2 text-sm text-bad">
+              {importError}
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      <div className="ir-feature-card rounded-lg border border-primary/35 bg-surface px-4 py-4">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-primary">Ready to try</p>
-        <p className="mt-2 text-base font-medium text-fg">
-          Change shared configuration while jobs are still queued
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-muted">
-          Uses the pinned <span className="text-fg">sindresorhus/p-queue</span> README. One click
-          asks a real support question against that source.
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button disabled={importing} onClick={onRepositoryDemo}>
-            Ask this question
-            <ArrowRight className="size-4" />
-          </Button>
-          <Button variant="ghost" onClick={onSources}>
-            {customSources ? "Use your own source" : "See the sources"}
-          </Button>
-        </div>
-        <p className="mt-3 text-xs text-muted">
-          {!customSources
-            ? "Read-only public demo · pinned source · cited extracts when generation is not configured."
-            : hasKey
-              ? "Generated answers cite the selected corpus; inspect each source before relying on a conclusion."
-              : "No model key yet: you still get cited extracts. Add a key in Settings for generated answers."}
-        </p>
-        <a
-          href="/architecture.html"
-          className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          See the source → answer → proof architecture
-          <ArrowRight className="ml-2 size-3.5" aria-hidden="true" />
-        </a>
-        {importError ? (
-          <p role="alert" className="mt-2 text-sm text-bad">
-            {importError}
-          </p>
-        ) : null}
-      </div>
+      <EvidenceScene />
 
       <SuggestedQuestions
         suggestions={chips}
         onAsk={onAsk}
-        title="Questions you can ask next"
-        hint="Predicted from the loaded document, plus the most asked community questions for this source. Or type your own below."
+        title="Other questions to try"
+        hint="Predicted from the loaded document, plus the questions people ask most about this source. Or type your own below."
       />
 
-      <p className="text-xs text-subtle">
-        Sources and Evidence stay behind the header buttons when you need them.{" "}
-        <button type="button" onClick={onTour} className="text-muted underline hover:text-fg">
+      <HowItChecks />
+
+      <p className="text-sm text-subtle">
+        Sources and Evidence open from the header when you need them.{" "}
+        <button type="button" onClick={onTour} className="text-muted underline underline-offset-4 hover:text-fg">
           Show me the controls
         </button>
+        {" or read "}
+        <a href="/architecture.html" className="text-muted underline underline-offset-4 hover:text-fg">
+          how the pipeline is built
+        </a>
+        .
       </p>
     </section>
   );
@@ -179,11 +177,11 @@ export function WelcomeOnboarding({
 export function RunPreview({ onTour }: { onTour: () => void }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">What a run looks like</p>
-      <ol className="mt-3 space-y-3 text-xs leading-relaxed text-muted">
-        <li>1. You bring a document and ask a question.</li>
-        <li>2. Retrieval packs supporting passages from that source.</li>
-        <li>3. The answer cites those passages, or refuses when evidence is missing.</li>
+      <p className="text-sm font-medium text-muted">What a run looks like</p>
+      <ol className="mt-3 list-decimal space-y-3 pl-4 text-xs leading-relaxed text-muted">
+        <li>You bring a document and ask a question.</li>
+        <li>Retrieval packs supporting passages from that source.</li>
+        <li>The answer cites those passages, or refuses when evidence is missing.</li>
       </ol>
       <Button className="mt-4 w-full" size="sm" onClick={onTour}>
         Watch the guided tour
