@@ -56,7 +56,7 @@ export function HowItChecks() {
     steps.current.forEach((el, i) => el?.classList.toggle("is-on", i === at));
 
     const rowH = (visual.current?.clientWidth ?? 600) < 460 ? 34 : 40;
-    const top = 56;
+    const top = 104; // below the window bar and the question
     const refuse = EASE_IO(span(p, 0.76, 0.9));
     if (q.current) {
       q.current.textContent = p < 0.8 ? "How do I change shared configuration while jobs are still queued?" : "What’s the weather in Tokyo?";
@@ -105,7 +105,7 @@ export function HowItChecks() {
     <section ref={ref} className="ir-chapter" aria-labelledby="ir-chapter-h">
       <div className="ir-chapter-stage">
         <div className="ir-chapter-copy">
-          <h2 id="ir-chapter-h" className="font-display text-3xl font-semibold leading-[1.05] tracking-[-0.03em] text-fg sm:text-4xl">
+          <h2 id="ir-chapter-h" className="font-display text-3xl leading-[1.08] tracking-[-0.015em] text-fg sm:text-[44px]">
             How an answer earns its citations.
           </h2>
           <ol className="ir-steps">
@@ -117,7 +117,8 @@ export function HowItChecks() {
             ))}
           </ol>
         </div>
-        <div ref={visual} className="ir-chapter-visual" aria-hidden="true">
+        <div ref={visual} className="ir-win ir-chapter-visual" aria-hidden="true">
+          <p className="ir-win-bar"><i /><i /><i /><span>Retrieval, p-queue README</span></p>
           <p ref={q} className="ir-scene-q ir-chapter-q" />
           {CHUNKS.map((c, i) => (
             <div key={c.label} ref={(el) => { rows.current[i] = el; }} className="ir-rank-row" data-state="scored">

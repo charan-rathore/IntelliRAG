@@ -109,7 +109,7 @@ export function WelcomeOnboarding({
     <section className="mx-auto flex max-w-5xl flex-col gap-10 py-6 sm:py-10">
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-end">
         <div>
-          <h1 className="font-display text-[44px] font-semibold leading-[0.98] tracking-[-0.035em] text-fg sm:text-[64px]">
+          <h1 className="font-display text-[44px] leading-[1.02] tracking-[-0.02em] text-fg sm:text-[68px]">
             Ask a source. See where the answer came from.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
@@ -121,7 +121,7 @@ export function WelcomeOnboarding({
 
         <div className="ir-feature-card rounded-lg border border-border px-5 py-5">
           <p className="text-sm text-muted">Try a real support question on the pinned p-queue README</p>
-          <p className="mt-2 font-display text-xl font-semibold leading-snug tracking-[-0.01em] text-fg">
+          <p className="mt-2 font-display text-[22px] leading-snug text-fg">
             Change shared configuration while jobs are still queued
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">

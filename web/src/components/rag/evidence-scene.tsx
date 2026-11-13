@@ -164,8 +164,8 @@ export function EvidenceScene() {
       <div ref={scene} className="ir-scene-stage" aria-hidden="true">
         <p className="ir-scene-q">{QUESTION}</p>
         <div className="ir-scene-cols">
-          <div className="ir-src">
-            <p className="ir-src-name">sindresorhus/p-queue, README.md</p>
+          <div className="ir-src ir-win">
+            <p className="ir-win-bar"><i /><i /><i /><span>sindresorhus/p-queue, README.md</span></p>
             <div className="ir-src-lines">
               <div ref={scan} className="ir-scan" />
               {SOURCE.map((l, i) => (
@@ -175,8 +175,8 @@ export function EvidenceScene() {
               ))}
             </div>
           </div>
-          <div className="ir-ans">
-            <p className="ir-ans-name">Answer</p>
+          <div className="ir-ans ir-win">
+            <p className="ir-win-bar"><i /><i /><i /><span>Answer</span></p>
             <p className="ir-ans-text">
               {ANSWER.map((w, i) =>
                 w.cite ? (
