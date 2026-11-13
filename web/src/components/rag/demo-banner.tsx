@@ -24,7 +24,7 @@ export function DemoBanner({ posture }: { posture: DeploymentPosture }) {
         <p className="min-w-0 flex-1 text-sm text-fg">
           <span className="font-medium">Interactive demo</span>
           <span className="text-muted">
-            {" · pinned sources only · imports and visitor keys are off."}
+            {": pinned sources only. Imports and visitor keys are off."}
           </span>
         </p>
         <button

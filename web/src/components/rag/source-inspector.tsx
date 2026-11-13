@@ -134,7 +134,7 @@ function CandidateRow({
               {candidate.ranks.dense != null &&
               candidate.ranks.dense === 1 &&
               candidate.ranks.rerank !== 1
-                ? " · dense #1 displaced by rerank"
+                ? ", dense #1 displaced by rerank"
                 : ""}
             </p>
           )}
@@ -149,7 +149,7 @@ export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
   if (!chunks.length) return null;
   return (
     <div className="mt-4">
-      <p className="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-muted">Sources</p>
+      <p className="mb-2 text-sm font-medium text-muted">Sources</p>
       <ul className="space-y-2">
         {chunks.map((c, i) => (
           <li key={c.chunkId}>
@@ -199,9 +199,9 @@ export function SourceInspector({
   return (
     <div className="mt-4">
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Why these sources</p>
+        <p className="text-sm font-medium text-muted">Why these sources</p>
         <p className="font-mono text-xs tabular-nums text-subtle">
-          {used}/{candidates.length} in context · {contextTokens}/{CONTEXT_TOKEN_BUDGET} tok
+          {used}/{candidates.length} in context, {contextTokens}/{CONTEXT_TOKEN_BUDGET} tok
         </p>
       </div>
       {(dense || evidence || actualMode) && (
@@ -215,7 +215,7 @@ export function SourceInspector({
           {dense
             ? dense.skippedReason
               ? dense.skippedReason
-              : `Query embed ${dense.queryEmbeddingProduced ? "yes" : "no"} · compatible vectors ${dense.compatibleStoredVectors} · dense hits ${dense.denseCandidatesProduced}.`
+              : `Query embed ${dense.queryEmbeddingProduced ? "yes" : "no"}, compatible vectors ${dense.compatibleStoredVectors}, dense hits ${dense.denseCandidatesProduced}.`
             : ""}
         </p>
       )}

@@ -35,7 +35,7 @@ export function LatencyWaterfall({ latencies }: { latencies: LayerLatencies }) {
   return (
     <div className="rounded-md border border-border bg-raised p-3">
       <div className="flex items-baseline justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Latency</p>
+        <p className="text-sm font-medium text-muted">Latency</p>
         <p className="font-mono text-xs tabular-nums text-fg">{formatMs(total)}</p>
       </div>
       <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-border">
@@ -56,14 +56,14 @@ export function LatencyWaterfall({ latencies }: { latencies: LayerLatencies }) {
           <li key={k} className="flex items-center justify-between gap-3 font-mono text-xs tabular-nums">
             <span className={cn("text-muted", bottle === k && "text-fg")}>
               {LABELS[k] ?? k}
-              {bottle === k ? " · bottleneck" : ""}
+              {bottle === k ? ", bottleneck" : ""}
             </span>
             <span className="text-fg">{formatMs(v)}</span>
           </li>
         ))}
       </ul>
       <p className="mt-3 text-xs leading-relaxed text-subtle">
-        Retrieval {formatMs(retrieve)} ({((retrieve / total) * 100).toFixed(0)}%) · generation{" "}
+        Retrieval {formatMs(retrieve)} ({((retrieve / total) * 100).toFixed(0)}%), generation{" "}
         {formatMs(latencies.generate)} ({(((latencies.generate ?? 0) / total) * 100).toFixed(0)}%)
       </p>
     </div>
