@@ -59,11 +59,11 @@ export function VectorPaths({ trace }: { trace: VectorTrace }) {
           );
           return (
             <g key={e.from + e.to}>
-              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#93b5ef" strokeWidth="2" />
+              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#9cc3ff" strokeWidth="2" />
               <text
                 x={(a.x + b.x) / 2}
                 y={(a.y + b.y) / 2 - 8}
-                fill="#b9c8db"
+                fill="#b9cbe0"
                 fontSize="11"
                 textAnchor="middle"
               >
@@ -77,12 +77,12 @@ export function VectorPaths({ trace }: { trace: VectorTrace }) {
           const path = paths.find((x) => x.id === id);
           return (
             <g key={id} transform={`translate(${p.x} ${p.y})`}>
-              <circle r="8" fill={trace.roots.includes(id) ? "#d7ab7f" : "#93b5ef"} />
+              <circle r="8" fill={trace.roots.includes(id) ? "#f3e97a" : "#9cc3ff"} />
               <title>{label(id)}</title>
-              <text y="23" fill="#d8dde6" fontSize="11" textAnchor="middle">
+              <text y="23" fill="#f1f5f9" fontSize="11" textAnchor="middle">
                 {label(id).slice(0, 24)}
               </text>
-              <text y="39" fill="#a2adbd" fontSize="10" textAnchor="middle">
+              <text y="39" fill="#93aecd" fontSize="10" textAnchor="middle">
                 {path ? `total ${path.cost.toFixed(3)}` : "connector"}
               </text>
             </g>

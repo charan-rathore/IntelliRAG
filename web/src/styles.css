@@ -1,32 +1,43 @@
 @import "tailwindcss";
 
-/* Warm dark palette sampled from the owner's demo cut.
- * Text accents are brighter than fills to keep small controls readable.
- * Semantic good/warn/bad colors remain distinct from the brand accent. */
+/* Cyanotype. The page is the blue of a blueprint print, where a drawing is
+ * proof of what was built; the one bright colour is a highlighter, and it
+ * only ever marks evidence: cited passages, citation chips, the primary
+ * action that produces them. No orange anywhere.
+ * Contrast on --color-bg: fg 14.4:1, muted 9.5:1, subtle 6.9:1, primary 12.6:1;
+ * on --color-raised every text token stays above 5.3:1. */
+@font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/BricolageGrotesque-Regular.woff") format("woff"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/BricolageGrotesque-Bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+@font-face { font-family: "Instrument Sans"; src: url("/fonts/InstrumentSans-Regular.woff") format("woff"); font-weight: 400 500; font-display: swap; }
+@font-face { font-family: "Instrument Sans"; src: url("/fonts/InstrumentSans-Bold.woff") format("woff"); font-weight: 600 700; font-display: swap; }
+@font-face { font-family: "Instrument Sans"; src: url("/fonts/InstrumentSans-Italic.woff") format("woff"); font-style: italic; font-display: swap; }
+@font-face { font-family: "IBM Plex Mono"; src: url("/fonts/IBMPlexMono-Regular.woff") format("woff"); font-weight: 400 500; font-display: swap; }
+
 @theme {
-  --color-bg: #0b0906;
-  --color-surface: #120e0a;
-  --color-raised: #1c150e;
-  --color-fg: #f2efe9;
-  --color-muted: #b3a99c;
-  --color-subtle: #978b7d;
-  --color-primary: #d7ab7f;
-  --color-primary-fg: #f2efe9;
-  --color-action: #895624;
-  --color-action-hover: #925b27;
-  --color-border: #403124;
-  --color-good: #8aa38e;
-  --color-warn: #c4b089;
-  --color-bad: #c48989;
-  --font-sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --color-bg: #0a2342;
+  --color-surface: #0d2a4e;
+  --color-raised: #13365f;
+  --color-fg: #f1f5f9;
+  --color-muted: #b9cbe0;
+  --color-subtle: #93aecd;
+  --color-primary: #f3e97a;
+  --color-primary-fg: #0a2342;
+  --color-action: #f3e97a;
+  --color-action-hover: #f8f2ad;
+  --color-border: #2a4d7e;
+  --color-good: #8fe0bd;
+  --color-warn: #cbbcff;
+  --color-bad: #ffa3a3;
+  --color-ink-line: #5f86bd;
+  --font-sans: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-smooth-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 @layer base {

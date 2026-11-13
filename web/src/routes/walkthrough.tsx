@@ -27,7 +27,7 @@ function Walkthrough() {
         <span className="font-mono text-xs text-muted">INTELLIRAG / FIELD NOTES 001</span>
       </nav>
       <header className="mb-7 mt-10 grid gap-6 sm:mt-14 lg:grid-cols-[1.1fr_1fr] lg:items-end">
-        <div><p className="text-xs uppercase tracking-[0.2em] text-primary">A small experiment</p>
+        <div><p className="text-sm font-medium text-primary">A small experiment</p>
           <h1 className="mt-4 font-display text-5xl leading-[1.02] tracking-[-0.05em] sm:text-7xl">One issue.<br /><span className="text-primary">Two questions.</span></h1>
         </div>
         <div><p className="max-w-lg text-base leading-relaxed text-muted">Can we tell evidence from guesswork? Give the lab one GitHub issue. Ask what the source says, then something it cannot know.</p>
@@ -35,7 +35,7 @@ function Walkthrough() {
         </div>
       </header>
       <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-2xl">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 text-xs text-muted sm:px-5"><span className="text-primary">● RECORDED ON THE PUBLIC LAB</span><span>{walkthrough.durationLabel} · voice + music · captions included</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 text-xs text-muted sm:px-5"><span className="text-primary">● RECORDED ON THE PUBLIC LAB</span><span>{walkthrough.durationLabel}, voice + music, captions included</span></div>
         <video ref={player} className="aspect-[36/25] w-full bg-black" controls playsInline preload="metadata" poster="/demo/intellirag-walkthrough-poster.jpg" onError={() => setFailed(true)} aria-label="IntelliRAG experiment with visible explanatory captions" aria-describedby="demo-context">
           <source src="/demo/intellirag-walkthrough-narrated.mp4" type="video/mp4" />
           <track kind="captions" src="/demo/intellirag-walkthrough.vtt" srcLang="en" label="English" />

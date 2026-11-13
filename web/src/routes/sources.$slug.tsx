@@ -25,8 +25,8 @@ function SourcePage() {
         <ArrowLeft className="size-4" />
         Console
       </Link>
-      <p className="mt-6 text-xs uppercase tracking-[0.16em] text-muted">
-        {doc.sourceType} · v{doc.version}
+      <p className="mt-6 text-sm font-medium text-muted">
+        {doc.sourceType}, v{doc.version}
       </p>
       <h1 className="mt-2 font-display text-3xl tracking-[-0.03em] text-fg">{doc.title}</h1>
       {doc.sourceUri && (

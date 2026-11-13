@@ -143,7 +143,7 @@ export function ProductTour({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-xs tabular-nums text-subtle">
-              {String(index + 1).padStart(2, "0")} / {String(TOUR_STEPS.length).padStart(2, "0")} · looking at this control
+              Step {index + 1} of {TOUR_STEPS.length}
             </p>
             <h2 className="mt-1 font-display text-xl tracking-[-0.02em] text-fg">{step.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">{step.subtitle}</p>

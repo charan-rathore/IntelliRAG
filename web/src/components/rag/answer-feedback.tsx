@@ -22,7 +22,7 @@ export function AnswerFeedback({
   const [correction, setCorrection] = useState("");
   return (
     <div data-tour="tour-feedback" className="mt-4 rounded-md border border-border bg-raised p-3">
-      <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Teach the graph</p>
+      <p className="text-sm font-medium text-muted">Teach the graph</p>
       <p className="mt-1 text-xs leading-relaxed text-subtle">
         Graphify save-result. Useful nodes become preferred sources on the next ask.
       </p>

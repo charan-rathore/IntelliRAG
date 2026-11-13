@@ -574,7 +574,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
             <p className="hidden text-xs text-muted sm:block">
-              Ask a source · inspect the proof
+              Ask a source, see the proof
             </p>
           </div>
         </div>
@@ -720,7 +720,7 @@ export function Console({ initial }: { initial: Snapshot }) {
           </Button>
         </form>
         <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-subtle">
-          Type any question · Enter to send · Suggestions learn from what people ask on each document
+          Type any question and press Enter. Suggestions learn from what people ask on each document.
         </p>
         <div className="mx-auto mt-2 flex max-w-3xl justify-center gap-2 sm:hidden">
           <Button variant="ghost" size="sm" onClick={() => setCorpusOpen(true)}>
@@ -1011,12 +1011,12 @@ function CorpusPanel(props: {
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto p-4">
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Corpus</p>
+        <p className="text-sm font-medium text-muted">Corpus</p>
         <p className="mt-1 text-xs text-subtle">
           {props.indexing
             ? `Embedding ${props.pending} remaining chunks`
             : `${props.snapshot.documents.length} documents${
-                props.snapshot.storage?.denseAvailable === false ? " · keyword index" : ""
+                props.snapshot.storage?.denseAvailable === false ? ", keyword index" : ""
               }`}
         </p>
         {!props.indexing && props.indexStop && (
@@ -1033,7 +1033,7 @@ function CorpusPanel(props: {
           >
             <option value={SEED_CORPUS_ID}>{corpusLabel(SEED_CORPUS_ID)}</option>
             {props.corpus !== SEED_CORPUS_ID && props.corpus !== ALL_CORPORA && !(props.snapshot.corpora ?? []).some(c => c.id === props.corpus) && (
-              <option value={props.corpus}>Source unavailable · import again</option>
+              <option value={props.corpus}>Source unavailable, import again</option>
             )}
             {(props.snapshot.corpora ?? [])
               .filter((c) => c.id !== SEED_CORPUS_ID)
@@ -1156,9 +1156,9 @@ function DocRow({
       </div>
       <p className="mt-1 font-mono text-xs tabular-nums text-subtle">
         {denseAvailable
-          ? `v${doc.version} · ${doc.embeddedCount}/${doc.chunkCount} embedded`
-          : `v${doc.version} · ${doc.chunkCount} chunks · keyword`}
-        {doc.corpusId ? ` · ${doc.corpusId}` : ""}
+          ? `v${doc.version}, ${doc.embeddedCount}/${doc.chunkCount} embedded`
+          : `v${doc.version}, ${doc.chunkCount} chunks, keyword`}
+        {doc.corpusId ? `, ${doc.corpusId}` : ""}
       </p>
       {stale.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
@@ -1210,21 +1210,21 @@ function AuditPanel({
     <div className="flex h-full flex-col gap-6 overflow-y-auto p-4">
       {!last && <RunPreview onTour={onTour} />}
       {last?.graphTrace && <details className="rounded-md border border-border bg-raised p-3 text-xs">
-        <summary className="min-h-11 cursor-pointer text-primary">Graph consulted · {last.graphTrace.cache === "hit" ? "cached answer · no model call" : `${last.graphTrace.slugs.length} source suggestions`} · {formatMs(last.graphTrace.durationMs)}</summary>
+        <summary className="min-h-11 cursor-pointer text-primary">Graph consulted, {last.graphTrace.cache === "hit" ? "cached answer, no model call" : `${last.graphTrace.slugs.length} source suggestions`}, {formatMs(last.graphTrace.durationMs)}</summary>
         {last.graphTrace.vector && <div className="mt-3 space-y-2 border-y border-border py-3">
           <p className="text-primary">Dense vector graph: {last.graphTrace.vector.route === "graph" ? "candidate-only retrieval" : "full-index fallback"}</p>
-          <p className="text-muted">{last.graphTrace.vector.compared} resident vectors compared · {last.graphTrace.vector.fetched} chunks fetched · {last.graphTrace.vector.reason}</p>
+          <p className="text-muted">{last.graphTrace.vector.compared} resident vectors compared, {last.graphTrace.vector.fetched} chunks fetched, {last.graphTrace.vector.reason}</p>
           <p className="text-muted">Weighted Dijkstra. Edge cost = max(0.001, 1 - cosine similarity). Lower total path cost gives a bounded rerank boost, never permission to invent an answer.</p>
           <VectorPaths trace={last.graphTrace.vector} />
-          <ol className="space-y-2">{last.graphTrace.vector.paths.map(p => <li key={p.id} className="break-words font-mono">{p.path.join(" → ")} · cost {p.cost.toFixed(3)} · query cosine {p.similarity.toFixed(3)}</li>)}</ol>
-          <p className="text-subtle">{last.graphTrace.vector.model} · {last.graphTrace.vector.dimension} dimensions. Related questions retrieve fresh evidence; they do not reuse a cached answer.</p>
+          <ol className="space-y-2">{last.graphTrace.vector.paths.map(p => <li key={p.id} className="break-words font-mono">{p.path.join(" → ")}, cost {p.cost.toFixed(3)}, query cosine {p.similarity.toFixed(3)}</li>)}</ol>
+          <p className="text-subtle">{last.graphTrace.vector.model}, {last.graphTrace.vector.dimension} dimensions. Related questions retrieve fresh evidence; they do not reuse a cached answer.</p>
         </div>}
         <p className="mt-2 text-muted">Cache: {last.graphTrace.cache}. Graph suggestions guide ranking; cited passages determine what the answer can claim.</p>
-        <ul className="mt-3 space-y-2">{last.graphTrace.nodes.map(n => <li key={n.id} className="break-words">{n.label} · {n.kind}{n.slug && <a className="ml-2 text-primary underline" href={`/sources/${encodeURIComponent(n.slug)}`}>source</a>}</li>)}</ul>
+        <ul className="mt-3 space-y-2">{last.graphTrace.nodes.map(n => <li key={n.id} className="break-words">{n.label}, {n.kind}{n.slug && <a className="ml-2 text-primary underline" href={`/sources/${encodeURIComponent(n.slug)}`}>source</a>}</li>)}</ul>
         <p className="mt-3 text-muted">{last.graphTrace.links.length} connections traversed. {last.graphTrace.cache === "hit" ? "Embedding and generation skipped for this exact question and settings." : "No reusable answer found; vector graph routing or full source retrieval ran next."}</p>
       </details>}
       <div data-tour="tour-feedback" className="rounded-md border border-border bg-raised p-3">
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">Teach the graph</p>
+        <p className="text-sm font-medium text-muted">Teach the graph</p>
         <p className="mt-1 text-xs leading-relaxed text-subtle">
           Rate an answer Useful, Dead end, or Correct. Distinct useful questions can promote a source; corrections remove its graph boost. Inspect the history in “How the graph grows.”
         </p>
@@ -1234,11 +1234,11 @@ function AuditPanel({
         <p className="font-mono text-xs tabular-nums text-subtle">
           {Object.entries(last.latencies)
             .map(([k, v]) => `${k} ${formatMs(v)}`)
-            .join(" · ")}
+            .join(", ")}
         </p>
       )}
       <div>
-        <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted">RAG evaluation</p>
+        <p className="text-sm font-medium text-muted">RAG evaluation</p>
         <p className="mt-1 text-xs leading-relaxed text-subtle">
           20 gold questions + 5 adversarial probes. Custom RAGAS-style rubric with deterministic retrieval checks; judge failures fail the run.
         </p>
@@ -1290,14 +1290,14 @@ function AuditPanel({
         )}
       </div>
       <div>
-        <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted">
+        <p className="flex items-center gap-2 text-sm font-medium text-muted">
           <ShieldAlert className="size-3.5" />
           Staleness audit
         </p>
         <ul className="mt-3 space-y-3">
           {snapshot.audit.map((f: AuditFinding) => (
             <li key={f.id} className="rounded-md border border-border bg-surface p-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-warn">{f.severity}</p>
+              <p className="text-xs font-medium text-warn">{f.severity}</p>
               <p className="mt-1 text-sm font-medium text-fg">{f.title}</p>
               <p className="mt-2 text-xs leading-relaxed text-muted">{f.original}</p>
               <p className="mt-2 text-xs leading-relaxed text-good">{f.liveFix}</p>
