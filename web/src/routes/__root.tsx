@@ -16,7 +16,7 @@ export const Route = createRootRoute({
         content:
           "Ask a pinned source and inspect the evidence. IntelliRAG offers source-backed extracts in the public demo and generated cited answers only when configured.",
       },
-      { name: "theme-color", content: "#0a2342" },
+      { name: "theme-color", content: "#ffffff" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },

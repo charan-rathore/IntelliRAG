@@ -1,36 +1,37 @@
 @import "tailwindcss";
 
-/* Cyanotype. The page is the blue of a blueprint print, where a drawing is
- * proof of what was built; the one bright colour is a highlighter, and it
- * only ever marks evidence: cited passages, citation chips, the primary
- * action that produces them. No orange anywhere.
- * Contrast on --color-bg: fg 14.4:1, muted 9.5:1, subtle 6.9:1, primary 12.6:1;
- * on --color-raised every text token stays above 5.3:1. */
-@font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/BricolageGrotesque-Regular.woff") format("woff"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Bricolage Grotesque"; src: url("/fonts/BricolageGrotesque-Bold.woff") format("woff"); font-weight: 600 800; font-display: swap; }
+/* Paper. White pages, ink text, one green for links and progress, and a
+ * highlighter yellow that is only ever painted on evidence: the passages an
+ * answer used and the citation chips that point at them. Patterned on the
+ * product pages we hold ourselves to (Granola, Wispr Flow, Cardboard):
+ * a serif display, a quiet sans, product windows as the illustrations.
+ * Contrast on white: fg 17.1:1, muted 7.5:1, subtle 5.4:1, primary 6.0:1;
+ * on --color-raised every text token stays at or above 4.6:1. */
+@font-face { font-family: "Young Serif"; src: url("/fonts/YoungSerif-Regular.woff") format("woff"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Instrument Sans"; src: url("/fonts/InstrumentSans-Regular.woff") format("woff"); font-weight: 400 500; font-display: swap; }
 @font-face { font-family: "Instrument Sans"; src: url("/fonts/InstrumentSans-Bold.woff") format("woff"); font-weight: 600 700; font-display: swap; }
 @font-face { font-family: "Instrument Sans"; src: url("/fonts/InstrumentSans-Italic.woff") format("woff"); font-style: italic; font-display: swap; }
 @font-face { font-family: "IBM Plex Mono"; src: url("/fonts/IBMPlexMono-Regular.woff") format("woff"); font-weight: 400 500; font-display: swap; }
 
 @theme {
-  --color-bg: #0a2342;
-  --color-surface: #0d2a4e;
-  --color-raised: #13365f;
-  --color-fg: #f1f5f9;
-  --color-muted: #b9cbe0;
-  --color-subtle: #93aecd;
-  --color-primary: #f3e97a;
-  --color-primary-fg: #0a2342;
-  --color-action: #f3e97a;
-  --color-action-hover: #f8f2ad;
-  --color-border: #2a4d7e;
-  --color-good: #8fe0bd;
-  --color-warn: #cbbcff;
-  --color-bad: #ffa3a3;
-  --color-ink-line: #5f86bd;
+  --color-bg: #ffffff;
+  --color-surface: #f6f6f1;
+  --color-raised: #efeee6;
+  --color-fg: #1c1c19;
+  --color-muted: #55554e;
+  --color-subtle: #6b6b63;
+  --color-primary: #2f6f45;
+  --color-primary-fg: #ffffff;
+  --color-action: #1c1c19;
+  --color-action-hover: #3a3a35;
+  --color-border: #e3e2da;
+  --color-good: #2f6f45;
+  --color-warn: #7a5200;
+  --color-bad: #b42318;
+  --color-mark: #f4e36b;
+  --color-ink-line: #c9c8bd;
   --font-sans: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Bricolage Grotesque", "Instrument Sans", system-ui, sans-serif;
+  --font-display: "Young Serif", Georgia, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -44,7 +45,7 @@
   html {
     background: var(--color-bg);
     color: var(--color-fg);
-    color-scheme: dark;
+    color-scheme: light;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -204,106 +205,119 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
   box-shadow: 0 0 0 1px var(--color-primary);
 }
 
+
+/* ── Product windows: the illustrations are the product itself ────── */
+.ir-win {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 0 18px 18px;
+  box-shadow: 0 1px 0 rgb(28 28 25 / 0.03), 0 24px 48px -24px rgb(28 28 25 / 0.18);
+}
+.ir-win-bar {
+  display: flex; align-items: center; gap: 6px;
+  height: 40px; margin: 0 -18px 14px; padding: 0 14px;
+  border-bottom: 1px solid var(--color-border);
+  font: 500 12.5px/1 var(--font-sans); color: var(--color-subtle);
+}
+.ir-win-bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--color-raised); box-shadow: inset 0 0 0 1px var(--color-border); }
+.ir-win-bar span { margin-left: 8px; }
+
 /* ── Evidence scene (components/rag/evidence-scene.tsx) ─────────────
  * Positions and reveals are written per frame from curves; CSS sets the look. */
 .ir-scene { margin: 0; }
 .ir-scene-stage {
   position: relative;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-surface);
-  padding: 18px;
-  /* Blueprint grid: 24px cells, drawn as two faint line gradients. */
-  background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--color-ink-line) 14%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--color-ink-line) 14%, transparent) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: -1px -1px;
+  border-radius: 24px;
+  padding: 28px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgb(244 227 107 / 0.28), transparent 55%),
+    radial-gradient(90% 80% at 100% 100%, rgb(47 111 69 / 0.12), transparent 60%),
+    var(--color-surface);
 }
 .ir-scene-q {
   display: inline-block; max-width: 100%;
-  padding: 9px 14px; border-radius: 999px;
-  background: var(--color-raised); border: 1px solid var(--color-border);
+  padding: 10px 16px; border-radius: 999px;
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  box-shadow: 0 10px 24px -16px rgb(28 28 25 / 0.3);
   font: 500 15px/1.35 var(--font-sans); color: var(--color-fg);
 }
-.ir-scene-cols { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 72px; margin-top: 18px; }
+.ir-scene-cols { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 64px; margin-top: 20px; align-items: start; }
 .ir-src, .ir-ans { position: relative; z-index: 1; }
-.ir-src-name, .ir-ans-name { font: 500 12.5px/1 var(--font-sans); color: var(--color-subtle); margin-bottom: 12px; }
+.ir-ans { margin-top: 36px; }
 .ir-src-lines { position: relative; display: grid; gap: 7px; }
 .ir-src-line { position: relative; font: 400 13.5px/1.45 var(--font-sans); color: var(--color-subtle); transition: color 200ms var(--ease-smooth-out); }
 .ir-src-line span { position: relative; z-index: 1; }
 .ir-src-line[data-read="1"] { color: var(--color-muted); }
-.ir-src-line.is-h { font: 400 12.5px/1.4 var(--font-mono); color: var(--color-subtle); margin-top: 4px; }
+.ir-src-line[data-marked="1"] { color: var(--color-fg); }
+.ir-src-line.is-h { font: 400 12.5px/1.4 var(--font-mono); margin-top: 4px; }
 .ir-src-line.is-code { font: 400 12.5px/1.4 var(--font-mono); }
 .ir-scan {
-  position: absolute; left: -10px; right: -10px; top: 0; height: 1.5px; z-index: 2;
-  background: linear-gradient(to right, transparent, var(--color-primary) 20%, var(--color-primary) 80%, transparent);
-  box-shadow: 0 0 14px color-mix(in oklab, var(--color-primary) 60%, transparent);
+  position: absolute; left: -18px; right: -18px; top: 0; height: 2px; z-index: 2;
+  background: linear-gradient(to right, transparent, var(--color-primary) 25%, var(--color-primary) 75%, transparent);
   opacity: 0; will-change: transform;
 }
-.ir-mark { position: absolute; z-index: 0; overflow: visible; pointer-events: none; clip-path: inset(0 100% 0 0); }
-.ir-mark path { fill: var(--color-primary); }
-.ir-src-line[data-marked="1"] { color: var(--color-primary-fg); }
-.ir-threads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 2; }
-.ir-threads path { fill: none; stroke: var(--color-primary); stroke-width: 1.4; stroke-linecap: round; opacity: 0; }
+.ir-mark { position: absolute; z-index: 2; overflow: visible; pointer-events: none; clip-path: inset(0 100% 0 0); mix-blend-mode: multiply; }
+.ir-mark path { fill: var(--color-mark); }
+.ir-threads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 3; }
+.ir-threads path { fill: none; stroke: var(--color-fg); stroke-width: 1.25; stroke-linecap: round; opacity: 0; }
 .ir-ans-text { font: 400 17px/1.6 var(--font-sans); color: var(--color-fg); }
 .ir-ans-text > span { display: inline; opacity: 0; }
 .ir-code { font-family: var(--font-mono); font-size: 0.86em; }
 .ir-cite {
   display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin: 0 2px; padding: 0 5px;
   border-radius: 6px; vertical-align: 2px;
-  background: var(--color-primary); color: var(--color-primary-fg);
+  background: var(--color-mark); color: var(--color-fg); box-shadow: inset 0 0 0 1px rgb(28 28 25 / 0.12);
   font: 600 11.5px/1 var(--font-sans); opacity: 0; transform-origin: center;
 }
-.ir-refs { list-style: none; margin: 22px 0 0; padding: 14px 0 0; border-top: 1px solid var(--color-border); display: grid; gap: 10px; }
+.ir-refs { list-style: none; margin: 18px -18px -18px; padding: 12px 18px 14px; border-top: 1px solid var(--color-border); background: var(--color-surface); border-radius: 0 0 14px 14px; display: grid; gap: 10px; }
 .ir-refs li { display: flex; align-items: center; gap: 10px; font: 400 13px/1.3 var(--font-mono); color: var(--color-muted); opacity: 0; }
 .ir-refs .ir-cite { opacity: 1; margin: 0; vertical-align: 0; }
-.ir-scene-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; }
-.ir-scene-foot p { font-size: 13px; color: var(--color-subtle); opacity: 0; }
+.ir-scene-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; padding: 0 4px; }
+.ir-scene-foot p { font-size: 14px; color: var(--color-subtle); opacity: 0; }
 .ir-replay {
-  min-height: 44px; padding: 0 12px; border-radius: var(--radius-sm);
-  font-size: 13px; color: var(--color-muted);
-  transition: color var(--dur-fast), transform var(--dur-fast) var(--ease-smooth-out);
+  white-space: nowrap; flex: none;
+  min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--color-border);
+  font-size: 14px; color: var(--color-fg); background: var(--color-bg);
+  transition: background-color var(--dur-fast), transform 120ms var(--ease-smooth-out);
 }
-.ir-replay:hover { color: var(--color-fg); }
+.ir-replay:hover { background: var(--color-surface); }
 .ir-replay:active { transform: scale(0.97); }
 @media (max-width: 719px) {
-  .ir-scene-stage { padding: 14px; }
+  .ir-scene-stage { padding: 14px; border-radius: 18px; }
   .ir-scene-q { font-size: 14px; border-radius: 14px; }
-  .ir-scene-cols { grid-template-columns: 1fr; gap: 40px; }
+  .ir-scene-cols { grid-template-columns: 1fr; gap: 28px; }
+  .ir-ans { margin-top: 0; }
   .ir-ans-text { font-size: 15.5px; }
 }
 
-/* ── Scroll-pinned chapter (components/rag/how-it-checks.tsx) ─────── */
+/* ── Scroll-pinned chapter (components/rag/how-it-checks.tsx) ───────
+ * The one full-colour block on the page is the highlighter itself: this is
+ * the chapter about what gets highlighted. */
 .ir-chapter { position: relative; height: 2400px; margin-top: 24px; }
 .ir-chapter-stage {
-  position: sticky; top: 0;
-  height: min(620px, calc(100dvh - 120px));
+  position: sticky; top: 12px;
+  height: min(640px, calc(100dvh - 140px));
   display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 48px; align-items: center;
+  padding: 40px; border-radius: 28px;
+  background: var(--color-mark); color: var(--color-fg);
 }
+.ir-chapter-stage h2 { color: var(--color-fg); }
 .ir-steps { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 16px; }
 .ir-steps li { position: relative; padding-left: 18px; }
 .ir-steps li::before {
   content: ""; position: absolute; left: 0; top: 3px; bottom: 3px; width: 2px; border-radius: 2px;
-  background: var(--color-primary); transform: scaleY(0); transform-origin: top;
+  background: var(--color-fg); transform: scaleY(0); transform-origin: top;
   transition: transform 450ms var(--ease-smooth-out);
 }
 .ir-steps li.is-on::before { transform: scaleY(1); }
-.ir-steps h3 { font: 600 16px/1.3 var(--font-sans); color: var(--color-subtle); transition: color 300ms var(--ease-smooth-out); }
-.ir-steps p { margin-top: 4px; font-size: 14px; line-height: 1.55; color: var(--color-subtle); max-width: 44ch; transition: color 300ms var(--ease-smooth-out); }
+.ir-steps h3 { font: 600 16px/1.3 var(--font-sans); color: #4d4a2c; transition: color 300ms var(--ease-smooth-out); }
+.ir-steps p { margin-top: 4px; font-size: 14px; line-height: 1.55; color: #4d4a2c; max-width: 44ch; transition: color 300ms var(--ease-smooth-out); }
 .ir-steps li.is-on h3 { color: var(--color-fg); }
-.ir-steps li.is-on p { color: var(--color-muted); }
-.ir-chapter-visual {
-  position: relative; height: 470px;
-  border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 14px;
-  background-color: var(--color-surface);
-  background-image:
-    linear-gradient(to right, color-mix(in oklab, var(--color-ink-line) 14%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in oklab, var(--color-ink-line) 14%, transparent) 1px, transparent 1px);
-  background-size: 24px 24px;
-  overflow: hidden;
-}
-.ir-chapter-q { position: absolute; left: 14px; right: 14px; top: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 120ms; }
+.ir-steps li.is-on p { color: #2d2c22; }
+.ir-chapter-visual { position: relative; height: 520px; overflow: hidden; padding: 0 14px 14px; }
+.ir-chapter-visual .ir-win-bar { margin: 0 -14px 0; }
+.ir-chapter-q { position: absolute; left: 14px; right: 14px; top: 52px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity 120ms; box-shadow: none; background: var(--color-surface); padding: 8px 14px; font-size: 14px; }
 .ir-rank-row {
   position: absolute; left: 14px; right: 14px; top: 0; height: 32px;
   display: grid; grid-template-columns: 150px minmax(0, 1fr) 96px; align-items: center; gap: 12px;
@@ -311,35 +325,29 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
   transition: background-color 300ms var(--ease-smooth-out), opacity 300ms;
 }
 .ir-rank-label { font: 400 12.5px/1 var(--font-mono); color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ir-rank-track { position: relative; height: 8px; border-radius: 4px; background: color-mix(in oklab, var(--color-ink-line) 22%, transparent); overflow: hidden; }
+.ir-rank-track { position: relative; height: 8px; border-radius: 4px; background: var(--color-raised); overflow: hidden; }
 .ir-rank-dense, .ir-rank-kw { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; transform: scaleX(0); transform-origin: left; }
-.ir-rank-dense { background: #9cc3ff; }
-.ir-rank-kw { background: color-mix(in oklab, #9cc3ff 45%, var(--color-surface)); }
+.ir-rank-dense { background: var(--color-fg); }
+.ir-rank-kw { background: #8d8c82; }
 .ir-rank-tag { font: 500 12px/1 var(--font-sans); font-style: normal; color: var(--color-subtle); text-align: right; opacity: 0; }
-.ir-rank-row[data-state="used"], .ir-rank-row[data-state="cited"] { background: color-mix(in oklab, var(--color-primary) 14%, transparent); }
-.ir-rank-row[data-state="cited"] .ir-rank-label { color: var(--color-fg); }
-.ir-rank-row[data-state="cited"] .ir-rank-tag { color: var(--color-primary); }
+.ir-rank-row[data-state="used"], .ir-rank-row[data-state="cited"] { background: color-mix(in oklab, var(--color-mark) 70%, white); }
+.ir-rank-row[data-state="cited"] .ir-rank-label, .ir-rank-row[data-state="cited"] .ir-rank-tag { color: var(--color-fg); }
 .ir-rank-row[data-state="cited"] .ir-rank-dense { background: var(--color-primary); }
-.ir-rank-row[data-state="cited"] .ir-rank-kw { background: color-mix(in oklab, var(--color-primary) 50%, var(--color-surface)); }
-.ir-rank-row[data-state="inspect"] { opacity: 0.62; }
-.ir-gate {
-  position: absolute; left: 14px; right: 14px; top: 0; height: 0;
-  border-top: 1.5px dashed var(--color-primary); transform-origin: left; opacity: 0;
-}
-.ir-gate span { position: absolute; right: 0; top: -9px; padding: 0 6px; background: var(--color-surface); font: 500 11.5px/18px var(--font-sans); color: var(--color-primary); }
+.ir-rank-row[data-state="inspect"] .ir-rank-label { color: var(--color-subtle); }
+.ir-gate { position: absolute; left: 14px; right: 14px; top: 0; height: 0; border-top: 1.5px dashed var(--color-fg); transform-origin: left; opacity: 0; }
+.ir-gate span { position: absolute; right: 0; top: -9px; padding: 0 6px; background: var(--color-bg); font: 500 11.5px/18px var(--font-sans); color: var(--color-fg); }
 .ir-verdict {
   position: absolute; left: 14px; right: 14px; bottom: 14px;
-  padding: 11px 14px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-raised);
+  padding: 11px 14px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-surface);
   font-size: 14px; color: var(--color-fg); opacity: 0;
 }
 @media (max-width: 899px) {
   .ir-chapter { height: 2000px; }
-  .ir-chapter-stage { grid-template-columns: 1fr; gap: 16px; align-content: start; padding-top: 8px; height: min(720px, calc(100dvh - 120px)); }
+  .ir-chapter-stage { grid-template-columns: 1fr; gap: 16px; align-content: start; padding: 20px 16px; border-radius: 20px; height: min(740px, calc(100dvh - 120px)); }
   .ir-steps { margin-top: 12px; grid-template-areas: "s"; }
   .ir-steps li { grid-area: s; opacity: 0; transition: opacity 300ms var(--ease-smooth-out); }
   .ir-steps li.is-on { opacity: 1; }
-  .ir-chapter-visual { height: 420px; }
+  .ir-chapter-visual { height: 470px; }
   .ir-rank-row { grid-template-columns: 112px minmax(0, 1fr) 76px; gap: 8px; height: 28px; }
-  .ir-rank-label { font-size: 11px; }
-  .ir-rank-tag { font-size: 11px; }
+  .ir-rank-label, .ir-rank-tag { font-size: 11px; }
 }
