@@ -45,7 +45,7 @@ function indexFor(all: SearchRow[], scoped: SearchRow[], scopeKey: string): BM25
     return hit.index;
   }
   indexStats.builds++;
-  const index = new BM25Index(scoped.map((r) => ({ id: r.chunk.id, text: `${r.title}\n${r.chunk.text}` })));
+  const index = new BM25Index(scoped.map((r) => ({ id: r.chunk.id, text: `${r.title}\n${r.chunk.heading ?? ""}\n${r.chunk.text}` })));
   byScope.set(scopeKey, { fp, index });
   return index;
 }
@@ -176,7 +176,7 @@ export function retrieveFromRows(opts: {
   const meta = new Map<string, SearchRow>();
   for (const row of scopedRows) meta.set(row.chunk.id, row);
 
-  const texts = scopedRows.map((r) => `${r.title}\n${r.chunk.text}`);
+  const texts = scopedRows.map((r) => `${r.title}\n${r.chunk.heading ?? ""}\n${r.chunk.text}`);
   const idf = buildIdf(texts);
   const vocab = corpusVocab(texts);
   const query = payloadQuery(opts.query);
