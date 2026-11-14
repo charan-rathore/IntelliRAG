@@ -76,7 +76,7 @@ jobs:
           PYTHONPATH=. python scripts/eval/compare_sota.py
 
       - name: Upload evaluation report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: rag-eval-report
@@ -109,7 +109,7 @@ jobs:
             --output data/eval/reports/nightly_report.json
 
       - name: Upload nightly report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rag-nightly-eval
           path: rag-platform/data/eval/reports/nightly_report.json

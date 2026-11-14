@@ -61,7 +61,7 @@ jobs:
         env:
           RAG_MODEL_CACHE: .cache/models
           RAG_LOCAL_EMBED_POOLING: mean
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: semantic-bench-${{ matrix.dataset }}
