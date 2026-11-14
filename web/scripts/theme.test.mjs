@@ -24,8 +24,16 @@ test('primary button label has contrast on normal and hover fills', () => {
     assert.ok(contrast(tokens['primary-fg'], tokens[bg]) >= 4.5, `button on ${bg}`);
   }
 });
-test('theme-color and favicon use the warm-dark background', () => {
-  for (const path of ['../src/routes/__root.tsx', '../public/favicon.svg']) {
-    assert.ok(readFileSync(new URL(path, import.meta.url), 'utf8').includes(tokens.bg));
-  }
+test('theme-color matches the app background token', () => {
+  // Browser chrome follows the app background (paper redesign #111: bg is
+  // --color-bg, currently light). Pin the relationship, not the value, so a
+  // deliberate palette change updates one token.
+  assert.ok(readFileSync(new URL('../src/routes/__root.tsx', import.meta.url), 'utf8').includes(tokens.bg));
+});
+test('favicon keeps its dark brand tile', () => {
+  // The paper redesign (#111) deliberately kept a dark tile with yellow
+  // strokes for the favicon - it is a standalone brand mark and must NOT
+  // track the light app background. Pin the shipped tile color.
+  const svg = readFileSync(new URL('../public/favicon.svg', import.meta.url), 'utf8');
+  assert.ok(svg.includes('#1c1c19'), 'favicon lost its dark brand tile');
 });
