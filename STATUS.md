@@ -48,3 +48,13 @@ sub-queries and union top hits, guarded so ordinary "and" queries don't pull unr
 ## Next runnable task
 Add comparison-aware retrieval in retrieve-core (test first with pqueue-eval + an ordinary-"and" negative),
 then retry heading-level section splitting and re-measure.
+
+## Session 3 (2026-11-14 evening) — PRs + design pass
+- PR #113 (this branch): chunking fixes + tests + eval/STATUS. Opened, not merged.
+- PR #114 `design/quieter-chrome`: removed faux macOS window dots on demo panels; "Architecture"/"Watch demo" now muted text links. No build/preview run (no deps).
+- memoRABLE PR #117 `design/splash-copy-and-entrance`: splash tagline matches "A daily log for engineers"; dropped 6px blur from `hx-rise`. Not built/tested.
+- Reviewed live sites in the browser pane (800x600 only; mobile not checked).
+- Open design notes (not changed): IntelliRAG header has 8 controls in 4 styles ("Extractive" status pill reads like a button);
+  the 3-checkmark trust row under the hero is a stock pattern; sticky composer covers the hero demo on short screens.
+  memoRABLE splash plays on every reload (tests depend on it); e2e workbench.spec.ts:62 expects an old heading.
+- Next: CI results for #113/#114/#117; then comparison-aware retrieval (see above).
