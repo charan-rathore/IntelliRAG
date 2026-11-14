@@ -597,8 +597,8 @@ export function Console({ initial }: { initial: Snapshot }) {
           </span>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
-          <a href="/architecture.html" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary xl:inline-flex">Architecture</a>
-          <a href="/walkthrough" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary sm:inline-flex">Watch demo</a>
+          <a href="/architecture.html" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline xl:inline-flex">Architecture</a>
+          <a href="/walkthrough" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline sm:inline-flex">Watch demo</a>
           <span data-tour="tour-settings">
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
               <KeyRound className="size-4" />
