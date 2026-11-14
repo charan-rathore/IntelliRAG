@@ -162,6 +162,11 @@ function splitCodeUnits(body: string, language: string | null, targetChars: numb
 
 function overlapTail(text: string, count: number): string {
   let start = Math.max(0, text.length - count);
+  // Never begin overlap mid-word: advance to the next whitespace boundary.
+  if (start > 0 && !/\s/.test(text[start - 1]!)) {
+    const ws = text.slice(start).search(/\s/);
+    start = ws === -1 ? text.length : start + ws;
+  }
   const first = text.charCodeAt(start);
   const previous = text.charCodeAt(start - 1);
   if (first >= 0xdc00 && first <= 0xdfff && previous >= 0xd800 && previous <= 0xdbff) start -= 1;
@@ -312,7 +317,7 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     } else if (fence && (fence[1]![0] !== "`" || !fence[2]!.includes("`"))) {
       headingFence = fence[1]!;
     } else {
-      const heading = /^(#{1,4})\s+(.+)$/.exec(line);
+      const heading = /^(#{1,6})\s+(.+)$/.exec(line);
       if (heading) sourceHeadings.push({ offset: lineOffset, level: heading[1]!.length, title: heading[2]!.trim() });
     }
     lineOffset += line.length + 1;
@@ -331,10 +336,13 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     }
     return label ?? (stack.length ? stack.map((f) => f.title).join(" > ") : null);
   });
+  // Overlap must not cross a section boundary: a piece that opens with a
+  // heading starts a new section and owns no text from the previous one.
+  const overlapFor = (i: number): string =>
+    i > 0 && !/^\s*#{1,6}\s/.test(merged[i] ?? "") ? overlapTail(merged[i - 1] ?? "", overlapChars) : "";
   const withOverlap: string[] = [];
   for (let i = 0; i < merged.length; i += 1) {
-    const prev = merged[i - 1] ?? "";
-    const overlapText = overlapTail(prev, overlapChars);
+    const overlapText = overlapFor(i);
     const text = (overlapText && i > 0 ? `${overlapText}\n${merged[i]}` : merged[i]).trim();
     if (text) withOverlap.push(text);
   }
@@ -355,8 +363,7 @@ function chunkProse(body: string, chunkSize: number, overlap: number, extra: Omi
     // same text also exists as standalone prose elsewhere. Overlap lines come
     // from the previous piece's tail, so anchor the walk there.
     const pieceStart = pieceStarts[pieceIndex] ?? -1;
-    const prev = merged[pieceIndex - 1] ?? "";
-    const overlapText = pieceIndex > 0 ? overlapTail(prev, overlapChars) : "";
+    const overlapText = overlapFor(pieceIndex);
     // Analyze the untrimmed assembly so line offsets stay exact; the chunk
     // text itself is trimmed, which would shift the first line's offset.
     const pieceText = merged[pieceIndex] ?? "";
