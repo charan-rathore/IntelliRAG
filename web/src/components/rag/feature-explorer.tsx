@@ -149,7 +149,7 @@ export function FeatureExplorer(actions: ExplorerActions) {
       </div>
       <div id="ir-explorer-panel" role="tabpanel" aria-labelledby={`ir-tab-${feature.id}`} className="ir-explorer-panel">
         <div className="ir-win ir-explorer-win" aria-hidden="true" key={feature.id}>
-          <p className="ir-win-bar"><i /><i /><i /><span>{feature.window}</span></p>
+          <p className="ir-win-bar"><span>{feature.window}</span></p>
           <div className="ir-explorer-scene"><Scene p={sp} /></div>
         </div>
         <div className="ir-explorer-actions">
