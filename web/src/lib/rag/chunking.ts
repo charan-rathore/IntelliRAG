@@ -164,8 +164,10 @@ function overlapTail(text: string, count: number): string {
   let start = Math.max(0, text.length - count);
   // Never begin overlap mid-word: advance to the next whitespace boundary.
   if (start > 0 && !/\s/.test(text[start - 1]!)) {
+    // Unspaced scripts (CJK, emoji) have no boundary to find: keep the
+    // character start so they still get overlap.
     const ws = text.slice(start).search(/\s/);
-    start = ws === -1 ? text.length : start + ws;
+    if (ws !== -1) start += ws;
   }
   const first = text.charCodeAt(start);
   const previous = text.charCodeAt(start - 1);
