@@ -76,6 +76,28 @@ export function getStorageStatus(): StorageStatus {
       warning: null,
     };
   }
+  // The configured local store failed and the corpus was forced ephemeral
+  // (db.ts markEphemeral): callers are serving the in-memory corpus, so
+  // status must not claim durable PGLite storage. Name the recorded incident
+  // (safe token only - the raw cause stays on the server-side record).
+  const bootFailure = (
+    globalThis as {
+      __intelliragForceEphemeral__?: boolean;
+      __pgliteBootFailure__?: { incidentId?: unknown };
+    }
+  );
+  if (bootFailure.__intelliragForceEphemeral__) {
+    const incident = bootFailure.__pgliteBootFailure__?.incidentId;
+    return {
+      backend: "ephemeral",
+      durable: false,
+      denseAvailable: false,
+      warning:
+        "The configured local store failed to open" +
+        (typeof incident === "string" ? ` (incident ${incident})` : "") +
+        ". Serving the in-memory corpus: keyword search still works on the bundled seed text, but imported sources and their embeddings are forgotten on restart.",
+    };
+  }
   if (isServerlessRuntime()) {
     return {
       backend: "ephemeral",

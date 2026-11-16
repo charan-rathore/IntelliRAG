@@ -5,7 +5,7 @@
  * (process-local, ephemeral). Embeddings do not survive cold starts there, and
  * dense retrieval must not be advertised.
  */
-import { getSql, vercelWithoutDatabase, type Sql } from "@/lib/db";
+import { getSql, isDbUnavailableError, vercelWithoutDatabase, type Sql } from "@/lib/db";
 import { SEED_DOCUMENTS } from "./corpus";
 import { REPO_DEMO_DOCUMENT } from "./repo-demo.server";
 import { chunkDocument, type ChunkOptions } from "./chunking";
@@ -33,6 +33,9 @@ import {
 import { seedPredictedQuestions } from "./suggested-questions.server";
 
 function dbUnavailable(err: unknown) {
+  // Typed boot failures carry the exact classification the raw cause would
+  // have received below, so wrapping never changes fallback policy.
+  if (isDbUnavailableError(err)) return err.fallbackEligible;
   const msg = err instanceof Error ? err.message : String(err);
   return /pglite|ENOENT|_libs|disabled on Vercel/i.test(msg);
 }
