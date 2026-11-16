@@ -16,7 +16,12 @@ const globalEphemeral = globalThis as typeof globalThis & {
 function markEphemeral(err?: unknown) {
   globalEphemeral.__intelliragForceEphemeral__ = true;
   if (err) {
-    console.error("[db] PGLite unavailable on this runtime; using ephemeral corpus", err);
+    // Safe metadata only - the raw error can carry paths and is kept on the
+    // DbBootFailure record (server-only) instead of ordinary output.
+    console.error(
+      "[db] PGLite unavailable on this runtime; using ephemeral corpus " +
+        `(${err instanceof Error ? err.name : typeof err})`,
+    );
   }
 }
 
@@ -62,13 +67,160 @@ export interface Sql {
  * this module, and two instances racing module-level state would open a second
  * pool or run two concurrent PGLite migration passes (whose duplicate
  * `_migrations` insert rejects. and would get memoized, poisoning every later
- * `getSql()`). A failed init clears its slot so the next call retries.
+ * `getSql()`). A failed PGLite init records one typed boot failure (see
+ * `recordBootFailure`): later callers observe the same incident instead of
+ * implicitly reopening the store.
  */
 const globalRef = globalThis as typeof globalThis & {
   __pgSqlPromise__?: Promise<Sql>;
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
+  __pgliteBootFailure__?: DbBootFailure;
+  /** Test-only seam: replaces the PGlite constructor so failure paths can be
+   * exercised without booting a real embedded database. Never set at runtime. */
+  __intelliragPgliteCtorForTests__?: unknown;
 };
+
+/** Where a PGLite bootstrap attempt failed: opening the configured store, or
+ * applying app migrations on an open store. */
+export type DbBootFailureStage = "opening configured store" | "app migrations";
+
+/** Server-side record of the failed bootstrap attempt. The raw `cause` and
+ * the `storeDir` path stay in this in-process object only - never logged in
+ * ordinary output and never serialized to clients. */
+export interface DbBootFailure {
+  stage: DbBootFailureStage;
+  incidentId: string;
+  reasonClass: string;
+  cause: unknown;
+  at: string;
+  /** Identity of the configured store that failed (pgliteDataDir()). */
+  storeDir: string;
+  /** Whether the raw cause message matches the corpus-fallback classifier
+   * (/pglite|ENOENT|_libs|disabled on Vercel/i, the store.server.ts
+   * dbUnavailable regex) - i.e. the classification the un-wrapped error
+   * would have received downstream. */
+  regexMatched: boolean;
+  /** Whether policy marks the corpus ephemeral for this failure
+   * (migration-stage always; opening-stage only when isPgliteFsError). */
+  markedEphemeral: boolean;
+}
+
+/**
+ * Record the failed bootstrap attempt for the currently configured store and
+ * return the stable record. One failed attempt per configured store per
+ * process: a repeated failure for the SAME store keeps the first record
+ * (stable incidentId, no implicit retry). The storeDir comparison is a
+ * stale-record guard for the test-only data-dir override path, NOT
+ * multi-store support: only the latest failed store is remembered (no
+ * history), and the ephemeral flag stays process-global. The supported
+ * deployment scope is one immutable configured store per process
+ * (pgliteDataDir has no per-request input; cwd/env could technically change,
+ * so immutability is an assumption of the deployment, not a proven
+ * invariant). Retrying a failed store is an operator decision - fix the
+ * cause and restart the process.
+ *
+ * The ordinary log line carries safe metadata only (stage, incidentId,
+ * reasonClass); the raw cause (paths, wasm internals) stays on the record.
+ */
+function recordBootFailure(stage: DbBootFailureStage, cause: unknown): DbBootFailure {
+  const storeDir = pgliteDataDir();
+  const existing = globalRef.__pgliteBootFailure__;
+  if (existing && existing.storeDir === storeDir) return existing;
+  const msg = cause instanceof Error ? cause.message : String(cause);
+  const regexMatched = /pglite|ENOENT|_libs|disabled on Vercel/i.test(msg);
+  const failure: DbBootFailure = {
+    stage,
+    incidentId: `db-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`,
+    reasonClass: isPgliteFsError(cause)
+      ? "pglite-fs"
+      : cause instanceof Error
+        ? cause.name
+        : "unknown",
+    cause,
+    at: new Date().toISOString(),
+    storeDir,
+    regexMatched,
+    markedEphemeral: stage === "app migrations" || isPgliteFsError(cause),
+  };
+  globalRef.__pgliteBootFailure__ = failure;
+  console.error(
+    `[db] configured store failed while ${stage} ` +
+      `(incident ${failure.incidentId}, reason ${failure.reasonClass}, ` +
+      `fallback-classifier ${regexMatched ? "matched" : "unmatched"}); ` +
+      "no automatic retry - fix the cause and restart the process.",
+  );
+  return failure;
+}
+
+/**
+ * API-safe view of a recorded boot failure: name, stage, incidentId and a
+ * short message serialize to clients; the raw cause (wasm internals, paths,
+ * keys) stays server-side on the DbBootFailure record.
+ */
+export class DbUnavailableError extends Error {
+  readonly stage: DbBootFailureStage;
+  readonly incidentId: string;
+  /** Corpus-fallback classification, exactly what the un-wrapped error would
+   * have received at store.server.ts dbUnavailable: first-failure errors
+   * classify by the raw cause message; errors served from the recorded
+   * failure classify like the "PGLite is disabled" short-circuit they
+   * replace (ephemeral flag set) or by the raw message when unmarked. */
+  readonly fallbackEligible: boolean;
+  constructor(failure: DbBootFailure, fallbackEligible: boolean) {
+    super(`Storage unavailable while ${failure.stage} (incident ${failure.incidentId}).`);
+    this.name = "DbUnavailableError";
+    this.stage = failure.stage;
+    this.incidentId = failure.incidentId;
+    this.fallbackEligible = fallbackEligible;
+  }
+  toJSON() {
+    return {
+      name: this.name,
+      stage: this.stage,
+      incidentId: this.incidentId,
+      message: this.message,
+    };
+  }
+}
+
+/**
+ * Structural brand check for DbUnavailableError. instanceof alone is
+ * module-identity dependent: under HMR, a consumer module (e.g.
+ * store.server.ts) can retain an older db.ts class while the error comes
+ * from a newer instance. Match the stable public shape instead.
+ */
+export function isDbUnavailableError(err: unknown): err is DbUnavailableError {
+  if (err instanceof DbUnavailableError) return true;
+  if (typeof err !== "object" || err === null) return false;
+  const e = err as Record<string, unknown>;
+  return (
+    e.name === "DbUnavailableError" &&
+    typeof e.incidentId === "string" &&
+    typeof e.fallbackEligible === "boolean" &&
+    (e.stage === "opening configured store" || e.stage === "app migrations")
+  );
+}
+
+/**
+ * The recorded bootstrap failure as a typed error, when the currently
+ * configured store is the one that failed; null otherwise. The typed error
+ * carries the fallback classification the old flow produced: when the
+ * failure marked the corpus ephemeral, later callers used to hit the
+ * "PGLite is disabled" short-circuit (which the dbUnavailable classifier
+ * matches), so the typed error is eligible too; an unmarked failure keeps
+ * its raw-message classification. Used by every getSql/ensureDbReady/
+ * getPglite entry point and by the migration-queue guard.
+ */
+function recordedBootFailureError(): DbUnavailableError | null {
+  if (currentDbSource() !== "pglite") return null;
+  const failure = globalRef.__pgliteBootFailure__;
+  if (!failure || failure.storeDir !== pgliteDataDir()) return null;
+  return new DbUnavailableError(
+    failure,
+    globalEphemeral.__intelliragForceEphemeral__ === true || failure.regexMatched,
+  );
+}
 
 /**
  * Result-type parity: Postgres sends every value as text plus a type OID. the
@@ -164,6 +316,13 @@ async function createPgliteSql(): Promise<Sql> {
       throw new Error("PGLite is disabled on Vercel without DATABASE_URL");
     }
     const { PGlite } = await import("@electric-sql/pglite");
+    // Test-only constructor seam, honored solely under an explicit env flag
+    // so the global alone is inert outside the failure-injection tests.
+    const testSeam =
+      typeof process !== "undefined" && process.env?.INTELLIRAG_TEST_SEAM === "1"
+        ? globalRef.__intelliragPgliteCtorForTests__
+        : undefined;
+    const PGliteCtor = (testSeam ?? PGlite) as typeof PGlite;
     const { existsSync, readFileSync, mkdirSync } = await import("node:fs");
     const { join } = await import("node:path");
     const readAsset = (name: string) => {
@@ -182,7 +341,7 @@ async function createPgliteSql(): Promise<Sql> {
     const initdb = readAsset("initdb.wasm");
     const dataDir = pgliteDataDir();
     mkdirSync(dataDir, { recursive: true });
-    const pg = new PGlite({
+    const pg = new PGliteCtor({
       dataDir,
       parsers: {
         [OID_INT8]: Number,
@@ -199,9 +358,10 @@ async function createPgliteSql(): Promise<Sql> {
     );
     return pg;
   })().catch((err) => {
+    const failure = recordBootFailure("opening configured store", err);
     globalRef.__pgliteInstance__ = undefined;
     if (isPgliteFsError(err)) markEphemeral(err);
-    throw err;
+    throw new DbUnavailableError(failure, failure.regexMatched);
   });
   const pg = await globalRef.__pgliteInstance__;
 
@@ -256,23 +416,42 @@ async function createPgliteSql(): Promise<Sql> {
   };
   const pass = (globalRef.__pgliteMigrateChain__ ?? Promise.resolve())
     .catch(() => undefined) // an earlier failed pass must not wedge the chain
-    .then(migrate);
+    .then(async () => {
+      // HMR creates a second instance of this module with its own module-
+      // local sqlPromise, so its pass may have been queued here before
+      // another instance's pass failed and closed the shared PGLite
+      // instance. Re-check the recorded failure at the head of the queue:
+      // a stale pass must never run migrations on a closed store.
+      const stale = recordedBootFailureError();
+      if (stale) throw stale;
+      await migrate();
+    });
   globalRef.__pgliteMigrateChain__ = pass;
   try {
     await pass;
   } catch (err) {
     // A failed bootstrap must not leak the WASM runtime - a live PGLite
-    // instance keeps the event loop held and the process never exits. Close
-    // it, drop the cached handles, and go ephemeral so callers fall back to
-    // the memory corpus instead of hanging.
+    // instance keeps the event loop held and the process never exits. Record
+    // the incident first, then close it, drop the cached handles, and go
+    // ephemeral so callers fall back to the memory corpus instead of hanging.
+    // The recorded failure makes every later getSql() observe the same
+    // incident instead of re-running migrations on a reopened store.
+    // A queued pass from a second module instance (HMR) surfaces here with
+    // the ALREADY-recorded typed error: the original failing pass recorded,
+    // closed and marked, so this pass must not re-close or re-mark.
+    const alreadyRecorded = isDbUnavailableError(err);
+    const failure = recordBootFailure("app migrations", err);
     globalRef.__pgliteInstance__ = undefined;
     globalRef.__pgliteMigrateChain__ = undefined;
-    try {
-      await pg.close();
-    } catch {
-      // best effort
+    if (!alreadyRecorded) {
+      try {
+        await pg.close();
+      } catch {
+        // best effort
+      }
+      markEphemeral(err);
+      throw new DbUnavailableError(failure, failure.regexMatched);
     }
-    markEphemeral(err);
     throw err;
   }
 
@@ -297,6 +476,15 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
+  // One failed attempt per configured store per process: after a recorded
+  // PGLite bootstrap failure, every caller observes the same typed incident
+  // instead of implicitly reopening the store. This check precedes the
+  // ephemeral short-circuit so callers see the incident even when the failure
+  // also marked the store ephemeral (fallback policy itself is unchanged).
+  // The record is scoped to the PGLite path: with DATABASE_URL set, Neon is
+  // the configured store and a stale PGLite record must not shadow it.
+  const recorded = recordedBootFailureError();
+  if (recorded) throw recorded;
   if (vercelWithoutDatabase()) {
     throw new Error("PGLite is disabled on Vercel without DATABASE_URL");
   }
@@ -312,7 +500,10 @@ async function createSql(): Promise<Sql> {
  */
 export function getSql(): Promise<Sql> {
   sqlPromise ??= createSql().catch((err) => {
-    sqlPromise = null; // don't memoize failures. let the next call retry
+    // Don't memoize failures. A PGLite bootstrap failure is already recorded
+    // (recordBootFailure), so the next call observes the same typed incident
+    // instead of reopening the store; Neon failures keep their fresh retry.
+    sqlPromise = null;
     if (isPgliteFsError(err)) markEphemeral(err);
     throw err;
   });
@@ -325,6 +516,10 @@ export function getSql(): Promise<Sql> {
  * Kysely dialect). Throws when `DATABASE_URL` is set (that path uses Neon).
  */
 export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite> {
+  // Keep the recorded incident observable here even after the corpus was
+  // marked ephemeral (which otherwise short-circuits with a generic error).
+  const recorded = recordedBootFailureError();
+  if (recorded) throw recorded;
   if (vercelWithoutDatabase()) {
     throw new Error("PGLite is disabled on Vercel without DATABASE_URL");
   }
@@ -349,6 +544,11 @@ export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite
  * module kick it off immediately (see bottom of file).
  */
 export function ensureDbReady(): Promise<void> {
+  // A recorded bootstrap failure stays observable here: without this check,
+  // a failure that marked the corpus ephemeral would make later readiness
+  // calls resolve successfully for a store that never opened.
+  const recorded = recordedBootFailureError();
+  if (recorded) return Promise.reject(recorded);
   if (currentDbSource() !== "pglite") return Promise.resolve();
   if (vercelWithoutDatabase()) return Promise.resolve();
   return getSql().then(() => undefined);
@@ -365,6 +565,12 @@ if (typeof window === "undefined" && currentDbSource() === "pglite" && !vercelWi
   globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
     globalBoot.__pgBootstrapPromise__ = undefined;
     if (isPgliteFsError(err)) markEphemeral(err);
-    console.error("[db] PGLite bootstrap failed:", err);
+    // Safe metadata only; raw errors can carry paths and stay on the
+    // server-only failure record.
+    console.error(
+      isDbUnavailableError(err)
+        ? `[db] PGLite bootstrap failed while ${err.stage} (incident ${err.incidentId})`
+        : `[db] PGLite bootstrap failed (unexpected ${err instanceof Error ? err.name : typeof err})`,
+    );
   });
 }

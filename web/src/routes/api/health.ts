@@ -71,6 +71,16 @@ export const Route = createFileRoute("/api/health")({
           return Response.json(
             {
               ...base,
+              // Re-read after the failed await: when a boot failure forces
+              // the ephemeral fallback, db.ts sets the fallback marker
+              // synchronously before the typed error reaches this catch
+              // (fs-classified opening errors; migration-stage failures).
+              // The snapshot in `base` - taken before the await - predates
+              // the marker and would claim durable storage on the very
+              // response reporting the database down. Failures that are
+              // recorded but NOT marked (unmatched opening errors) are not
+              // ephemeral and correctly keep their prior status here.
+              storage: getStorageStatus(),
               status: "database-error",
               databaseReachable: false,
               deployment: currentPosture(false),
