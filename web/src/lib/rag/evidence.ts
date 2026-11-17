@@ -1,3 +1,4 @@
+import { missingExplicitFocusTerms } from "./query-focus";
 import { distinctiveTerms, payloadQuery, type RerankSignals } from "./ranking";
 import { contentTokens, tokenSetMatches } from "./text";
 import type { EvidenceGate, EvidenceKind, RetrievedChunk } from "./types";
@@ -75,6 +76,7 @@ export function queryChunkSupport(query: string, packed: RetrievedChunk[]) {
     terms,
     hits,
     ratio: terms.length ? hits.length / terms.length : 0,
+    packedTokens,
   };
 }
 
@@ -145,6 +147,24 @@ export function classifyEvidence(opts: {
     packedTopDense,
     packedTopLexical,
   };
+
+  // A single generic verb overlap can admit an unrelated passage. Parse an
+  // explicit focus only in that narrow case, plus keyword-only zero-overlap
+  // packing where the dense check cannot run, and let strong dense matches
+  // keep the existing behavior.
+  const explicitFocusApplies =
+    (support.hits.length === 1 && (packedTopDense == null || packedTopDense < PACKED_DENSE_SUPPORT)) ||
+    (support.hits.length === 0 && packedTopDense == null);
+  if (explicitFocusApplies) {
+    const missingFocus = missingExplicitFocusTerms(opts.query, support.packedTokens);
+    if (missingFocus.length) {
+      return gate(
+        "insufficient",
+        "The question names an explicit focus that is absent from the packed passages; a single generic overlap does not establish an answer.",
+        { ...stats, clearedForInsufficient: true },
+      );
+    }
+  }
 
   // Topic overlap cannot supply a requested credential absent from the passages.
   // This does not assert that the entire source was exhaustively searched.

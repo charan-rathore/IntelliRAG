@@ -7,6 +7,7 @@ import { GenerationError } from "./generation-result";
  */
 import { createHash } from "node:crypto";
 import { graphFirstRetrieve } from "./graph-first";
+import { EXPLICIT_FOCUS_POLICY } from "./query-focus";
 import { loadChunksByIds } from "./store.server";
 import { EMPTY_EDITS, type GraphEdits, type GraphTrace } from "./graphify/edits";
 import { citedSourceSlugs } from "./graphify/story";
@@ -208,7 +209,7 @@ export async function runQueryStream(
   const runtime = resolveRuntime();
   const edits = input.graphEdits ?? EMPTY_EDITS;
   // Source revisions are checked by ensureGraph. Settings and credentials isolate answer variants.
-  const policy = createHash("sha256").update(JSON.stringify({ version: runtime.generate ? 6 : 8, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
+  const policy = createHash("sha256").update(JSON.stringify({ version: runtime.generate ? 6 : 8, evidencePolicy: EXPLICIT_FOCUS_POLICY, mode: input.retrievalMode ?? "hybrid", topK: input.topK ?? 5,
     model: runtime.generate ? generationModelLabel(runtime.generate.provider) : "extractive", runtime, edits })).digest("hex");
   const graphStart = performance.now();
   emit({ type: "stage", name: "graph-lookup" });
