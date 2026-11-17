@@ -165,6 +165,14 @@ function overlapTail(text: string, count: number): string {
   const first = text.charCodeAt(start);
   const previous = text.charCodeAt(start - 1);
   if (first >= 0xdc00 && first <= 0xdfff && previous >= 0xd800 && previous <= 0xdbff) start -= 1;
+  if (start > 0 && text[start - 1] !== "\n") {
+    const nextLine = text.indexOf("\n", start);
+    // A partial overlap line makes an excerpt look like corrupted source
+    // (", priority", "tting the count", ...). Keep the remaining complete
+    // lines; if none fit in the overlap budget, skip overlap for this chunk.
+    if (nextLine === -1) return "";
+    start = nextLine + 1;
+  }
   return text.slice(start).trim();
 }
 
