@@ -44,8 +44,9 @@ jobs:
       # The bench's only extra package, installed beside the app (not into
       # its lockfile) and linked where the app's dynamic import looks for it.
       - name: Install @huggingface/transformers for the bench
+        # CPU-only bench: skip onnxruntime-node's CUDA download (its GPU release asset now 404s).
         run: |
-          mkdir -p /tmp/hf && (cd /tmp/hf && npm init -y >/dev/null && npm install --no-audit --no-fund @huggingface/transformers@3.8.1)
+          mkdir -p /tmp/hf && (cd /tmp/hf && npm init -y >/dev/null && npm install --no-audit --no-fund --onnxruntime-node-install-cuda=skip @huggingface/transformers@3.8.1)
           mkdir -p node_modules/@huggingface
           ln -sfn /tmp/hf/node_modules/@huggingface/transformers node_modules/@huggingface/transformers
       - run: npx --yes tsx --test src/lib/rag/semantic-index.test.ts
