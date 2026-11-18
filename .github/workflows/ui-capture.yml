@@ -29,6 +29,7 @@ jobs:
       - run: node scripts/capture-ui.mjs ../docs/images/ui
       - name: Encode the recording
         run: |
+          sudo apt-get install -y -qq ffmpeg >/dev/null
           cd ../docs/images/ui
           ffmpeg -v error -y -i conversation.webm -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p -movflags +faststart conversation.mp4
           ffmpeg -v error -y -i conversation.webm -vf "fps=10,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" conversation.gif
