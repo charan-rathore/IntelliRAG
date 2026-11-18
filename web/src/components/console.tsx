@@ -14,6 +14,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { AnswerFeedback } from "@/components/rag/answer-feedback";
 import { CoverageChip } from "@/components/rag/coverage-chip";
+import { ContextCoverageLine } from "@/components/rag/context-coverage";
 import { loadGraphEdits, type GraphTrace } from "@/lib/rag/graphify/edits";
 import { VectorPaths } from "@/components/rag/vector-paths";
 import { KnowledgeGraph } from "@/components/rag/knowledge-graph";
@@ -57,6 +58,7 @@ import type {
   DenseDiagnostics,
   DocumentHealth,
   EvidenceGate,
+  ContextCoverage,
   EvidenceKind,
   LayerLatencies,
   RetrievalCandidate,
@@ -95,6 +97,7 @@ type Message = {
   corpusId?: string | null;
   corpusScope?: "corpus" | "all";
   evidenceGate?: EvidenceGate;
+  contextCoverage?: ContextCoverage | null;
   feedback?: GraphOutcome | null;
   asked?: string;
 };
@@ -402,6 +405,7 @@ export function Console({ initial }: { initial: Snapshot }) {
               corpusId: data.corpusId as string | null | undefined,
               corpusScope: data.corpusScope as "corpus" | "all" | undefined,
               evidenceGate: data.evidenceGate as EvidenceGate | undefined,
+              contextCoverage: data.contextCoverage as ContextCoverage | null | undefined,
               stage: "generating",
             }));
           } else if (data.type === "token") {
@@ -430,6 +434,7 @@ export function Console({ initial }: { initial: Snapshot }) {
               actualMode: (data.actualMode as RetrievalMode | undefined) ?? m.actualMode,
               corpusId: (data.corpusId as string | null | undefined) ?? m.corpusId,
               evidenceGate: (data.evidenceGate as EvidenceGate | undefined) ?? m.evidenceGate,
+              contextCoverage: (data.contextCoverage as ContextCoverage | null | undefined) ?? m.contextCoverage,
               stage: undefined,
             }));
           } else if (data.type === "error") {
@@ -968,6 +973,9 @@ function Turn({
         <div className="mt-4">
           <LatencyWaterfall latencies={message.latencies} />
         </div>
+      )}
+      {!message.stage && !message.error && message.chunks && message.chunks.length > 0 && (
+        <ContextCoverageLine coverage={message.contextCoverage} />
       )}
       {view === "lab" && message.candidates && message.candidates.length > 0 ? (
         <SourceInspector

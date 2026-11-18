@@ -8,6 +8,8 @@ import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { chunkDocument } from '../src/lib/rag/chunking';
 import { retrieveFromRows, type SearchRow } from '../src/lib/rag/retrieve-core';
+import { coverageTerms, packByCoverage } from '../src/lib/rag/coverage-pack';
+import { buildIdf } from '../src/lib/rag/ranking';
 import { BM25Index } from '../src/lib/rag/bm25';
 import { GROUNDED_SYSTEM } from '../src/lib/rag/evidence';
 import { SEED_DOCUMENTS } from '../src/lib/rag/corpus';
@@ -65,6 +67,7 @@ report.chunking = { wallMs: performance.now() - buildStart, chunks: rows.length,
   targetChunks: rows.filter(r => r.slug === 'p-queue').length, distractorDocuments: distractors ? SEED_DOCUMENTS.length : 0 };
 writeFileSync(out + '/chunks.json', JSON.stringify(rows, null, 2));
 const byId = new Map(rows.map(r => [r.chunk.id, r]));
+const corpusIdf = buildIdf(rows.map(r => `${r.title}\n${r.chunk.text}`));
 const bm25 = new BM25Index(rows.map(r => ({ id: r.chunk.id, text: `${r.title}\n${r.chunk.text}` })));
 const pack = (ids: string[]) => {
   let tokens = 0;
@@ -117,6 +120,18 @@ for (const [index, item] of dataset.cases.entries()) {
   const baselineMs = performance.now() - t;
   const result = retrieveFromRows({ query: item.question, queryVector: null, mode: 'keyword', topK: 8, embeddingModel: null, rows,
     corpusScope: { kind: 'corpus', corpusId: 'repo-support' }, storage: { backend: 'ephemeral', durable: false, denseAvailable: false, warning: null } });
+  // Arm: the opt-in coverage packer on the same reranked candidates.
+  const covResult = retrieveFromRows({ query: item.question, queryVector: null, mode: 'keyword', topK: 8, embeddingModel: null, rows,
+    corpusScope: { kind: 'corpus', corpusId: 'repo-support' }, storage: { backend: 'ephemeral', durable: false, denseAvailable: false, warning: null }, packing: 'coverage' });
+  const covIds = covResult.chunks.map(c => c.chunkId);
+  const covText = new Map(covResult.chunks.map(c => [c.chunkId, c.text] as [string, string]));
+  // Ablation 2: plain BM25 top-8 candidates, coverage packer, no reranker and no
+  // support gate (every candidate is primary). Isolates the packing algorithm.
+  const bm25Pool = bm25.search(item.question, 8).map((r, i) => { const row = byId.get(r.id)!; return { chunkId: r.id, documentId: row.slug, slug: row.slug, title: row.title,
+    text: row.chunk.text, heading: null, score: 1 / (i + 1), rank: i + 1, retriever: 'keyword', tokenCount: row.chunk.token_count } as any; });
+  const bm25Cov = packByCoverage({ pool: bm25Pool, primary: new Set(bm25Pool.map((c: any) => c.chunkId)), terms: coverageTerms(item.question), idf: corpusIdf, budget: 1400 });
+  const bm25CovIds = bm25Cov.packed.map(c => c.chunkId);
+  const bm25CovText = new Map(bm25Cov.packed.map(c => [c.chunkId, c.text] as [string, string]));
   const ids = result.chunks.map(c => c.chunkId);
   const packedText = new Map(result.chunks.map(c => [c.chunkId, c.text] as [string, string]));
   const oracle = rows.filter(r => r.slug === 'p-queue' && item.evidence.some((e: Evidence) => normalize(r.chunk.text).includes(normalize(e.quote)))).map(r => r.chunk.id);
@@ -126,7 +141,10 @@ for (const [index, item] of dataset.cases.entries()) {
     bm25: { ids: baselineIds, metrics: metrics(baselineIds, item.evidence), wallMs: baselineMs },
     intellirag: { ids, metrics: metrics(ids, item.evidence, packedText), trimmed: result.chunks.filter(c => c.text !== byId.get(c.chunkId)!.chunk.text).map(c => c.chunkId), gate: result.evidenceGate, tokens: result.contextTokens,
       stages: { keywordMs: result.keywordMs, rerankMs: result.rerankMs, assembleMs: result.assembleMs }, candidates: result.candidates },
-    oracle: { ids: oracle, metrics: metrics(oracle, item.evidence) } };
+    oracle: { ids: oracle, metrics: metrics(oracle, item.evidence) },
+    intelliragCoveragePacking: { ids: covIds, metrics: metrics(covIds, item.evidence, covText), gate: covResult.evidence, tokens: covResult.contextTokens, coverage: covResult.coverage },
+    bm25CoveragePacking: { ids: bm25CovIds, metrics: metrics(bm25CovIds, item.evidence, bm25CovText), tokens: bm25Cov.report.usedTokens, coverage: bm25Cov.report.ratio },
+    coverage: result.coverage };
   if (!existing) report.results.push(row); save();
   if (generate) {
     row.answers ??= {};
@@ -156,7 +174,7 @@ for (const [index, item] of dataset.cases.entries()) {
       save();
     }
   }
-  console.log(`${item.id}: evidence ${row.bm25.metrics.evidenceRecall ?? 'n/a'} → ${row.intellirag.metrics.evidenceRecall ?? 'n/a'}; ${result.evidence}`);
+  console.log(`${item.id}: bm25 ${row.bm25.metrics.evidenceRecall ?? 'n/a'} | bm25+coverage ${row.bm25CoveragePacking?.metrics.evidenceRecall ?? 'n/a'} | intellirag ${row.intellirag.metrics.evidenceRecall ?? 'n/a'} | intellirag+coverage ${row.intelliragCoveragePacking?.metrics.evidenceRecall ?? 'n/a'}; gate ${result.evidence}; missing terms: ${result.coverage?.missing.join(', ') || '-'}`);
 }
 report.complete = true; save();
 if (generate) {
