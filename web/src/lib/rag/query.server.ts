@@ -25,12 +25,14 @@ import { getStorageStatus } from "./storage";
 import { listDocuments, pendingEmbeddingCount, recordTrace } from "./store.server";
 import { recordAskedQuestion } from "./suggested-questions.server";
 import { coverageOf } from "./trace";
+import type { CoverageReport } from "./coverage-pack";
 import { parseCorpusScope, SEED_CORPUS_ID } from "./corpus-scope";
 import type {
   Citation,
   CoverageKind,
   DenseDiagnostics,
   EvidenceGate,
+  ContextCoverage,
   EvidenceKind,
   LayerLatencies,
   RetrievalCandidate,
@@ -60,6 +62,7 @@ export type QueryEvent =
       corpusId?: string | null;
       corpusScope?: "corpus" | "all";
       evidenceGate?: EvidenceGate;
+      contextCoverage?: ContextCoverage | null;
     }
   | { type: "token"; text: string }
   | {
@@ -87,8 +90,13 @@ export type QueryEvent =
       corpusId?: string | null;
       corpusScope?: "corpus" | "all";
       evidenceGate?: EvidenceGate;
+      contextCoverage?: ContextCoverage | null;
     }
   | { type: "error"; message: string };
+
+function compactCoverage(report: CoverageReport | null | undefined): ContextCoverage | null {
+  return report ? { covered: report.covered, missing: report.missing, ratio: report.ratio } : null;
+}
 
 function citationsFrom(answer: string, chunks: RetrievedChunk[]): Citation[] {
   const found = new Set<number>();
@@ -321,6 +329,7 @@ export async function runQueryStream(
     corpusId: retrieved.corpusId,
     corpusScope: retrieved.corpusScope,
     evidenceGate: retrieved.evidenceGate,
+    contextCoverage: compactCoverage(retrieved.coverage),
   });
 
   let evidenceKind = retrieved.evidence;
@@ -383,6 +392,7 @@ export async function runQueryStream(
       corpusId: retrieved.corpusId,
       corpusScope: retrieved.corpusScope,
       evidenceGate: retrieved.evidenceGate,
+      contextCoverage: compactCoverage(retrieved.coverage),
     });
     return;
   }
@@ -433,6 +443,7 @@ export async function runQueryStream(
       corpusId: retrieved.corpusId,
       corpusScope: retrieved.corpusScope,
       evidenceGate: retrieved.evidenceGate,
+      contextCoverage: compactCoverage(retrieved.coverage),
     });
     return;
   }
@@ -495,6 +506,7 @@ export async function runQueryStream(
       corpusId: retrieved.corpusId,
       corpusScope: retrieved.corpusScope,
       evidenceGate: retrieved.evidenceGate,
+      contextCoverage: compactCoverage(retrieved.coverage),
     });
     return;
   }
@@ -580,5 +592,6 @@ export async function runQueryStream(
     corpusId: retrieved.corpusId,
     corpusScope: retrieved.corpusScope,
     evidenceGate: retrieved.evidenceGate,
+    contextCoverage: compactCoverage(retrieved.coverage),
   });
 }
