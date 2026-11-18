@@ -1,104 +1,107 @@
 # IntelliRAG
 
-**Ask a source. Know what it actually says.**
+**Retrieval that decides what it can prove before a model speaks.**
 
-[**Try the live source demo**](https://intellirag-live-own-track.vercel.app/) · [See the execution architecture](https://intellirag-live-own-track.vercel.app/architecture.html) · [Watch the real browser walkthrough](https://intellirag-live-own-track.vercel.app/walkthrough) · [Read the measured evaluation](eval/repo-support/README.md)
+Ask a question about a pinned source. IntelliRAG finds the passages, checks whether they actually support an answer, packs them into a fixed token budget, and tells you which parts of your question the context never mentions. If the evidence isn't there, it refuses instead of improvising.
 
-IntelliRAG is a research-minded source-retrieval and inference-execution console. It starts with a narrow developer-support question: can we recover *all* the source passages needed for a correct technical answer, preserve their exact origin, and refuse to imply that absent facts have been established?
+[**Try the live console**](https://intellirag-live-own-track.vercel.app/) · [Interactive architecture](https://intellirag-live-own-track.vercel.app/architecture.html) · [Browser walkthrough](https://intellirag-live-own-track.vercel.app/walkthrough) · [Measured evaluation](eval/repo-support/README.md) · [Code graph](docs/codegraph/README.md)
 
-The public browser demo pins a **single README** from [sindresorhus/p-queue](https://github.com/sindresorhus/p-queue) to an exact revision. It asks how to change shared configuration while jobs are queued. The user can inspect the retrieved passages and citation path, then explore how the execution made its decision.
+![How a question becomes a cited answer or a refusal: 1 ask, 2 query, 3 rank, 4 check support (refuse if nothing is supported), 5 pack within 1,400 tokens, 6 measure coverage, 7 answer, 8 answer with trace; A ingest a pinned GitHub source, B optional model, C a frozen eval replays the same functions](docs/images/architecture.png)
 
-The public demo is deliberately honest: without a configured server model, it presents **cited source extracts**, not generated reasoning. It uses ephemeral storage and refuses visitor imports and API keys. This is not persistent, multi-tenant RAG.
+Follow the numbers. **1–2**: you ask. **3–7**: the evidence is decided *before* any model runs. **8**: you get the answer, its citations, and the question terms nothing in the context covers. **A–C** happen offline: ingest at a pinned commit, an optional model, and a frozen evaluation that calls the same functions the server does.
 
-## One concrete demo
+## The problem
 
-1. [Open the console](https://intellirag-live-own-track.vercel.app/).
-2. Select **Ask this question** on the pinned p-queue example.
-3. Inspect the answer or cited extracts; click a citation to inspect the supporting passage. A synthesis of several API behaviors is an inference, not a verbatim source fact.
-4. Switch from **Reading** to **Lab** to see available retrieval decisions, evidence diagnostics and graph inspection. The graph is a diagnostic, not proof that a graph algorithm improved the answer.
-5. [Open the visual architecture](https://intellirag-live-own-track.vercel.app/architecture.html) for the same workflow, trust boundaries, concrete source files and benchmark limitations.
+Retrieval-augmented systems rarely fail by answering from nothing. They fail by answering *with* sources attached. In a 2026 penalty-aware audit, 98% and 100% of two commercial RAG products' wrong answers came with cited sources or grounding chunks ([arXiv:2608.26385](https://arxiv.org/abs/2608.26385)). Practitioners describe the same failure: the retriever returns something topically close, and the model fills the gap convincingly.
 
-No new provider keys or external setup are needed to try the pinned public demo.
+Most of these errors happen when the retrieved context is *relevant but insufficient* ([Sufficient Context, ICLR 2025](https://arxiv.org/abs/2411.06037)). So IntelliRAG treats "is this enough to answer?" as a first-class, inspectable decision, not something left to the prompt.
 
-## What the architecture actually does
+## What it does differently
 
-~~~text
-source revision + corpus
-      │
-      ▼
-ingest → chunk → keyword index (+ optional compatible vectors)
-      │
-      ▼
-query + exact corpus → retrieve → rank → pack within budget
-      │
-      ▼
-evidence gate → extract / model generation when configured
-      │
-      ▼
-cited output + trace → source inspection + feedback
-~~~
+| Stage | Decision | Where |
+|---|---|---|
+| Retrieve | BM25, plus dense vectors only when compatible stored embeddings exist, fused with RRF | [`retrieve-core.ts`](web/src/lib/rag/retrieve-core.ts) |
+| Rerank | A calibrated mix of idf recall, phrase and title overlap. It is not a cross-encoder and not a confidence score. | [`ranking.ts`](web/src/lib/rag/ranking.ts) |
+| Gate | A passage needs a support floor and distinctive overlap; a decisive rank-1 margin keeps only that source. If nothing passes, the answer is a refusal with no citations. | [`ranking.ts`](web/src/lib/rag/ranking.ts), [`evidence.ts`](web/src/lib/rag/evidence.ts) |
+| Pack | 1,400-token budget. Passages are verbatim slices of the stored chunk, code fences are never split, and a chunk that doesn't fit is trimmed to its most relevant contiguous paragraphs. | [`ranking.ts`](web/src/lib/rag/ranking.ts), [`coverage-pack.ts`](web/src/lib/rag/coverage-pack.ts) |
+| Measure | Lists the question terms (function words and quantities removed) that appear in no packed passage, shown under every answer | [`coverage-pack.ts`](web/src/lib/rag/coverage-pack.ts), [`context-coverage.tsx`](web/src/components/rag/context-coverage.tsx) |
+| Answer | With a server or visitor key: temperature 0 and a cite-or-refuse prompt. Without one: cited extracts, labelled as extracts. | [`query.server.ts`](web/src/lib/rag/query.server.ts) |
+| Cache | Keyed by question, corpus and a policy hash covering retrieval mode, evidence policy, model and graph edits. Corrections invalidate it. | [`graphify/persist.server.ts`](web/src/lib/rag/graphify/persist.server.ts), [`query.server.ts`](web/src/lib/rag/query.server.ts) |
 
-The cache and orchestration policy must never cross corpus, source revision, request, retrieval-policy, permission or model boundaries where those affect the result. Cache hits are evaluated separately from retrieval quality. The Evidence Core provides immutable source identity, exact spans and claim status, but the original contract alone is **not** a complete response-cache key.
+The coverage line reads like this on a question the source can't settle:
 
-- [Visual live architecture](https://intellirag-live-own-track.vercel.app/architecture.html)
-- [Architecture decisions and known failure modes](docs/architecture/web-rag-decisions.md)
-- [Evidence Core contract and adapter](web/src/lib/evidence-core/)
-- [Web deployment, security posture and production acceptance](WEB.md)
-- [Repository-support evaluation and raw data](eval/repo-support/README.md)
-- [Security, functionality and operational audit](audit/REPORT.md)
+> **5/9 question terms in context** · not found: `server` `processes` `durable`
 
-The application lives in [web/](web/), with retrieval implementation in [web/src/lib/rag/](web/src/lib/rag/). The Python [rag-platform/](rag-platform/) remains a separate benchmark/reference implementation, **not** the serving runtime for the public web app.
+That is the honest summary of "does this README establish a shared, durable rate limit across three servers?": it doesn't.
 
-## Measured result—not a broad superiority claim
+## Measured, including what lost
 
-On one pinned p-queue README, using a frozen set of 15 answerable questions and an approximate 1,400-token evidence context budget:
+One pinned README ([sindresorhus/p-queue](https://github.com/sindresorhus/p-queue) at `180ab9e`), 15 answerable questions with exact evidence anchors, 5 that must be refused, and the same 1,400-token budget for every arm. No model runs in these numbers; they measure whether the required evidence reached the reader.
 
-| Evidence recovery | Required-evidence recall |
-| --- | ---: |
-| Earlier document-level deduplication | 36.7% |
-| After fixing that deduplication bug | 70.0% |
-| Budget-aware passage trimming | **73.3%** |
-| Plain BM25 at the same budget | **73.3%** |
+| Arm | Clean corpus | + distractor documents | Refused 5/5 |
+|---|---:|---:|:---:|
+| Plain BM25 | 73.3% | 63.3% | — |
+| IntelliRAG, rank-order packing (**default**) | 73.3% | **83.3%** | ✓ |
+| IntelliRAG, coverage-aware packing (opt-in) | **76.7%** | 73.3% | ✓ |
 
-The current evidence-retention result **ties** BM25, rather than beating it. The evidence gate refused the five unsupported probes in this diagnostic. No LLM generation ran in this retrieval experiment. Those figures do not establish answer correctness, customer value, multi-repository generalization or cloud-serving latency.
+The default ties BM25 on the clean corpus and beats it by 20 points once noise documents are mixed in. The coverage packer wins one extra question on the clean corpus, but the gain's bootstrap interval is [−10, +20] points, and it loses 10 points under distractors. So it stays opt-in. Every run, including the losing ones, is in [`eval/repo-support/runs/`](eval/repo-support/runs/), and the [evaluation write-up](eval/repo-support/README.md) covers method, history and limits.
 
-Read the [full methodology, data, before/after runs and limitations](eval/repo-support/README.md). A future retrieval arm must beat the same frozen baseline under the same context budget and report its failures, not merely improve the design story.
+## Research behind the design
 
-## Run it locally
+| Paper | What we took | Status here |
+|---|---|---|
+| [Sufficient Context](https://arxiv.org/abs/2411.06037) (Joren et al., ICLR 2025) | Errors concentrate where context is relevant but insufficient, so expose sufficiency before trusting fluency | Lexical proxy shipped on every answer; an LLM autorater is not used |
+| [AdaGReS](https://arxiv.org/abs/2512.25052) (2025) | Redundancy-penalised greedy selection under a token budget with an adaptive penalty | Implemented in `coverage-pack.ts`; opt-in after measurement |
+| [Lin & Bilmes](https://aclanthology.org/P11-1052/) (ACL 2011) | Cost-benefit greedy plus a best-single-unit check for knapsack-constrained submodular selection | Implemented; the guarantee holds only without the redundancy term |
+| [Recall Is Not Enough](https://arxiv.org/abs/2607.00725) (2026) | Score what the packed context contains, not the candidate list | The eval scores the text actually packed, after trimming |
+| [Lost in the Middle](https://arxiv.org/abs/2307.03172) (TACL 2024) | Position matters; keep the strongest evidence first | The top supported chunk is the whole-chunk anchor |
+
+## Run it
 
 ~~~sh
 git clone https://github.com/charan-rathore/IntelliRAG.git
 cd IntelliRAG/web
 npm ci
-npm run dev
+npm run dev            # http://localhost:8080, pinned source works without a key
 ~~~
-
-Open http://localhost:8080. The pinned source is available without a key.
 
 ~~~sh
-npm run typecheck
-npm run test:hardening
-npm run test:persistence
-npx --yes tsx --test src/lib/rag/*.test.ts
-npm run build
+npm run typecheck && npm run build
+npx tsx --test src/lib/rag/*.test.ts                 # retrieval, gate, packing, persistence
+npx tsx scripts/repo-support-eval.ts                 # the measured table above, no network
+npx tsx scripts/repo-support-eval.ts --distractors   # the noise stress test
 ~~~
 
-See [WEB.md](WEB.md) for the Vercel project setup and release gate. In public demo mode the server enforces read-only seeded content. Enabling durable imports, persistent semantic search, private workspaces and provider generation requires independent configuration and security acceptance—not a frontend toggle.
+[WEB.md](WEB.md) covers the Vercel setup, security posture and release gate. Durable imports, persistent semantic search and provider generation need private configuration; they aren't a frontend toggle.
 
-## What we are optimizing
+## Repository map
 
-The engineering target is **verified task completion per unit of computation**. That means:
+```mermaid
+flowchart LR
+  subgraph web["web/ · the served app"]
+    UI["src/components<br/>console, inspector, coverage"] --> Q["lib/rag/query.server.ts<br/>stream: sources → tokens → done"]
+    Q --> R["retrieve-core.ts<br/>BM25 · dense · RRF"]
+    R --> K["ranking.ts<br/>rerank · gate · pack"]
+    K --> C["coverage-pack.ts<br/>budgeted selection · coverage"]
+    R --> E["evidence.ts<br/>classify support"]
+    Q --> S["store.server.ts<br/>Postgres / PGlite · cache"]
+    I["ingest.server.ts<br/>chunking · GitHub · SSRF guard"] --> S
+  end
+  EV["web/scripts/repo-support-eval.ts"] -.same functions.-> R
+  PY["rag-platform/<br/>Python reference + benchmarks"]
+```
 
-- retrieve the required evidence with as little context and repeated work as possible;
-- reuse valid computation only when source versions, question and policy match;
-- treat cache invalidation, corpus isolation, refusal and latency as correctness properties;
-- compare simple BM25, dense retrieval, hybrids and long-context baselines before adding costly complexity;
-- separate model usage from local retrieval measurements and publish losing experiments.
-
-The first customer hypothesis is a developer-tool support team answering configuration and troubleshooting questions. The proposed [human-reviewed pilot](docs/sales/repository-support-pilot.md) measures accepted answers, material errors, engineer review time and actual cost per resolved case. No proven customer ROI or production semantic-search advantage is claimed.
+[`docs/codegraph/`](docs/codegraph/README.md) is a generated dependency graph of the whole repository (files, imports, hubs and import cycles), rebuilt with `node scripts/codegraph.mjs`. Start there to find the blast radius of a change. The Python [`rag-platform/`](rag-platform/) is a separate benchmark and reference implementation; it is not the serving runtime.
 
 ## Limits
 
-The current public host has no configured durable production vector index or server generation key. Its keyword/extractive mode is inspectable but does not demonstrate production semantic RAG. The graph contains document/heading/shared-term connections and feedback; it is not verified semantic entity extraction. The evaluation is small and single-source. The original web template's entire inherited test suite has legacy failures distinct from the focused RAG gates; do not claim all tests are green until verified.
+- The evaluation is one README with project-authored annotations. Both splits have been inspected, so the results are exploratory, not a blind holdout.
+- The public host has no durable vector index or server model key. It shows keyword retrieval and cited extracts honestly; it doesn't demonstrate production semantic RAG.
+- The coverage check is lexical. A paraphrase can answer a "missing" term, and a matched term can still be used in an unrelated sense.
+- The graph view shows lexical document links, not verified entity extraction.
 
-The goal is to improve the execution architecture through measured failures—not enlarge the agent surface without need.
+The target is verified task completion per unit of compute. A change ships when it beats the frozen baseline at the same budget and its failures are published.
+
+## License
+
+MIT
