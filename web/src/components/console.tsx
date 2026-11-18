@@ -13,6 +13,9 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { AnswerFeedback } from "@/components/rag/answer-feedback";
+import { IntentLine } from "@/components/rag/intent-line";
+import { historyFrom } from "@/lib/rag/conversation";
+import type { TurnPlan } from "@/lib/rag/session-intent";
 import { CoverageChip } from "@/components/rag/coverage-chip";
 import { ContextCoverageLine } from "@/components/rag/context-coverage";
 import { loadGraphEdits, type GraphTrace } from "@/lib/rag/graphify/edits";
@@ -100,6 +103,7 @@ type Message = {
   contextCoverage?: ContextCoverage | null;
   feedback?: GraphOutcome | null;
   asked?: string;
+  intent?: TurnPlan;
 };
 
 const STALE_LABEL: Record<StaleReason, string> = {
@@ -162,6 +166,9 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [topK, setTopK] = useState(5);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  // Where the current topic starts: "New topic" moves it to the end, so the next
+  // question is searched on its own.
+  const [topicFrom, setTopicFrom] = useState(0);
   const [busy, setBusy] = useState(false);
   const [indexing, setIndexing] = useState(false);
   const [indexStop, setIndexStop] = useState<{ message: string; remaining: number } | null>(null);
@@ -358,6 +365,8 @@ export function Console({ initial }: { initial: Snapshot }) {
       stage: "retrieving",
       asked: q,
     };
+    const target = corpusOverride ?? corpus;
+    const history = historyFrom(messages, target, topicFrom);
     setMessages((m) => [...m, userMsg, asst]);
     try {
       const res = await fetch("/api/query", {
@@ -365,6 +374,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: q,
+          ...(history.length ? { history } : {}),
           retrievalMode: mode,
           topK,
           corpus: corpusOverride ?? corpus,
@@ -388,6 +398,8 @@ export function Console({ initial }: { initial: Snapshot }) {
           const data = raw as Record<string, unknown>;
           if (data.type === "stage") {
             patch((m) => ({ ...m, stage: String(data.name) }));
+          } else if (data.type === "intent") {
+            patch((m) => ({ ...m, intent: data.plan as TurnPlan }));
           } else if (data.type === "graph") {
             patch(m => ({ ...m, graphTrace: data as unknown as GraphTrace }));
           } else if (data.type === "sources") {
@@ -731,8 +743,17 @@ export function Console({ initial }: { initial: Snapshot }) {
             {busy ? <LoaderCircle className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
           </Button>
         </form>
-        <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-subtle">
-          Type any question and press Enter. Suggestions learn from what people ask on each document.
+        <p className="mx-auto mt-2 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-subtle">
+          <span>
+            {historyFrom(messages, corpus, topicFrom).length
+              ? "Follow-ups are read with the earlier questions on this topic."
+              : "Type any question and press Enter. Suggestions learn from what people ask on each document."}
+          </span>
+          {historyFrom(messages, corpus, topicFrom).length > 0 && (
+            <button type="button" className="underline underline-offset-2 hover:text-fg" onClick={() => setTopicFrom(messages.length)}>
+              New topic
+            </button>
+          )}
         </p>
         <div className="mx-auto mt-2 flex max-w-3xl justify-center gap-2 sm:hidden">
           <Button variant="ghost" size="sm" onClick={() => setCorpusOpen(true)}>
@@ -934,6 +955,7 @@ function Turn({
   };
   return (
     <article className="ir-rise rounded-lg border border-border bg-surface px-4 py-4 [animation-delay:60ms]">
+      {message.intent && <IntentLine plan={message.intent} />}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         {message.coverage ? <CoverageChip kind={message.answerKind === "source_excerpts" ? "excerpts" : message.coverage} /> : <span />}
         <span className="flex items-center gap-2">

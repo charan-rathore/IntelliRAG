@@ -3,6 +3,7 @@
  * This is not a learned cross-encoder. MMR is not part of the current retrieval execution path.
  */
 import { retrieveFromRows, type RetrieveResult, type SearchRow } from "./retrieve-core";
+import { buildIdf, type IdF } from "./ranking";
 import { AMBIGUOUS_SYSTEM, GROUNDED_SYSTEM, NEGATIVE_SYSTEM } from "./evidence";
 import { getStorageStatus } from "./storage";
 import { loadSearchableChunks } from "./store.server";
@@ -27,6 +28,23 @@ export async function retrieve(opts: {
     storage: getStorageStatus(),
     corpusScope,
   });
+}
+
+/**
+ * idf over a corpus's searchable chunks, for reading a conversation's turns
+ * (session-intent.ts). Cached by the chunk set it was built from.
+ */
+const IDF_CACHE = new Map<string, { key: string; idf: IdF }>();
+export async function sessionIdf(corpus: string | null): Promise<IdF> {
+  const scope: CorpusScope = parseCorpusScope(corpus);
+  const rows = (await loadSearchableChunks(scope)) as SearchRow[];
+  const scopeKey = scope.kind === "all" ? "*" : scope.corpusId;
+  const key = `${rows.length}:${rows.map((r) => r.chunk.id).join(",").length}:${rows[0]?.chunk.id ?? ""}:${rows.at(-1)?.chunk.id ?? ""}`;
+  const hit = IDF_CACHE.get(scopeKey);
+  if (hit && hit.key === key) return hit.idf;
+  const idf = buildIdf(rows.map((r) => `${r.title}\n${r.chunk.text}`));
+  IDF_CACHE.set(scopeKey, { key, idf });
+  return idf;
 }
 
 export function buildContext(
