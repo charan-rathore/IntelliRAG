@@ -1,9 +1,12 @@
-import { it } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { coverageTerms, packByCoverage, paragraphUnits } from './coverage-pack.ts';
 import { buildIdf, selectContextCoverage } from './ranking.ts';
 import { estimateTokens } from './text.ts';
 import type { RetrievedChunk } from './types.ts';
+import { absentSubject } from "./coverage-pack.ts";
+import { chunkDocument } from "./chunking.ts";
+import { retrieveFromRows, type SearchRow } from "./retrieve-core.ts";
 
 const mk = (id: string, text: string, score: number, rank: number): RetrievedChunk => ({
   chunkId: id, documentId: 'doc', slug: 'doc', title: 'README', text, heading: null, score, rank,
@@ -86,4 +89,34 @@ it('treats quantities as parameters, not aspects, and displays the typed word', 
   assert.ok(!t.includes('two') && !t.includes('ten'));
   const stem = t.find((x) => x.startsWith('unfinish'))!;
   assert.equal(surfaceTerm('Two unfinished jobs and ten retries', stem), 'unfinished');
+});
+
+describe("absentSubject: names the source never mentions", () => {
+  const vocab = new Set(["queue", "redi", "onempty", "timeout", "schedul", "pqueue", "abortsignal", "concurr"]);
+  it("finds a named thing the corpus lacks", () => {
+    assert.deepEqual(absentSubject("What caused the Kubernetes pod scheduling failures?", vocab), ["Kubernetes"]);
+    assert.deepEqual(absentSubject("What is mTLS used for in a service mesh?", vocab), ["mTLS"]);
+    assert.deepEqual(absentSubject("Does it run on Node 22?", vocab), ["Node"]);
+  });
+  it("ignores names the corpus has and plain words it lacks", () => {
+    assert.deepEqual(absentSubject("How do you stop a Redis cache stampede?", vocab), []);
+    assert.deepEqual(absentSubject("Our onEmpty handler writes a final report while jobs run.", vocab), []);
+  });
+  it("doesn't read a sentence's first word as a name", () => {
+    assert.deepEqual(absentSubject("Separately: Which queue runs first? Then tell me.", vocab), []);
+  });
+});
+
+describe("retrieval refuses a question about something the source never mentions", () => {
+  it("refuses Kubernetes on a queue README even though 'scheduling' matches", () => {
+    const body = "# p-queue\\n\\n## Scheduling failures\\n\\nScheduling failures are caused when a pod of tasks waits on concurrency. A pod is scheduled when the queue has room, and scheduling failures clear once it drains.\\n\\n## Errors\\n\\nUse onError to stop on the first failure.";
+    const rows = chunkDocument(body, { filepath: "readme.md" }).map((c) => ({ title: "p-queue README", slug: "p-queue", indexedAt: null, corpusId: "t",
+      chunk: { id: `p:${c.ordinal}`, document_id: "p-queue", ordinal: c.ordinal, text: c.text, token_count: c.tokenCount, heading: c.heading, embedding: null, embedding_model: null,
+        content_hash: String(c.ordinal), created_at: "", filepath: c.filepath, language: c.language, symbol: c.symbol, chunk_kind: c.chunkKind, corpus_id: "t" } })) as SearchRow[];
+    const r = retrieveFromRows({ query: "What caused the Kubernetes pod scheduling failures?", queryVector: null, mode: "keyword", topK: 5, embeddingModel: null, rows,
+      corpusScope: { kind: "corpus", corpusId: "t" }, storage: { backend: "ephemeral", durable: false, denseAvailable: false, warning: null } as never });
+    assert.equal(r.evidence, "insufficient");
+    assert.equal(r.chunks.length, 0);
+    assert.match(r.evidenceNote, /Kubernetes/);
+  });
 });

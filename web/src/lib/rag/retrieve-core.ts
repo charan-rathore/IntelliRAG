@@ -12,7 +12,7 @@ import {
   selectContext,
   selectContextCoverage,
 } from "./ranking";
-import { coverageReportOf, coverageTerms, surfaceTerm, type CoverageReport } from "./coverage-pack";
+import { absentSubject, coverageReportOf, coverageTerms, surfaceTerm, type CoverageReport } from "./coverage-pack";
 import { classifyEvidence } from "./evidence";
 import { BM25Index } from "./bm25";
 
@@ -327,13 +327,21 @@ export function retrieveFromRows(opts: {
 
   const packedIds = new Set(packed.map((c) => c.chunkId));
   const denseSlugRanks = firstSlugRanks(dense);
-  const evidence = classifyEvidence({
+  const classified = classifyEvidence({
     query,
     packed: gateDecision.packed,
     ranked,
     signals,
     denseRank1Slug: denseSlugRanks[0]?.slug ?? null,
   });
+  // The source never names what the question is about: refuse rather than
+  // answer a neighbouring question (coverage-pack.ts, absentSubject).
+  // Only a positive verdict: a negative one ("the Redis guide never mentions
+  // Redlock") already says the name is missing, and cites where it looked.
+  const absent = classified.kind === "positive" ? absentSubject(query, vocab) : [];
+  const evidence: typeof classified = absent.length
+    ? { ...classified, kind: "insufficient", note: `The source never mentions ${absent.map((t) => `“${t}”`).join(", ")}, which the question is about.` }
+    : classified;
   const gatedPacked = evidence.kind === "insufficient" ? [] : packed;
   const gatedIds = new Set(gatedPacked.map((c) => c.chunkId));
   if (evidence.kind === "insufficient") {

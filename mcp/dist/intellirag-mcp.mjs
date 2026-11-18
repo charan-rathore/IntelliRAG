@@ -970,6 +970,19 @@ function coverageReportOf(packed, terms, idf, budget) {
     filled: 0
   };
 }
+function absentSubject(query, vocab) {
+  const named = [];
+  for (const sentence of query.split(/(?<=[.?!:;])\s+/)) {
+    const words = sentence.match(/[A-Za-z][\w.-]*[\w]|[A-Za-z]/g) ?? [];
+    named.push(...words.filter((w, i) => i > 0 && /^[A-Z][a-z]{2,}/.test(w) || /[a-z][A-Z]/.test(w) || /[.\d]/.test(w.slice(1))));
+  }
+  const absent = [];
+  for (const w of named) {
+    const parts = contentTokens(w).filter((t) => t.length >= 3);
+    if (parts.length && parts.every((t) => !tokenSetMatches(t, vocab))) absent.push(w);
+  }
+  return [...new Set(absent)];
+}
 
 // web/src/lib/rag/corpus-scope.ts
 var SEED_CORPUS_ID = "seed-lab";
@@ -2014,13 +2027,15 @@ ${r.chunk.text}`);
   const assembleMs = performance.now() - assembleStart;
   const packedIds = new Set(packed.map((c) => c.chunkId));
   const denseSlugRanks = firstSlugRanks(dense);
-  const evidence = classifyEvidence({
+  const classified = classifyEvidence({
     query,
     packed: gateDecision.packed,
     ranked,
     signals,
     denseRank1Slug: denseSlugRanks[0]?.slug ?? null
   });
+  const absent = classified.kind === "positive" ? absentSubject(query, vocab) : [];
+  const evidence = absent.length ? { ...classified, kind: "insufficient", note: `The source never mentions ${absent.map((t) => `\u201C${t}\u201D`).join(", ")}, which the question is about.` } : classified;
   const gatedPacked = evidence.kind === "insufficient" ? [] : packed;
   const gatedIds = new Set(gatedPacked.map((c) => c.chunkId));
   if (evidence.kind === "insufficient") {

@@ -385,3 +385,28 @@ export function coverageReportOf(
     filled: 0,
   };
 }
+
+
+/**
+ * Names in the question that the whole corpus never mentions. "What caused the
+ * Kubernetes pod scheduling failures?" asked of a queue library's README:
+ * passages about scheduling pass the support gate, but the thing the question
+ * is about is not in the source at all, so any answer would be about something
+ * else. Only names count (a capitalised word that doesn't start the sentence,
+ * camelCase, or a token with a dot or digit): plain words a question happens
+ * to use ("writes a final report") are often absent from a source that still
+ * answers it, which the evaluation showed.
+ */
+export function absentSubject(query: string, vocab: Set<string>): string[] {
+  const named: string[] = [];
+  for (const sentence of query.split(/(?<=[.?!:;])\s+/)) {
+    const words = sentence.match(/[A-Za-z][\w.-]*[\w]|[A-Za-z]/g) ?? [];
+    named.push(...words.filter((w, i) => (i > 0 && /^[A-Z][a-z]{2,}/.test(w)) || /[a-z][A-Z]/.test(w) || /[.\d]/.test(w.slice(1))));
+  }
+  const absent: string[] = [];
+  for (const w of named) {
+    const parts = contentTokens(w).filter((t) => t.length >= 3);
+    if (parts.length && parts.every((t) => !tokenSetMatches(t, vocab))) absent.push(w);
+  }
+  return [...new Set(absent)];
+}
