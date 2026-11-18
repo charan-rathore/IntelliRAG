@@ -172,7 +172,22 @@ export type RetrievalTrace = {
   scoreSemantics?: string;
   corpusId?: string | null;
   corpusScope?: "corpus" | "all";
+  /** Query-term coverage of the packed context (lexical proxy, not entailment). */
+  coverage?: {
+    covered: string[];
+    missing: string[];
+    ratio: number;
+    beta: number;
+    usedTokens: number;
+    budget: number;
+    winner: "greedy" | "single";
+    filled: number;
+    steps: Array<{ chunkId: string; paragraphs: [number, number]; gain: number; cost: number; covers: string[] }>;
+  } | null;
 };
+
+/** What the packed context covers of the question, as shown to the reader. Lexical proxy, not entailment. */
+export type ContextCoverage = { covered: string[]; missing: string[]; ratio: number };
 
 export type Citation = {
   sourceIndex: number;

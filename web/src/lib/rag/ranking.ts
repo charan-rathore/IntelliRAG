@@ -8,6 +8,7 @@ import {
   tokenSetMatches,
 } from "./text";
 import type { RetrievedChunk } from "./types";
+import { coverageTerms, packByCoverage, type CoverageReport } from "./coverage-pack";
 import { SEED_CORPUS_ID } from "./corpus-scope";
 import {
   CONTEXT_ABSOLUTE_FLOOR,
@@ -474,6 +475,90 @@ export function selectContext(
     used += chunk.tokenCount;
   }
   return { packed, dropReasons };
+}
+
+export type CoverageContextDecision = ContextDecision & { coverage: CoverageReport | null };
+
+/** Secondary (unsupported) candidates the coverage packer may draw single facts from. */
+export const COVERAGE_POOL_SIZE = 8;
+export const COVERAGE_SECONDARY_FLOOR = 0.1;
+
+/**
+ * Coverage-aware context selection (see coverage-pack.ts for the objective).
+ *
+ * Refusal behaviour is unchanged: if nothing passes the support gate the
+ * context is empty, exactly as in `selectContext`. What changes is how the
+ * budget is spent once something is supported: verbatim paragraph spans are
+ * chosen to cover the question's distinctive terms with the least redundancy,
+ * instead of packing up to three whole chunks in rank order.
+ */
+export function selectContextCoverage(
+  ranked: RetrievedChunk[],
+  signals: Map<string, RerankSignals>,
+  opts: { query: string; idf: IdF; maxTokens?: number; anchor?: string | null; allowedSlugs?: Set<string> | null },
+): CoverageContextDecision {
+  if (distinctiveTerms(opts.query).length === 0) {
+    return { ...selectContext(ranked, signals, { ...opts, topK: 3 }), coverage: null };
+  }
+  const dropReasons = new Map<string, string>();
+  const primary = new Set<string>();
+  for (const c of ranked) {
+    const sig = signals.get(c.chunkId);
+    if (sig && isSupported(sig, c.score)) primary.add(c.chunkId);
+    else
+      dropReasons.set(
+        c.chunkId,
+        `Not supported on its own: calibrated ${c.score.toFixed(2)} failed the support gate (floor ${CONTEXT_ABSOLUTE_FLOOR}). Eligible only to cover a question term nothing else covers.`,
+      );
+  }
+  if (!primary.size) return { packed: [], dropReasons, coverage: null };
+
+  let candidates = ranked.slice(0, COVERAGE_POOL_SIZE).filter(
+    (c) => primary.has(c.chunkId) || c.score >= COVERAGE_SECONDARY_FLOOR,
+  );
+  for (const c of ranked) if (primary.has(c.chunkId) && !candidates.includes(c)) candidates.push(c);
+  if (opts.allowedSlugs) {
+    // Coverage reorganises text inside documents the calibrated gate already
+    // accepted (relative floor, rank-1 margin, entity rules). It never adds a
+    // source document the gate rejected; weaker passages of an accepted
+    // document stay eligible (parent-document expansion).
+    for (const c of candidates)
+      if (!opts.allowedSlugs.has(c.slug)) dropReasons.set(c.chunkId, `Document not accepted by the context gate (${c.slug}). Inspect only.`);
+    candidates = candidates.filter((c) => opts.allowedSlugs!.has(c.slug));
+  }
+  const coordinating = /\band\b|\bshared by\b|\bboth\b|\bversus\b|\bvs\.?\b/.test(opts.query.toLowerCase());
+  const exclusive = entityTermsInQuery(opts.query);
+  if (exclusive.length === 1 && !coordinating) {
+    const holding = candidates.filter((c) => {
+      const doc = new Set(contentTokens(`${c.title}\n${c.text}`));
+      return exclusive.every((t) => tokenSetMatches(t, doc));
+    });
+    if (holding.some((c) => primary.has(c.chunkId))) {
+      for (const c of candidates)
+        if (!holding.includes(c)) dropReasons.set(c.chunkId, `Missing required entity term (${exclusive.join(", ")}). Inspect only.`);
+      candidates = holding;
+    }
+  }
+
+  const { packed, report } = packByCoverage({
+    pool: candidates,
+    primary,
+    terms: coverageTerms(opts.query),
+    idf: opts.idf,
+    budget: opts.maxTokens ?? CONTEXT_TOKEN_BUDGET,
+    seed: opts.anchor ? [opts.anchor] : [],
+  });
+  if (!packed.some((c) => primary.has(c.chunkId))) return { packed: [], dropReasons, coverage: report };
+  const packedIds = new Set(packed.map((c) => c.chunkId));
+  for (const c of candidates) {
+    if (packedIds.has(c.chunkId)) dropReasons.delete(c.chunkId);
+    else if (!dropReasons.has(c.chunkId) || primary.has(c.chunkId))
+      dropReasons.set(
+        c.chunkId,
+        "Coverage packer: no paragraph added an uncovered question term or enough relevance per token within the context budget.",
+      );
+  }
+  return { packed, dropReasons, coverage: report };
 }
 
 /** Smallest passage worth packing; below this a trimmed chunk is noise. */

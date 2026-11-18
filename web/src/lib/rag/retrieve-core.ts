@@ -10,7 +10,9 @@ import {
   retrievalQuery,
   rrfFuse,
   selectContext,
+  selectContextCoverage,
 } from "./ranking";
+import { coverageReportOf, coverageTerms, surfaceTerm, type CoverageReport } from "./coverage-pack";
 import { classifyEvidence } from "./evidence";
 import { BM25Index } from "./bm25";
 
@@ -129,7 +131,21 @@ export type RetrieveResult = {
   actualMode: RetrievalMode;
   corpusId: string | null;
   corpusScope: "corpus" | "all";
+  /** Coverage packer report (null under rank packing or an underspecified query). */
+  coverage: CoverageReport | null;
 };
+
+/**
+ * How the context budget is spent once evidence is supported.
+ * - "rank": up to three whole chunks in rerank order (default).
+ * - "coverage": verbatim paragraph spans chosen for query-term coverage per
+ *   token (coverage-pack.ts). Opt-in: on the frozen p-queue diagnostic it
+ *   recovers evidence rank packing misses (76.7% vs 73.3%), but loses under
+ *   the distractor stress test (73.3% vs 83.3%). See eval/repo-support.
+ * Either way the trace carries a coverage report of what was packed.
+ */
+export type ContextPacking = "coverage" | "rank";
+export const DEFAULT_CONTEXT_PACKING: ContextPacking = "rank";
 
 function firstSlugRanks(chunks: RetrievedChunk[]): StageRank[] {
   const seen = new Set<string>();
@@ -167,6 +183,7 @@ export function retrieveFromRows(opts: {
   preferredSlugs?: string[];
   graphPathCosts?: Map<string, number>;
   corpusScope?: CorpusScope;
+  packing?: ContextPacking;
 }): RetrieveResult {
   const scope = opts.corpusScope ?? { kind: "corpus", corpusId: SEED_CORPUS_ID };
   const scopedRows =
@@ -274,19 +291,45 @@ export function retrieveFromRows(opts: {
   const rerankMs = performance.now() - rerankStart;
 
   const assembleStart = performance.now();
-  const { packed, dropReasons } = selectContext(ranked, signals, {
+  const packing = opts.packing ?? DEFAULT_CONTEXT_PACKING;
+  // The refusal decision always comes from the calibrated rank-order packer,
+  // so changing how the budget is spent can never change what is refused.
+  const gateDecision = selectContext(ranked, signals, {
     query,
     idf,
     maxTokens: CONTEXT_TOKEN_BUDGET,
     topK: Math.min(3, opts.topK),
   });
+  const coverageDecision =
+    packing === "coverage" && gateDecision.packed.length
+      ? selectContextCoverage(ranked, signals, {
+          query,
+          idf,
+          maxTokens: CONTEXT_TOKEN_BUDGET,
+          anchor: gateDecision.packed[0]?.chunkId ?? null,
+          allowedSlugs: new Set(gateDecision.packed.map((c) => c.slug)),
+        })
+      : null;
+  const useCoverage = Boolean(coverageDecision?.packed.length);
+  const packed = useCoverage ? coverageDecision!.packed : gateDecision.packed;
+  const dropReasons = useCoverage ? coverageDecision!.dropReasons : gateDecision.dropReasons;
+  const rawCoverage = useCoverage
+    ? coverageDecision!.coverage
+    : packed.length
+      ? coverageReportOf(packed, coverageTerms(query), idf, CONTEXT_TOKEN_BUDGET)
+      : null;
+  const coverage: CoverageReport | null = rawCoverage && {
+    ...rawCoverage,
+    covered: rawCoverage.covered.map((t) => surfaceTerm(query, t)),
+    missing: rawCoverage.missing.map((t) => surfaceTerm(query, t)),
+  };
   const assembleMs = performance.now() - assembleStart;
 
   const packedIds = new Set(packed.map((c) => c.chunkId));
   const denseSlugRanks = firstSlugRanks(dense);
   const evidence = classifyEvidence({
     query,
-    packed,
+    packed: gateDecision.packed,
     ranked,
     signals,
     denseRank1Slug: denseSlugRanks[0]?.slug ?? null,
@@ -365,6 +408,7 @@ export function retrieveFromRows(opts: {
       scoreSemantics: SCORE_SEMANTICS,
       corpusId,
       corpusScope: scope.kind,
+      coverage: evidence.kind === "insufficient" ? null : coverage,
     },
     denseMs,
     keywordMs,
@@ -380,6 +424,7 @@ export function retrieveFromRows(opts: {
     actualMode: resolvedMode,
     corpusId,
     corpusScope: scope.kind,
+    coverage: evidence.kind === "insufficient" ? null : coverage,
     stages: {
       dense: denseSlugRanks,
       keyword: firstSlugRanks(keyword),
