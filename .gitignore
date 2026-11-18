@@ -71,3 +71,6 @@ htmlcov/
 
 # ruff
 .ruff_cache/
+
+# The MCP server ships its built bundle so `npx github:charan-rathore/IntelliRAG` runs without a build step.
+!mcp/dist/

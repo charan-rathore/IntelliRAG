@@ -1,0 +1,45 @@
+# Hermes Agent optional-MCP catalog entry for IntelliRAG
+# (to submit as optional-mcps/intellirag/manifest.yaml in NousResearch/hermes-agent).
+manifest_version: 1
+
+name: intellirag
+description: Cited answers from a repo's docs, or a refusal when they don't say.
+source: https://github.com/charan-rathore/IntelliRAG
+
+# Local stdio server. Hermes clones the pinned commit; the server is one
+# prebuilt file with no dependencies, so there is nothing to bootstrap.
+install:
+  type: git
+  url: https://github.com/charan-rathore/IntelliRAG.git
+  ref: main   # pinned to a release commit when submitted upstream
+  bootstrap: []
+
+transport:
+  type: stdio
+  command: node
+  args:
+    - ${INSTALL_DIR}/mcp/dist/intellirag-mcp.mjs
+
+auth:
+  type: none
+  env:
+    - name: GITHUB_TOKEN
+      prompt: GitHub token (optional, raises the rate limit for index_github)
+      required: false
+      secret: true
+
+tools:
+  default_enabled: [index_folder, index_github, ask, search, feedback, new_topic, sources]
+
+suggest:
+  keywords:
+    - intellirag
+    - cite the docs
+  examples:
+    - Answer from this repository's docs with citations
+    - Check what a dependency's README actually promises
+
+post_install: |
+  No account needed. Ask Hermes to index the repository you're working in
+  (index_folder) or a GitHub repo (index_github owner/name), then ask questions
+  with one session id per task so follow-ups are understood.

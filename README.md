@@ -56,6 +56,30 @@ The default ties BM25 on the clean corpus and beats it by 20 points once noise d
 | [Recall Is Not Enough](https://arxiv.org/abs/2607.00725) (2026) | Score what the packed context contains, not the candidate list | The eval scores the text actually packed, after trimming |
 | [Lost in the Middle](https://arxiv.org/abs/2307.03172) (TACL 2024) | Position matters; keep the strongest evidence first | The top supported chunk is the whole-chunk anchor |
 
+## Use it from your coding agent
+
+IntelliRAG also runs as an MCP server with no dependencies, so Claude Code, Codex, Hermes or any MCP client can answer from a repository's docs with citations, or refuse:
+
+~~~sh
+claude mcp add intellirag -- npx -y github:charan-rathore/IntelliRAG                    # Claude Code
+codex mcp add intellirag -- npx -y github:charan-rathore/IntelliRAG                     # Codex
+hermes mcp add intellirag --command npx --args -y github:charan-rathore/IntelliRAG     # Hermes Agent
+~~~
+
+```
+> index_folder                        (the repo you're in, or index_github owner/repo at a pinned commit)
+> ask  "How do I cancel a queued task with an AbortSignal?"   session: fix-1234
+  3 supported passages from sindresorhus/p-queue@180ab9e …
+> ask  "What if it is already running?"                        session: fix-1234
+  Reading: Read as a follow-up: searched together with the previous question (about abortsignal, cancel).
+  [readme.md#14] readme.md › options › signal
+  If the operation is already running, the signal will need to be handled by the operation itself.
+> ask  "What production database password does it specify?"   session: fix-1234
+  REFUSED. Nothing in this corpus passed the support gate for this question.
+```
+
+It exposes seven tools: `index_folder`, `index_github`, `ask`, `search`, `feedback`, `new_topic` and `sources`. They call the same retrieval, support gate, packing and conversation reading as the console (`web/src/lib/rag`), bundled into [`mcp/dist`](mcp/dist/intellirag-mcp.mjs) and checked over stdio in CI. The agent skill is [`skills/intellirag/SKILL.md`](skills/intellirag/SKILL.md), written to Hermes Agent's authoring standard. The Hermes catalog entry is [`integrations/hermes/manifest.yaml`](integrations/hermes/manifest.yaml).
+
 ## Run it
 
 ~~~sh
