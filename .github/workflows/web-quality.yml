@@ -31,3 +31,8 @@ jobs:
       - run: npx --yes tsx scripts/conversation-eval.ts --distractors --check
       - run: npx --yes tsx scripts/learning-eval.ts --check
       - run: npx --yes tsx scripts/learning-eval.ts --distractors --check
+      - name: CoSQA code search (search bar vs BM25)
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/microsoft/CodeXGLUE /tmp/cxg
+          git -C /tmp/cxg sparse-checkout set Text-Code/NL-code-search-WebQuery/CoSQA
+          COSQA_DIR=/tmp/cxg/Text-Code/NL-code-search-WebQuery/CoSQA npx --yes tsx scripts/cosqa-bench.ts --check
