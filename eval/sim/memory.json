@@ -1,0 +1,305 @@
+{
+  "paper": "arXiv:2611.18856",
+  "harness": "retrieval policy (experience + packing)",
+  "entries": [
+    {
+      "rootCause": "ranked-not-packed",
+      "attempts": [
+        {
+          "edit": {
+            "soloMargin": 1.5
+          },
+          "rationale": "a strong rank-1 passage is packed alone when the answer needs two",
+          "predicted": [
+            "0:drain-running",
+            "0:serial-loop",
+            "0:cancel-running",
+            "1:serial-loop",
+            "1:fail-fast",
+            "1:timeout-override"
+          ],
+          "observed": {
+            "fixed": [
+              "1:orig:pause-resume"
+            ],
+            "broke": [],
+            "delta": 0.0161
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 0
+          }
+        },
+        {
+          "edit": {
+            "maxPassages": 4
+          },
+          "rationale": "the answer needs more passages than the packer allows",
+          "predicted": [
+            "0:drain-running",
+            "0:serial-loop",
+            "0:cancel-running",
+            "1:serial-loop",
+            "1:fail-fast",
+            "1:timeout-override"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [],
+            "delta": 0
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 1
+          }
+        },
+        {
+          "edit": {
+            "relativeFloor": 0.56
+          },
+          "rationale": "the second passage an answer needs is dropped under the relative floor",
+          "predicted": [
+            "0:drain-running",
+            "0:serial-loop",
+            "0:cancel-running",
+            "1:serial-loop",
+            "1:fail-fast",
+            "1:timeout-override"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [],
+            "delta": 0
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 2
+          }
+        },
+        {
+          "edit": {
+            "soloMargin": 1.65
+          },
+          "rationale": "a strong rank-1 passage is packed alone when the answer needs two",
+          "predicted": [
+            "0:drain-running",
+            "0:serial-loop",
+            "1:serial-loop",
+            "1:fail-fast",
+            "1:timeout-override"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [],
+            "delta": 0
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 0
+          }
+        },
+        {
+          "edit": {
+            "boost": 0.35
+          },
+          "rationale": "the gold passage is in the top eight but loses the packing budget to unconfirmed neighbours",
+          "predicted": [
+            "0:drain-running",
+            "0:serial-loop",
+            "1:serial-loop",
+            "1:fail-fast",
+            "1:timeout-override"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [],
+            "delta": 0
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 1
+          }
+        },
+        {
+          "edit": {
+            "chunkTokens": 384
+          },
+          "rationale": "passages are too long: two of them fill the budget, so the third the answer needs never fits",
+          "predicted": [
+            "0:drain-running",
+            "0:serial-loop",
+            "1:serial-loop",
+            "1:fail-fast",
+            "1:timeout-override"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [
+              "0:orig:drain-running",
+              "1:drain-running",
+              "1:completion",
+              "1:orig:rolling-limit",
+              "1:orig:drain-running"
+            ],
+            "delta": -0.0806
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 5
+          }
+        }
+      ]
+    },
+    {
+      "rootCause": "not-retrieved",
+      "attempts": [
+        {
+          "edit": {
+            "boostFloor": 0.2
+          },
+          "rationale": "rewordings share few words with the confirmed question; let looser matches reach the passage",
+          "predicted": [
+            "0:rolling-limit",
+            "0:pause-resume",
+            "1:rolling-limit",
+            "1:cancel-running",
+            "1:pause-resume"
+          ],
+          "observed": {
+            "fixed": [
+              "1:orig:rolling-limit"
+            ],
+            "broke": [],
+            "delta": 0.0161
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 3
+          }
+        },
+        {
+          "edit": {
+            "boostFloor": 0.125
+          },
+          "rationale": "rewordings share few words with the confirmed question; let looser matches reach the passage",
+          "predicted": [
+            "0:rolling-limit",
+            "0:cancel-running",
+            "0:pause-resume",
+            "1:rolling-limit",
+            "1:cancel-running",
+            "1:pause-resume"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [],
+            "delta": 0
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 4
+          }
+        },
+        {
+          "edit": {
+            "boost": 0.35
+          },
+          "rationale": "the passage is found through learned wordings but too weakly to rank",
+          "predicted": [
+            "0:rolling-limit",
+            "0:cancel-running",
+            "0:pause-resume",
+            "1:rolling-limit",
+            "1:cancel-running",
+            "1:pause-resume"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [],
+            "delta": 0
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 5
+          }
+        },
+        {
+          "edit": {
+            "chunkTokens": 384
+          },
+          "rationale": "the evidence sits in a long passage whose other text dilutes its match",
+          "predicted": [
+            "0:rolling-limit",
+            "0:cancel-running",
+            "0:pause-resume",
+            "1:rolling-limit",
+            "1:cancel-running",
+            "1:pause-resume"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [
+              "0:orig:drain-running",
+              "1:drain-running",
+              "1:completion",
+              "1:orig:rolling-limit",
+              "1:orig:drain-running"
+            ],
+            "delta": -0.0806
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 4
+          }
+        }
+      ]
+    },
+    {
+      "rootCause": "false-answer",
+      "attempts": [
+        {
+          "edit": {
+            "relativeFloor": 0.68
+          },
+          "rationale": "weak neighbours ride in beside a passage and make an unsupported question look answered",
+          "predicted": [
+            "u:unknown-password:1",
+            "u:unknown-sla:1",
+            "u:unsupported-rate:0"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [],
+            "delta": 0
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 2
+          }
+        },
+        {
+          "edit": {
+            "boostFloor": 0.25
+          },
+          "rationale": "a learned wording lends support to a question it only resembles",
+          "predicted": [
+            "u:unknown-password:1",
+            "u:unknown-sla:1",
+            "u:unsupported-rate:0"
+          ],
+          "observed": {
+            "fixed": [],
+            "broke": [
+              "1:orig:rolling-limit"
+            ],
+            "delta": -0.0161
+          },
+          "provenance": {
+            "setting": "clean",
+            "round": 3
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -40,10 +40,14 @@ function CandidateRow({
   candidate,
   index,
   contextIndex,
+  onPick,
+  picked,
 }: {
   candidate: RetrievalCandidate;
   index: number;
   contextIndex?: number;
+  onPick?: (c: RetrievalCandidate) => void;
+  picked?: boolean;
 }) {
   const [open, setOpen] = useState(index === 0);
   return (
@@ -139,6 +143,17 @@ function CandidateRow({
             </p>
           )}
           <p className="line-clamp-4 text-xs leading-relaxed text-muted">{chunkPreview(candidate.text, candidate.chunkKind)}</p>
+          {onPick && (
+            <button
+              type="button"
+              disabled={picked}
+              onClick={() => onPick(candidate)}
+              className="mt-3 inline-flex min-h-9 items-center rounded-sm border border-border px-3 text-xs text-fg hover:border-primary disabled:border-good/40 disabled:text-good"
+              title="Files your question against this passage, so questions worded like it find it next time"
+            >
+              {picked ? "Noted: this answers it" : "This passage answers my question"}
+            </button>
+          )}
         </div>
       )}
     </li>
@@ -181,7 +196,12 @@ export function SourceInspector({
   actualMode,
   corpusId,
   evidenceGate,
+  onPick,
+  picked,
 }: {
+  /** Files the question against a passage the person says answers it (experience memory). */
+  onPick?: (c: RetrievalCandidate) => void;
+  picked?: Set<string>;
   candidates: RetrievalCandidate[];
   packed: RetrievedChunk[];
   contextTokens: number;
@@ -227,6 +247,8 @@ export function SourceInspector({
             candidate={c}
             index={i}
             contextIndex={contextIndex.get(c.chunkId)}
+            onPick={onPick}
+            picked={picked?.has(c.chunkId)}
           />
         ))}
       </ul>

@@ -40,7 +40,7 @@ const TOOLS = [
   },
   {
     name: "feedback",
-    description: "Mark a passage from this session's answers helpful or not. Later follow-ups lean toward helpful passages and away from unhelpful ones.",
+    description: "Mark a passage (from ask, or a search result that answered the session's last question) helpful or not. The corpus remembers it across sessions: later questions worded like this one find that passage.",
     inputSchema: { type: "object", required: ["session", "ref", "helpful"], properties: { session: { type: "string" }, ref: { type: "string", description: "A passage ref from ask." }, helpful: { type: "boolean" } } },
   },
   {
@@ -86,7 +86,7 @@ async function call(name: string, a: any): Promise<{ text: string; data: unknown
     case "index_github": { const r = keep(await githubCorpus(a.repo, { ref: a.ref, include: a.include, token: process.env.GITHUB_TOKEN })); return { text: `Indexed ${r.files} files (${r.passages} passages) from ${r.origin} as ${r.corpus}.`, data: r }; }
     case "ask": { const r = ask(pick(a.corpus), String(a.question), a.session); return { text: render(r), data: r }; }
     case "search": { const r = search(pick(a.corpus), String(a.query), Math.min(20, Math.max(1, Number(a.limit) || 8))); return { text: r.map((p) => `[${p.ref}] ${p.score} ${p.file}${p.heading ? ` › ${p.heading}` : ""}`).join("\n") || "No candidates.", data: r }; }
-    case "feedback": { const ok = feedback(String(a.session), String(a.ref), Boolean(a.helpful)); return { text: ok ? "Noted." : "That passage isn't in this session's recent answers.", data: { ok } }; }
+    case "feedback": { const ok = feedback(String(a.session), String(a.ref), Boolean(a.helpful), current ?? undefined); return { text: ok ? "Noted. Questions worded like this one will find that passage." : "Ask something in this session first.", data: { ok } }; }
     case "new_topic": { resetSession(String(a.session)); return { text: "The next question will be searched on its own.", data: { ok: true } }; }
     case "sources": { const r = [...corpora.values()].map((c) => ({ corpus: c.id, origin: c.origin, files: c.files, passages: c.rows.length, current: c === current })); return { text: r.map((c) => `${c.current ? "*" : " "} ${c.corpus}  ${c.origin}  ${c.files} files`).join("\n") || "Nothing indexed yet.", data: r }; }
     default: throw new Error(`Unknown tool ${name}`);

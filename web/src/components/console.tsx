@@ -37,6 +37,7 @@ import {
   ingestRemoteUrl,
   removeDocument,
   submitGraphFeedback,
+  submitSourcePick,
 } from "@/lib/rag/functions";
 import { REPO_DEMO_CORPUS, REPO_DEMO_QUESTION } from "@/lib/rag/repo-demo";
 import { ALL_CORPORA, SEED_CORPUS_ID, corpusLabel } from "@/lib/rag/corpus-scope";
@@ -104,6 +105,8 @@ type Message = {
   feedback?: GraphOutcome | null;
   asked?: string;
   intent?: TurnPlan;
+  /** Passages the person marked as answering this question. */
+  picked?: string[];
 };
 
 const STALE_LABEL: Record<StaleReason, string> = {
@@ -672,6 +675,7 @@ export function Console({ initial }: { initial: Snapshot }) {
                     onFeedback={(outcome, correction) => {
                       if (m.asked) void sendFeedback(m.id, m.asked, outcome, correction);
                     }}
+                    onPicked={(id, chunkId) => setMessages((all) => all.map((x) => (x.id === id ? { ...x, picked: [...new Set([...(x.picked ?? []), chunkId])] } : x)))}
                     coach={
                       coachOpen &&
                       !busy &&
@@ -930,11 +934,13 @@ function Turn({
   view,
   coach,
   onFeedback,
+  onPicked,
 }: {
   message: Message;
   view: ConsoleView;
   coach?: ReactNode;
   onFeedback?: (outcome: GraphOutcome, correction?: string) => void;
+  onPicked: (messageId: string, chunkId: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
   if (message.role === "user") {
@@ -1001,6 +1007,11 @@ function Turn({
       )}
       {view === "lab" && message.candidates && message.candidates.length > 0 ? (
         <SourceInspector
+          onPick={message.asked ? async (c) => {
+            onPicked(message.id, c.chunkId);
+            try { await submitSourcePick({ data: { question: message.asked!, corpusId: message.corpusId ?? "seed-lab", chunkId: c.chunkId, text: c.text } }); } catch { /* the mark stays local */ }
+          } : undefined}
+          picked={new Set(message.picked ?? [])}
           candidates={message.candidates}
           packed={message.chunks ?? []}
           contextTokens={message.contextTokens ?? 0}

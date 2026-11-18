@@ -29,3 +29,5 @@ jobs:
       - run: npx --yes tsx --test src/lib/rag/*.test.ts
       - run: npx --yes tsx scripts/conversation-eval.ts --check
       - run: npx --yes tsx scripts/conversation-eval.ts --distractors --check
+      - run: npx --yes tsx scripts/learning-eval.ts --check
+      - run: npx --yes tsx scripts/learning-eval.ts --distractors --check

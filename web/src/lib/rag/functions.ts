@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { PLATFORM_AUDIT } from "./corpus";
 import { loadLastEvalSummary } from "./eval.server";
-import { graphSnapshot, recordOutcome } from "./graphify/persist.server";
+import { graphSnapshot, recordOutcome, recordSourcePick } from "./graphify/persist.server";
 import { embedPendingBatch, ingestFromUrl, ingestText } from "./ingest.server";
 import { keyStatus, resolveRuntime, setMemoryKeys } from "./keys.server";
 import { selectedEmbedModel } from "./local-embed.server";
@@ -137,6 +137,17 @@ export const getSourceDocument = createServerFn({ method: "GET" })
       indexedAt: doc.indexed_at,
     };
   });
+
+export const submitSourcePick = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      question: z.string().min(1).max(4000),
+      corpusId: z.string().max(500),
+      chunkId: z.string().min(1).max(500),
+      text: z.string().min(1).max(40000),
+    }),
+  )
+  .handler(async ({ data }) => recordSourcePick(data));
 
 export const submitGraphFeedback = createServerFn({ method: "POST" })
   .validator(

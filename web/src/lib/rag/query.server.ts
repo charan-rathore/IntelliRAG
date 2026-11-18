@@ -15,7 +15,7 @@ import { EXAMPLE_QUESTIONS } from "./corpus";
 import { INSUFFICIENT_ANSWER, negativeAnswer } from "./evidence";
 import { embedQuery, GeminiError, generationModelLabel, streamGenerate } from "./gemini.server";
 import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable, selectedEmbedModel } from "./local-embed.server";
-import { bumpCacheHit, findCachedAnswer, saveQueryResult, vectorGraphLookup, rememberRetrievedVectors } from "./graphify/persist.server";
+import { bumpCacheHit, experienceLog, findCachedAnswer, saveQueryResult, vectorGraphLookup, rememberRetrievedVectors } from "./graphify/persist.server";
 import { resolveRuntime } from "./keys.server";
 import { classifyIntent } from "./intents";
 import { buildContext, retrieve, sessionIdf } from "./retrieve.server";
@@ -321,7 +321,7 @@ export async function runQueryStream(
 
   const mode: RetrievalMode = queryVector && requested !== "keyword" ? requested : "keyword";
   emit({type:"stage",name:"graph-vector-lookup"});
-  const retrievalOptions={query:searchQuery,queryVector,mode,topK:input.topK??5,embeddingModel:embeddingModel??EMBEDDING_MODEL,preferredSlugs:graphLook.preferred,corpus:input.corpus??SEED_CORPUS_ID};
+  const retrievalOptions={query:searchQuery,queryVector,mode,topK:input.topK??5,embeddingModel:embeddingModel??EMBEDDING_MODEL,preferredSlugs:graphLook.preferred,corpus:input.corpus??SEED_CORPUS_ID,experience:await experienceLog()};
   const routed=await graphFirstRetrieve({...retrievalOptions,storage,scope:corpusScope},{
     lookup:vectorGraphLookup,fetch:loadChunksByIds,full:()=>retrieve(retrievalOptions),
   });

@@ -1,0 +1,81 @@
+{
+  "dataset": "learning-v1",
+  "distractors": true,
+  "arms": [
+    {
+      "arm": "no experience",
+      "heldOutWordings": 0.5238095238095238,
+      "folds": [
+        0.6428571428571429,
+        0.5,
+        0.42857142857142855
+      ],
+      "originals": 0.8571428571428571,
+      "refusals": [
+        "3/6",
+        "3/6",
+        "3/6"
+      ]
+    },
+    {
+      "arm": "ratings on the original questions",
+      "heldOutWordings": 0.5476190476190477,
+      "folds": [
+        0.6428571428571429,
+        0.5714285714285714,
+        0.42857142857142855
+      ],
+      "originals": 0.7857142857142857,
+      "refusals": [
+        "3/6",
+        "3/6",
+        "3/6"
+      ]
+    },
+    {
+      "arm": "ratings on originals + other wordings",
+      "heldOutWordings": 0.5476190476190477,
+      "folds": [
+        0.6428571428571429,
+        0.5714285714285714,
+        0.42857142857142855
+      ],
+      "originals": 0.8571428571428571,
+      "refusals": [
+        "3/6",
+        "3/6",
+        "3/6"
+      ]
+    },
+    {
+      "arm": "… plus source picks when an answer missed",
+      "heldOutWordings": 0.5476190476190477,
+      "folds": [
+        0.6428571428571429,
+        0.5714285714285714,
+        0.42857142857142855
+      ],
+      "originals": 0.8571428571428571,
+      "refusals": [
+        "3/6",
+        "3/6",
+        "3/6"
+      ]
+    },
+    {
+      "arm": "… with 20% of ratings wrong",
+      "heldOutWordings": 0.5476190476190477,
+      "folds": [
+        0.6428571428571429,
+        0.5714285714285714,
+        0.42857142857142855
+      ],
+      "originals": 0.8571428571428571,
+      "refusals": [
+        "3/6",
+        "3/6",
+        "3/6"
+      ]
+    }
+  ]
+}

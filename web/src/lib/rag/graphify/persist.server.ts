@@ -2,6 +2,7 @@
  * Graphify sidecar store: graph.json + memory/ + .graphify_learning.json
  * kept together. Mirrors graphify-out/ so repeat queries skip Flash.
  */
+import { emptyExperience, recordExperience, type Vote } from "../experience";
 import { readFileSync } from "node:fs";
 import { writeAtomicJson } from "./atomic-json.mjs";
 import { singleFlight } from "./single-flight.mjs";
@@ -248,6 +249,42 @@ export async function saveQueryResult(input: {
   return { memoryId: memory.id, hash };
 }
 
+/** Most passages experience keeps links for, newest first. */
+const EXPERIENCE_CAP = 4000;
+
+function fileExperience(state: GraphState, input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string }>; vote: Vote }) {
+  const log = recordExperience(state.experience ?? emptyExperience(), input);
+  const keys = Object.keys(log.entries);
+  if (keys.length > EXPERIENCE_CAP) {
+    const newest = (k: string) => log.entries[k]!.asked.at(-1)?.at ?? "";
+    for (const k of keys.sort((a, b) => newest(a).localeCompare(newest(b))).slice(0, keys.length - EXPERIENCE_CAP)) delete log.entries[k];
+  }
+  state.experience = log;
+}
+
+function passagesOf(chunks: unknown): Array<{ chunkId: string; text: string }> {
+  if (!Array.isArray(chunks)) return [];
+  return chunks
+    .filter((c): c is { chunkId: string; text: string } => typeof c?.chunkId === "string" && typeof c?.text === "string")
+    .map((c) => ({ chunkId: c.chunkId, text: c.text }));
+}
+
+/** The experience log, for retrieval. */
+export async function experienceLog() {
+  return (await ensureGraph()).experience ?? null;
+}
+
+/**
+ * "This passage answered it": a person picked a source, from the answer or from
+ * the Evidence panel's candidates, as the one that answers their question.
+ */
+export async function recordSourcePick(input: { question: string; corpusId: string; chunkId: string; text: string }) {
+  const state = await ensureGraph();
+  fileExperience(state, { corpusId: input.corpusId, question: input.question, passages: [{ chunkId: input.chunkId, text: input.text }], vote: 1 });
+  await persist(state);
+  return { ok: true as const, links: Object.keys(state.experience?.entries ?? {}).length };
+}
+
 export async function recordOutcome(input: {
   question: string;
   outcome: GraphOutcome;
@@ -256,6 +293,12 @@ export async function recordOutcome(input: {
 }) {
   const state = await ensureGraph();
   const hash = questionHash(input.question);
+  // File the rating against the passages that answer was built from.
+  const rated = state.cache.find((c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"));
+  const passages = passagesOf(rated?.chunks);
+  if (passages.length) {
+    fileExperience(state, { corpusId: input.corpusId ?? "seed-lab", question: input.question, passages, vote: input.outcome === "useful" ? 1 : -1 });
+  }
   const latest = state.memory.find((m) => m.questionHash === hash && (m.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"));
   if (latest) {
     latest.outcome = input.outcome;

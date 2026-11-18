@@ -19,7 +19,7 @@ export const CONTEXT_RELATIVE_FLOOR = 0.62;
 /** Calibrated-score floor. Below this, a chunk never enters the model context. */
 export const CONTEXT_ABSOLUTE_FLOOR = 0.24;
 /** If rank-1 / rank-2 is at least this and the query is not multi-source, pack only top-1. */
-export const CONTEXT_SOLO_MARGIN = 1.35;
+export const CONTEXT_SOLO_MARGIN = 1.5;
 /**
  * Deprecated alias for CONTEXT_RELATIVE_FLOOR (0.62). Not an absolute 0.55 cosine cut.
  * Does a 0.55 context cliff mean candidates below similarity 0.55 are removed? No.

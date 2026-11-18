@@ -3,8 +3,11 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-const server = spawn(process.execPath, [fileURLToPath(new URL("../dist/intellirag-mcp.mjs", import.meta.url))], { stdio: ["pipe", "pipe", "inherit"] });
+const server = spawn(process.execPath, [fileURLToPath(new URL("../dist/intellirag-mcp.mjs", import.meta.url))], { stdio: ["pipe", "pipe", "inherit"], env: { ...process.env, INTELLIRAG_HOME: mkdtempSync(join(tmpdir(), "intellirag-")) } });
 let buf = "";
 const waiting = new Map();
 server.stdout.on("data", (d) => {
@@ -43,6 +46,18 @@ assert.match(refused.content[0].text, /REFUSED/);
 
 const fb = await tool("feedback", { session: "s", ref: r.passages[0].ref, helpful: true });
 assert.equal(fb.structuredContent.result.ok, true);
+// Experience: a passage marked as answering a question ranks higher for a
+// rewording of it, in this session and the next.
+const learnQ = "hold jobs back and release them together later";
+const reworded = "release held jobs together later";
+await tool("ask", { question: learnQ, session: "learn" });
+const pause = (await tool("search", { query: "Put queue execution on hold start executing enqueued tasks", limit: 3 })).structuredContent.result[0];
+const rankOf = async () => (await tool("search", { query: reworded, limit: 20 })).structuredContent.result.findIndex((p) => p.ref === pause.ref);
+const before = await rankOf();
+assert.equal((await tool("feedback", { session: "learn", ref: pause.ref, helpful: true })).structuredContent.result.ok, true);
+const after = await rankOf();
+assert.ok(after >= 0 && (before < 0 || after < before), `the marked passage should rank higher for a rewording (before ${before}, after ${after})`);
+
 const bad = await tool("ask", { question: "anything", corpus: "nope" });
 assert.equal(bad.isError, true);
 const unknown = await rpc("does/not/exist", {});

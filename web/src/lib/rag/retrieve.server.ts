@@ -4,6 +4,7 @@
  */
 import { retrieveFromRows, type RetrieveResult, type SearchRow } from "./retrieve-core";
 import { buildIdf, type IdF } from "./ranking";
+import type { ExperienceLog } from "./experience";
 import { AMBIGUOUS_SYSTEM, GROUNDED_SYSTEM, NEGATIVE_SYSTEM } from "./evidence";
 import { getStorageStatus } from "./storage";
 import { loadSearchableChunks } from "./store.server";
@@ -19,6 +20,7 @@ export async function retrieve(opts: {
   embeddingModel: string | null;
   preferredSlugs?: string[];
   corpus?: string | null;
+  experience?: ExperienceLog | null;
 }): Promise<RetrieveResult> {
   const corpusScope: CorpusScope = parseCorpusScope(opts.corpus);
   const rows = (await loadSearchableChunks(corpusScope)) as SearchRow[];

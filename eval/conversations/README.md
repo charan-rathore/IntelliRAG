@@ -26,11 +26,13 @@ npx tsx scripts/conversation-eval.ts --distractors # plus the ten seed runbooks 
 
 | Arm | Complete evidence | Follow-ups | Refused (of 3) | Complete, with distractors | Refused, with distractors |
 |---|---:|---:|---:|---:|---:|
-| turn-only | 61.5% | 59.1% | 1 | 64.1% | 1 |
-| concat-history | **71.8%** | **77.3%** | 1 | **74.4%** | 1 |
-| session-intent | **71.8%** | **77.3%** | **2** | **74.4%** | **2** |
+| turn-only | 64.1% | 63.6% | 1 | 64.1% | 1 |
+| concat-history | **76.9%** | **86.4%** | 1 | **76.9%** | 1 |
+| session-intent | **76.9%** | **86.4%** | **2** | **76.9%** | **2** |
 
-Session intent finds the evidence for 18 more points of follow-ups than the single-turn pipeline. It ties pasting the whole history on evidence, and refuses one more unanswerable follow-up, because context may help find a passage but never makes an unsupported question look answered.
+Session intent finds the evidence for 22.8 more points of follow-ups than the single-turn pipeline. It ties pasting the whole history on evidence, and refuses one more unanswerable follow-up, because context may help find a passage but never makes an unsupported question look answered.
+
+These numbers include `soloMargin` 1.5, an edit the self-improvement loop ([`../sim`](../sim)) found on a different evaluation. Before it, follow-ups were 77.3% (session intent) and 59.1% (turn-only).
 
 **What lost.** The first design carried a handful of weighted terms (historical query expansion with idf weights and decay). It scored 64–69%: whole earlier questions keep the phrases BM25 and the phrase signal match on, and carried terms like "every" and "second" were noise. Weighting question terms by whether that turn's own evidence contained them made the term list a good *description* of the session, which is what the console now shows. It did not make it a better search. Both designs are in the git history of this file and `session-intent.ts`.
 
