@@ -224,6 +224,11 @@ export type RerankSignals = {
   topical: number;
   dense: number | null;
   bm25: number | null;
+  /**
+   * How alike this question is to one people confirmed this passage answers,
+   * times how reliable its ratings are (experience.ts). Absent without experience.
+   */
+  learned?: number;
 };
 
 export function rerankCalibrated(opts: {
@@ -235,12 +240,23 @@ export function rerankCalibrated(opts: {
   terms: string[];
   preferredSlugs?: string[];
   graphPathCosts?: Map<string, number>;
+  /** Wordings people confirmed for a passage (experience.ts): matched like its own text. */
+  expansions?: Map<string, string>;
+  /** Score taken off a passage for a question like one rated a dead end on it. */
+  demote?: Map<string, number>;
+  /** What a confirmed similar question adds to this passage's score (experience.ts). */
+  learnedBoost?: Map<string, number>;
+  /** Similarity × reliability of that confirmation (0..1), for the support gate. */
+  learned?: Map<string, number>;
 }): { ranked: RetrievedChunk[]; scores: Map<string, number>; signals: Map<string, RerankSignals> } {
   const bm25Raw = opts.candidates.map((c) => opts.keywordScores.get(c.chunkId) ?? 0);
   const signals = new Map<string, RerankSignals>();
   const scored = opts.candidates.map((c) => {
     const dense = opts.denseScores.has(c.chunkId) ? (opts.denseScores.get(c.chunkId) ?? null) : null;
     const bm25 = opts.keywordScores.get(c.chunkId) ?? 0;
+    // Learned wordings find a passage (BM25 fusion in retrieve-core) and lift it
+    // (learnedBoost below); they never stand in for what its text says, so
+    // recall and phrase are measured on the passage alone.
     const idfRecall = weightedRecall(opts.terms, `${c.title}\n${c.heading ?? ""}\n${c.text}`, opts.idf);
     const titleRecall = weightedRecall(opts.terms, `${c.title} ${c.heading ?? ""}`, opts.idf);
     const phrase = phraseBoost(opts.query, `${c.title}\n${c.text}`);
@@ -262,7 +278,12 @@ export function rerankCalibrated(opts: {
     if (opts.preferredSlugs?.includes(c.slug)) score = Math.min(1, score + 0.03);
     const pathCost = opts.graphPathCosts?.get(c.chunkId);
     if (pathCost !== undefined) score = Math.min(1, score + 0.04 / (1 + pathCost));
-    signals.set(c.chunkId, { idfRecall, titleRecall, phrase, topical, dense, bm25 });
+    const learnedBoost = opts.learnedBoost?.get(c.chunkId);
+    if (learnedBoost) score = Math.min(1, score + learnedBoost);
+    const learnedSignal = opts.learned?.get(c.chunkId);
+    const demoted = opts.demote?.get(c.chunkId);
+    if (demoted) score = Math.max(0, score - demoted);
+    signals.set(c.chunkId, { idfRecall, titleRecall, phrase, topical, dense, bm25, ...(learnedSignal !== undefined ? { learned: learnedSignal } : {}) });
     return { chunk: c, score };
   });
   scored.sort((a, b) => b.score - a.score);
@@ -274,7 +295,15 @@ export function rerankCalibrated(opts: {
   return { ranked, scores, signals };
 }
 
+/** Similarity × reliability a confirmation needs to count as support on its own. */
+export const LEARNED_SUPPORT = 0.45;
+
 export function isSupported(signals: RerankSignals, calibrated: number): boolean {
+  // People confirmed this passage answers a question very like this one (and
+  // didn't later reject it). That is evidence the text alone can't show when a
+  // question is worded nothing like the source. The refusal guards that read the
+  // source (absent names, the turn's own terms) still run after this.
+  if ((signals.learned ?? 0) >= LEARNED_SUPPORT && calibrated > 0) return true;
   if (calibrated < CONTEXT_ABSOLUTE_FLOOR) return false;
   if (signals.idfRecall >= 0.18) return true;
   if (signals.titleRecall >= 0.22) return true;
@@ -317,8 +346,10 @@ export type ContextDecision = {
 export function selectContext(
   ranked: RetrievedChunk[],
   signals: Map<string, RerankSignals>,
-  opts: { query: string; idf: IdF; maxTokens?: number; topK?: number },
+  opts: { query: string; idf: IdF; maxTokens?: number; topK?: number; relativeFloor?: number; soloMargin?: number },
 ): ContextDecision {
+  const relativeFloor = opts.relativeFloor ?? CONTEXT_RELATIVE_FLOOR;
+  const soloMargin = opts.soloMargin ?? CONTEXT_SOLO_MARGIN;
   const dropReasons = new Map<string, string>();
   const maxTokens = opts.maxTokens ?? CONTEXT_TOKEN_BUDGET;
   const underspecified = distinctiveTerms(opts.query).length === 0;
@@ -379,10 +410,10 @@ export function selectContext(
   const peak = supported[0]!.score;
   const afterCliff: RetrievedChunk[] = [];
   for (const c of supported) {
-    if (c.chunkId !== supported[0]!.chunkId && c.score < peak * CONTEXT_RELATIVE_FLOOR) {
+    if (c.chunkId !== supported[0]!.chunkId && c.score < peak * relativeFloor) {
       dropReasons.set(
         c.chunkId,
-        `Below relative floor: ${c.score.toFixed(2)} < ${CONTEXT_RELATIVE_FLOOR} × rank-1 ${peak.toFixed(2)} (${(peak * CONTEXT_RELATIVE_FLOOR).toFixed(2)}). Not an absolute 0.55 cosine cut. Inspect only.`,
+        `Below relative floor: ${c.score.toFixed(2)} < ${relativeFloor} × rank-1 ${peak.toFixed(2)} (${(peak * relativeFloor).toFixed(2)}). Not an absolute 0.55 cosine cut. Inspect only.`,
       );
       continue;
     }
@@ -430,12 +461,12 @@ export function selectContext(
   const multi = queryLooksMultiSource(opts.query, afterCliff, opts.idf);
   const second = afterCliff[1];
   let pool = afterCliff;
-  if (!multi && second && peak >= second.score * CONTEXT_SOLO_MARGIN) {
+  if (!multi && second && peak >= second.score * soloMargin) {
     for (const c of afterCliff.slice(1)) {
       if (c.slug === afterCliff[0]!.slug) continue;
       dropReasons.set(
         c.chunkId,
-        `Rank-1 margin: ${peak.toFixed(2)} is ≥ ${CONTEXT_SOLO_MARGIN}× stronger than ${second.score.toFixed(2)}. Only the top source packed.`,
+        `Rank-1 margin: ${peak.toFixed(2)} is ≥ ${soloMargin}× stronger than ${second.score.toFixed(2)}. Only the top source packed.`,
       );
     }
     pool = afterCliff.filter((c) => c.slug === afterCliff[0]!.slug).slice(0, 2);

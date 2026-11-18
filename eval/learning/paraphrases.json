@@ -1,0 +1,26 @@
+{
+  "version": "learning-v1",
+  "createdAt": "2026-11-19",
+  "annotation": "First-party. Each answerable repo-support case gets three rewordings a developer might type later: a terse search-bar query, a casual question, and one that avoids the README's own vocabulary. Unanswerable cases get rewordings that must still be refused. Gold evidence is inherited from ../repo-support/dataset.json by case id.",
+  "cases": {
+    "rolling-limit": ["p-queue max 4 starts per second and 2 in flight config", "how do i throttle to four calls a second but only two running at once?", "partner caps us at 4/sec and 2 open connections, what queue settings?"],
+    "drain-running": ["wait for running tasks only, not the queue", "how do I let in-progress jobs finish before I touch shared config, without draining everything?", "need a quiet moment between jobs to swap settings while work is still queued"],
+    "serial-loop": ["for loop await queue.add runs one at a time", "why does my queue with concurrency 3 only do one request at a time in a loop?", "jobs go one by one even though I allowed three in parallel"],
+    "cancel-running": ["abort signal task already started", "if I abort after the job began, does the fetch stop?", "cancelling a job that is mid-flight: is the request killed?"],
+    "producer-pressure": ["onSizeLessThan bound unfinished tasks", "if I wait for size under 10 before adding, how many jobs can be outstanding?", "backpressure: upper limit on open work when producer waits for room"],
+    "completion": ["onEmpty vs onIdle running jobs", "my done-handler fires while jobs are still running, what should I use instead?", "report written too early because two jobs were still going"],
+    "timeout-wait": ["does queue wait time count toward timeout", "task sat in the queue 20s then ran 3s with a 5s timeout, will it time out?", "is the timeout clock started when it's enqueued or when it runs?"],
+    "clear-settle": ["clear() promises never resolve shutdown hangs", "shutdown hangs after I clear the queue and await everything, why?", "after emptying the queue my awaited promises never come back"],
+    "fail-fast": ["stop queue on first error", "how do I bail out of remaining work as soon as one job throws?", "abort the rest of the batch on the first failure but finish normally otherwise"],
+    "strict-carryover": ["strict mode carryoverIntervalCount effect", "does carryover make the sliding window stricter?", "with the sliding-window limiter on, does carrying over pending runs change anything?"],
+    "repeated-idle": ["notify every time queue becomes idle", "onIdle only fires once for me, how do I get told after each batch?", "event for each time all work finishes, not a one-shot promise"],
+    "pause-resume": ["add tasks without starting them then start", "how do i queue up a batch and kick it off later?", "hold jobs back and release them together later"],
+    "priority": ["priority 1 vs 5 which runs first", "is a bigger priority number scheduled earlier?", "which job goes first, the one with priority five or one?"],
+    "timeout-override": ["per task timeout override default", "can a single slow job get 10 seconds when others have 5?", "give one long job more time than the default limit"]
+  },
+  "unanswerable": {
+    "unknown-password": ["prod db password p-queue", "what's the production database login for this repo?"],
+    "unknown-sla": ["p-queue uptime sla customers", "what availability do they guarantee to paying users?"],
+    "unsupported-rate": ["p-queue benchmark requests per second aws", "how fast was it measured in production on c7g?"]
+  }
+}

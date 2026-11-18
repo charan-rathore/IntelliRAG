@@ -52,6 +52,7 @@ function indexFor(all: SearchRow[], scoped: SearchRow[], scopeKey: string): BM25
   return index;
 }
 import { overlapTerms } from "./trace";
+import { recallExperience, type ExperienceLog, type ExperiencePolicy } from "./experience";
 import type {
   ChunkKind,
   ChunkRow,
@@ -67,7 +68,7 @@ import type {
 } from "./types";
 import type { CorpusScope } from "./corpus-scope";
 import { SEED_CORPUS_ID } from "./corpus-scope";
-import { CONTEXT_TOKEN_BUDGET, EMBEDDING_MODEL } from "./types";
+import { CONTEXT_TOKEN_BUDGET, EMBEDDING_MODEL, RRF_K } from "./types";
 
 export type SearchRow = {
   chunk: ChunkRow;
@@ -184,6 +185,11 @@ export function retrieveFromRows(opts: {
   graphPathCosts?: Map<string, number>;
   corpusScope?: CorpusScope;
   packing?: ContextPacking;
+  /** What this corpus has learned from rated answers (experience.ts). */
+  experience?: ExperienceLog | null;
+  experiencePolicy?: Partial<ExperiencePolicy>;
+  /** Packing knobs the self-improvement loop may edit (defaults: types.ts). */
+  packingPolicy?: { relativeFloor?: number; soloMargin?: number; maxPassages?: number };
 }): RetrieveResult {
   const scope = opts.corpusScope ?? { kind: "corpus", corpusId: SEED_CORPUS_ID };
   const scopedRows =
@@ -193,10 +199,28 @@ export function retrieveFromRows(opts: {
   const meta = new Map<string, SearchRow>();
   for (const row of scopedRows) meta.set(row.chunk.id, row);
 
+  const query = payloadQuery(opts.query);
+  const experienceCorpus = scope.kind === "corpus" ? scope.corpusId : null;
+  const recall = experienceCorpus && opts.experience
+    ? recallExperience(opts.experience, experienceCorpus, scopedRows.map((r) => ({ chunkId: r.chunk.id, text: r.chunk.text })), query, opts.experiencePolicy)
+    : null;
   const texts = scopedRows.map((r) => `${r.title}\n${r.chunk.text}`);
   const idf = buildIdf(texts);
-  const vocab = corpusVocab(texts);
-  const query = payloadQuery(opts.query);
+  // What the source itself says, for the refusal that a name is never mentioned:
+  // learned wordings must not make an absent subject look present.
+  const sourceVocab = corpusVocab(texts);
+  // Learned wordings are part of how a passage is matched, so their words count
+  // as the corpus's words (a question in them isn't filtered out as unknown).
+  // They don't change any word's idf: a word only learned wordings use is
+  // weighted like the rarest word in the source, and the source's own words
+  // keep the weights the source gives them.
+  let vocab = sourceVocab;
+  if (recall?.expansions.size) {
+    const learnedText = [...recall.expansions.values()];
+    vocab = new Set([...sourceVocab, ...corpusVocab(learnedText)]);
+    const rarest = Math.max(0, ...idf.values());
+    for (const t of vocab) if (!idf.has(t)) idf.set(t, rarest);
+  }
   // Demo-tuned cue expansion is scoped to the seed corpus only; corpora the
   // user ingests (GitHub repos, uploads) must compete on their own text.
   const cues = scope.kind === "corpus" && scope.corpusId === SEED_CORPUS_ID ? expandQueryCues(query) : [];
@@ -269,6 +293,27 @@ export function retrieveFromRows(opts: {
       }
     }
   }
+  // Experience: wordings people confirmed for a passage match it too. Their
+  // ranking is fused with BM25's by reciprocal rank, so a learned match can
+  // lift a passage the question's own words missed, without replacing BM25.
+  if (recall?.expansions.size && (opts.experiencePolicy?.fuse ?? true)) {
+    const learned = new BM25Index([...recall.expansions].map(([id, text]) => ({ id, text })));
+    const hits = learned.search(terms.join(" ") || bm25Query, retrieveN);
+    if (hits.length) {
+      const rrf = new Map<string, number>();
+      keyword.forEach((c, i) => rrf.set(c.chunkId, 1 / (RRF_K + i + 1)));
+      hits.forEach((h, i) => rrf.set(h.id, (rrf.get(h.id) ?? 0) + 1 / (RRF_K + i + 1)));
+      const byId = new Map(keyword.map((c) => [c.chunkId, c]));
+      for (const h of hits) {
+        if (byId.has(h.id)) continue;
+        const extra = toRetrieved(h.id, meta, 0, 0, "keyword");
+        if (extra) { byId.set(h.id, extra); if (!keywordScores.has(h.id)) keywordScores.set(h.id, 0); }
+      }
+      keyword = [...byId.values()]
+        .sort((a, b) => (rrf.get(b.chunkId) ?? 0) - (rrf.get(a.chunkId) ?? 0))
+        .map((c, i) => ({ ...c, rank: i + 1 }));
+    }
+  }
   const keywordMs = performance.now() - kwStart;
 
   const useHybrid = Boolean(dense.length && keyword.length && opts.mode === "hybrid");
@@ -287,6 +332,10 @@ export function retrieveFromRows(opts: {
     terms,
     preferredSlugs: opts.preferredSlugs,
     graphPathCosts: opts.graphPathCosts,
+    expansions: recall?.expansions,
+    demote: recall?.demote,
+    learnedBoost: recall?.boost,
+    learned: recall?.learned,
   });
   const rerankMs = performance.now() - rerankStart;
 
@@ -298,7 +347,9 @@ export function retrieveFromRows(opts: {
     query,
     idf,
     maxTokens: CONTEXT_TOKEN_BUDGET,
-    topK: Math.min(3, opts.topK),
+    topK: Math.min(opts.packingPolicy?.maxPassages ?? 3, opts.topK),
+    relativeFloor: opts.packingPolicy?.relativeFloor,
+    soloMargin: opts.packingPolicy?.soloMargin,
   });
   const coverageDecision =
     packing === "coverage" && gateDecision.packed.length
@@ -338,7 +389,7 @@ export function retrieveFromRows(opts: {
   // answer a neighbouring question (coverage-pack.ts, absentSubject).
   // Only a positive verdict: a negative one ("the Redis guide never mentions
   // Redlock") already says the name is missing, and cites where it looked.
-  const absent = classified.kind === "positive" ? absentSubject(query, vocab) : [];
+  const absent = classified.kind === "positive" ? absentSubject(query, sourceVocab) : [];
   const evidence: typeof classified = absent.length
     ? { ...classified, kind: "insufficient", note: `The source never mentions ${absent.map((t) => `“${t}”`).join(", ")}, which the question is about.` }
     : classified;

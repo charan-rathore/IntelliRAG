@@ -46,6 +46,18 @@ One pinned README ([sindresorhus/p-queue](https://github.com/sindresorhus/p-queu
 
 The default ties BM25 on the clean corpus and beats it by 20 points once noise documents are mixed in. The coverage packer wins one extra question on the clean corpus, but the gain's bootstrap interval is [−10, +20] points, and it loses 10 points under distractors. So it stays opt-in. Every run, including the losing ones, is in [`eval/repo-support/runs/`](eval/repo-support/runs/), and the [evaluation write-up](eval/repo-support/README.md) covers method, history and limits.
 
+## It gets better the more it's used
+
+Three loops improve IntelliRAG as people use it. Each is measured on held-out data, and each can only add evidence: none of them can make an unsupported question look answered.
+
+| Loop | What it learns | Measured |
+|---|---|---|
+| **Conversation** ([`session-intent.ts`](web/src/lib/rag/session-intent.ts)) | A follow-up is searched with the earlier questions on its topic | Follow-ups with complete evidence: 63.6% → **86.4%**, refusals 1/3 → 2/3 ([eval](eval/conversations/README.md)) |
+| **Experience** ([`experience.ts`](web/src/lib/rag/experience.ts)) | A rated answer, or a passage picked as the one that answers a question, is filed against that passage. Later questions worded like it find it. | Originals asked again: 71.4% → **81.0%**; new wordings +2.4 to +4.8 points; 20% wrong ratings cost nothing ([eval](eval/learning/README.md)) |
+| **Self-improvement memory** ([`sim-optimize.ts`](web/scripts/sim-optimize.ts), after [arXiv 2611.18856](https://arxiv.org/abs/2611.18856)) | The retrieval policy is edited round by round. Each attempt is recorded with its root cause, rationale, predicted fixes and observed result. | Held-out wording 52.9% → **58.8%**. Its accepted packing edit also lifted the follow-up eval it never saw by 9 points ([write-up, including the null result](eval/sim/README.md)) |
+
+Experience is the "file good answers back" step of [Karpathy's LLM-wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), done per passage: the source is never edited, and links go stale when the passage they learned about changes. Agents get the same memory through the MCP server's `feedback` tool. It is kept per repository, so a repo keeps learning across sessions.
+
 ## Research behind the design
 
 | Paper | What we took | Status here |

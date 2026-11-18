@@ -109,7 +109,7 @@ describe("absentSubject: names the source never mentions", () => {
 
 describe("retrieval refuses a question about something the source never mentions", () => {
   it("refuses Kubernetes on a queue README even though 'scheduling' matches", () => {
-    const body = "# p-queue\\n\\n## Scheduling failures\\n\\nScheduling failures are caused when a pod of tasks waits on concurrency. A pod is scheduled when the queue has room, and scheduling failures clear once it drains.\\n\\n## Errors\\n\\nUse onError to stop on the first failure.";
+    const body = "# p-queue\n\n## Scheduling failures\n\nScheduling failures are caused when a pod of tasks waits on concurrency. A pod is scheduled when the queue has room, and scheduling failures clear once it drains.\n\n## Errors\n\nUse onError to stop on the first failure.";
     const rows = chunkDocument(body, { filepath: "readme.md" }).map((c) => ({ title: "p-queue README", slug: "p-queue", indexedAt: null, corpusId: "t",
       chunk: { id: `p:${c.ordinal}`, document_id: "p-queue", ordinal: c.ordinal, text: c.text, token_count: c.tokenCount, heading: c.heading, embedding: null, embedding_model: null,
         content_hash: String(c.ordinal), created_at: "", filepath: c.filepath, language: c.language, symbol: c.symbol, chunk_kind: c.chunkKind, corpus_id: "t" } })) as SearchRow[];

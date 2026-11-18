@@ -95,6 +95,8 @@ export type LearningSidecar = {
 };
 
 export type GraphState = {
+  /** Wordings filed against the passages that answered them (experience.ts). */
+  experience?: import("../experience").ExperienceLog;
   vectorMemory?: import("./vector").VectorMemory;
   corpusFingerprint?: string;
   graph: GraphJson;

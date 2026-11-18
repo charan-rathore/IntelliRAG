@@ -18,7 +18,7 @@ var RRF_K = 60;
 var CONTEXT_TOKEN_BUDGET = 1400;
 var CONTEXT_RELATIVE_FLOOR = 0.62;
 var CONTEXT_ABSOLUTE_FLOOR = 0.24;
-var CONTEXT_SOLO_MARGIN = 1.35;
+var CONTEXT_SOLO_MARGIN = 1.5;
 
 // web/src/lib/rag/text.ts
 var TOKEN_PATTERN = /[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu;
@@ -395,9 +395,9 @@ function overlapTail(text, count) {
   if (first >= 56320 && first <= 57343 && previous >= 55296 && previous <= 56319) start -= 1;
   return text.slice(start).trim();
 }
-function chunkProse(body, chunkSize, overlap, extra) {
+function chunkProse(body, chunkSize, overlap2, extra) {
   const targetChars = chunkSize * 4;
-  const overlapChars = overlap * 4;
+  const overlapChars = overlap2 * 4;
   const lines = body.split("\n");
   const tableHeadersByRow = /* @__PURE__ */ new Map();
   const separatorRow = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$/;
@@ -585,7 +585,7 @@ function chunkDocument(body, opts = {}) {
   const normalized = body.replace(/\r\n?/g, "\n").trim();
   if (!normalized) return [];
   const chunkSize = opts.chunkSize ?? CHUNK_SIZE_TOKENS;
-  const overlap = opts.overlap ?? CHUNK_OVERLAP_TOKENS;
+  const overlap2 = opts.overlap ?? CHUNK_OVERLAP_TOKENS;
   const kind = opts.kind ?? "prose";
   const language = opts.language ?? null;
   const filepath = opts.filepath ?? null;
@@ -604,7 +604,7 @@ function chunkDocument(body, opts = {}) {
       chunkKind: "code"
     }));
   }
-  return chunkProse(normalized, chunkSize, overlap, extras);
+  return chunkProse(normalized, chunkSize, overlap2, extras);
 }
 
 // mcp/src/corpus.ts
@@ -1160,7 +1160,12 @@ ${c.text}`);
     if (opts.preferredSlugs?.includes(c.slug)) score = Math.min(1, score + 0.03);
     const pathCost = opts.graphPathCosts?.get(c.chunkId);
     if (pathCost !== void 0) score = Math.min(1, score + 0.04 / (1 + pathCost));
-    signals.set(c.chunkId, { idfRecall, titleRecall, phrase, topical, dense, bm25 });
+    const learnedBoost = opts.learnedBoost?.get(c.chunkId);
+    if (learnedBoost) score = Math.min(1, score + learnedBoost);
+    const learnedSignal = opts.learned?.get(c.chunkId);
+    const demoted = opts.demote?.get(c.chunkId);
+    if (demoted) score = Math.max(0, score - demoted);
+    signals.set(c.chunkId, { idfRecall, titleRecall, phrase, topical, dense, bm25, ...learnedSignal !== void 0 ? { learned: learnedSignal } : {} });
     return { chunk: c, score };
   });
   scored.sort((a, b) => b.score - a.score);
@@ -1171,7 +1176,9 @@ ${c.text}`);
   });
   return { ranked, scores, signals };
 }
+var LEARNED_SUPPORT = 0.45;
 function isSupported(signals, calibrated) {
+  if ((signals.learned ?? 0) >= LEARNED_SUPPORT && calibrated > 0) return true;
   if (calibrated < CONTEXT_ABSOLUTE_FLOOR) return false;
   if (signals.idfRecall >= 0.18) return true;
   if (signals.titleRecall >= 0.22) return true;
@@ -1204,6 +1211,8 @@ function queryLooksMultiSource(query, ranked, idf) {
   return false;
 }
 function selectContext(ranked, signals, opts) {
+  const relativeFloor = opts.relativeFloor ?? CONTEXT_RELATIVE_FLOOR;
+  const soloMargin = opts.soloMargin ?? CONTEXT_SOLO_MARGIN;
   const dropReasons = /* @__PURE__ */ new Map();
   const maxTokens = opts.maxTokens ?? CONTEXT_TOKEN_BUDGET;
   const underspecified = distinctiveTerms(opts.query).length === 0;
@@ -1264,10 +1273,10 @@ ${c.text}`));
   const peak = supported[0].score;
   const afterCliff = [];
   for (const c of supported) {
-    if (c.chunkId !== supported[0].chunkId && c.score < peak * CONTEXT_RELATIVE_FLOOR) {
+    if (c.chunkId !== supported[0].chunkId && c.score < peak * relativeFloor) {
       dropReasons.set(
         c.chunkId,
-        `Below relative floor: ${c.score.toFixed(2)} < ${CONTEXT_RELATIVE_FLOOR} \xD7 rank-1 ${peak.toFixed(2)} (${(peak * CONTEXT_RELATIVE_FLOOR).toFixed(2)}). Not an absolute 0.55 cosine cut. Inspect only.`
+        `Below relative floor: ${c.score.toFixed(2)} < ${relativeFloor} \xD7 rank-1 ${peak.toFixed(2)} (${(peak * relativeFloor).toFixed(2)}). Not an absolute 0.55 cosine cut. Inspect only.`
       );
       continue;
     }
@@ -1315,12 +1324,12 @@ ${c.text}`));
   const multi = queryLooksMultiSource(opts.query, afterCliff, opts.idf);
   const second = afterCliff[1];
   let pool = afterCliff;
-  if (!multi && second && peak >= second.score * CONTEXT_SOLO_MARGIN) {
+  if (!multi && second && peak >= second.score * soloMargin) {
     for (const c of afterCliff.slice(1)) {
       if (c.slug === afterCliff[0].slug) continue;
       dropReasons.set(
         c.chunkId,
-        `Rank-1 margin: ${peak.toFixed(2)} is \u2265 ${CONTEXT_SOLO_MARGIN}\xD7 stronger than ${second.score.toFixed(2)}. Only the top source packed.`
+        `Rank-1 margin: ${peak.toFixed(2)} is \u2265 ${soloMargin}\xD7 stronger than ${second.score.toFixed(2)}. Only the top source packed.`
       );
     }
     pool = afterCliff.filter((c) => c.slug === afterCliff[0].slug).slice(0, 2);
@@ -1840,10 +1849,89 @@ function overlapTerms(query, text, limit = 5) {
   return hits;
 }
 
+// web/src/lib/rag/experience.ts
+var MAX_ASKED_PER_PASSAGE = 16;
+var DEFAULT_EXPERIENCE_POLICY = { boost: 0.25, boostFloor: 0.2, demoteBy: 0.12, demoteSimilarity: 0.5, fuse: true };
+var emptyExperience = () => ({ version: 1, entries: {} });
+function fingerprint(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+var keyOf = (corpusId, chunkId) => `${corpusId}\0${chunkId}`;
+var normalize = (q) => q.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+function recordExperience(log, input) {
+  const at = input.at ?? (/* @__PURE__ */ new Date()).toISOString();
+  const entries = { ...log.entries };
+  const nq = normalize(input.question);
+  if (!nq) return log;
+  for (const p of input.passages) {
+    const key = keyOf(input.corpusId, p.chunkId);
+    const fp = fingerprint(p.text);
+    const prev = entries[key];
+    const asked = prev && prev.fingerprint === fp ? prev.asked.filter((a) => normalize(a.q) !== nq) : [];
+    asked.push({ q: input.question.trim(), vote: input.vote, at });
+    entries[key] = { corpusId: input.corpusId, chunkId: p.chunkId, fingerprint: fp, asked: asked.slice(-MAX_ASKED_PER_PASSAGE) };
+  }
+  return { version: 1, entries };
+}
+function overlap(a, b) {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const t of a) if (b.has(t)) inter++;
+  return inter / Math.min(a.size, b.size);
+}
+function jaccard(a, b) {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const t of a) if (b.has(t)) inter++;
+  return inter / (a.size + b.size - inter);
+}
+function recallExperience(log, corpusId, passages, question, policy = {}) {
+  const expansions = /* @__PURE__ */ new Map();
+  const demote = /* @__PURE__ */ new Map();
+  const boost = /* @__PURE__ */ new Map();
+  const learned = /* @__PURE__ */ new Map();
+  if (!log) return { expansions, boost, learned, demote, used: 0 };
+  const qTokens = new Set(contentTokens(question));
+  const pol = { ...DEFAULT_EXPERIENCE_POLICY, ...policy };
+  const threshold = pol.demoteSimilarity;
+  const by = pol.demoteBy;
+  let used = 0;
+  for (const p of passages) {
+    const e = log.entries[keyOf(corpusId, p.chunkId)];
+    if (!e || e.fingerprint !== fingerprint(p.text)) continue;
+    const positive = e.asked.filter((a) => a.vote > 0).map((a) => a.q);
+    if (positive.length) {
+      const scored = positive.map((q) => ({ q, sim: overlap(qTokens, new Set(contentTokens(q))) }));
+      const alike = scored.filter((x) => x.sim >= pol.boostFloor);
+      if (alike.length) {
+        expansions.set(p.chunkId, alike.map((x) => x.q).join("\n"));
+        used += alike.length;
+        const near = e.asked.filter((a) => overlap(qTokens, new Set(contentTokens(a.q))) >= pol.boostFloor);
+        const pos = near.filter((a) => a.vote > 0).length;
+        const neg = near.length - pos;
+        const reliability = (pos + 1) / (near.length + 2);
+        const sim = Math.max(...alike.map((x) => x.sim));
+        if (neg < pos) {
+          boost.set(p.chunkId, pol.boost * sim * reliability);
+          learned.set(p.chunkId, sim * reliability);
+        }
+      }
+    }
+    const deadSimilar = e.asked.some((a) => a.vote < 0 && jaccard(qTokens, new Set(contentTokens(a.q))) >= threshold);
+    if (deadSimilar) demote.set(p.chunkId, by);
+  }
+  return { expansions, boost, learned, demote, used };
+}
+
 // web/src/lib/rag/retrieve-core.ts
 var INDEX_CACHE = /* @__PURE__ */ new WeakMap();
 var indexStats = { builds: 0, hits: 0 };
-function fingerprint(rows) {
+function fingerprint2(rows) {
   let h = 2166136261;
   for (const r of rows) {
     const s = r.chunk.id + (r.chunk.content_hash ?? "") + r.title;
@@ -1857,7 +1945,7 @@ function fingerprint(rows) {
 function indexFor(all, scoped, scopeKey) {
   let byScope = INDEX_CACHE.get(all);
   if (!byScope) INDEX_CACHE.set(all, byScope = /* @__PURE__ */ new Map());
-  const fp = fingerprint(scoped);
+  const fp = fingerprint2(scoped);
   const hit = byScope.get(scopeKey);
   if (hit && hit.fp === fp) {
     indexStats.hits++;
@@ -1921,11 +2009,20 @@ function retrieveFromRows(opts) {
   const scopedRows = scope.kind === "all" ? opts.rows : opts.rows.filter((r) => (r.corpusId || r.chunk.corpus_id || SEED_CORPUS_ID) === scope.corpusId);
   const meta = /* @__PURE__ */ new Map();
   for (const row of scopedRows) meta.set(row.chunk.id, row);
+  const query = payloadQuery(opts.query);
+  const experienceCorpus = scope.kind === "corpus" ? scope.corpusId : null;
+  const recall = experienceCorpus && opts.experience ? recallExperience(opts.experience, experienceCorpus, scopedRows.map((r) => ({ chunkId: r.chunk.id, text: r.chunk.text })), query, opts.experiencePolicy) : null;
   const texts = scopedRows.map((r) => `${r.title}
 ${r.chunk.text}`);
   const idf = buildIdf(texts);
-  const vocab = corpusVocab(texts);
-  const query = payloadQuery(opts.query);
+  const sourceVocab = corpusVocab(texts);
+  let vocab = sourceVocab;
+  if (recall?.expansions.size) {
+    const learnedText = [...recall.expansions.values()];
+    vocab = /* @__PURE__ */ new Set([...sourceVocab, ...corpusVocab(learnedText)]);
+    const rarest = Math.max(0, ...idf.values());
+    for (const t of vocab) if (!idf.has(t)) idf.set(t, rarest);
+  }
   const cues = scope.kind === "corpus" && scope.corpusId === SEED_CORPUS_ID ? expandQueryCues(query) : [];
   const terms = [.../* @__PURE__ */ new Set([...queryTerms(query, vocab), ...cues])];
   const bm25Query = `${retrievalQuery(query, vocab)} ${cues.join(" ")}`.trim();
@@ -1984,6 +2081,25 @@ ${r.chunk.text}`);
       }
     }
   }
+  if (recall?.expansions.size && (opts.experiencePolicy?.fuse ?? true)) {
+    const learned = new BM25Index([...recall.expansions].map(([id, text]) => ({ id, text })));
+    const hits = learned.search(terms.join(" ") || bm25Query, retrieveN);
+    if (hits.length) {
+      const rrf = /* @__PURE__ */ new Map();
+      keyword.forEach((c, i) => rrf.set(c.chunkId, 1 / (RRF_K + i + 1)));
+      hits.forEach((h, i) => rrf.set(h.id, (rrf.get(h.id) ?? 0) + 1 / (RRF_K + i + 1)));
+      const byId = new Map(keyword.map((c) => [c.chunkId, c]));
+      for (const h of hits) {
+        if (byId.has(h.id)) continue;
+        const extra = toRetrieved(h.id, meta, 0, 0, "keyword");
+        if (extra) {
+          byId.set(h.id, extra);
+          if (!keywordScores.has(h.id)) keywordScores.set(h.id, 0);
+        }
+      }
+      keyword = [...byId.values()].sort((a, b) => (rrf.get(b.chunkId) ?? 0) - (rrf.get(a.chunkId) ?? 0)).map((c, i) => ({ ...c, rank: i + 1 }));
+    }
+  }
   const keywordMs = performance.now() - kwStart;
   const useHybrid = Boolean(dense.length && keyword.length && opts.mode === "hybrid");
   const fusedPack = useHybrid ? rrfFuse(dense, keyword, retrieveN) : null;
@@ -1997,7 +2113,11 @@ ${r.chunk.text}`);
     idf,
     terms,
     preferredSlugs: opts.preferredSlugs,
-    graphPathCosts: opts.graphPathCosts
+    graphPathCosts: opts.graphPathCosts,
+    expansions: recall?.expansions,
+    demote: recall?.demote,
+    learnedBoost: recall?.boost,
+    learned: recall?.learned
   });
   const rerankMs = performance.now() - rerankStart;
   const assembleStart = performance.now();
@@ -2006,7 +2126,9 @@ ${r.chunk.text}`);
     query,
     idf,
     maxTokens: CONTEXT_TOKEN_BUDGET,
-    topK: Math.min(3, opts.topK)
+    topK: Math.min(opts.packingPolicy?.maxPassages ?? 3, opts.topK),
+    relativeFloor: opts.packingPolicy?.relativeFloor,
+    soloMargin: opts.packingPolicy?.soloMargin
   });
   const coverageDecision = packing === "coverage" && gateDecision.packed.length ? selectContextCoverage(ranked, signals, {
     query,
@@ -2034,7 +2156,7 @@ ${r.chunk.text}`);
     signals,
     denseRank1Slug: denseSlugRanks[0]?.slug ?? null
   });
-  const absent = classified.kind === "positive" ? absentSubject(query, vocab) : [];
+  const absent = classified.kind === "positive" ? absentSubject(query, sourceVocab) : [];
   const evidence = absent.length ? { ...classified, kind: "insufficient", note: `The source never mentions ${absent.map((t) => `\u201C${t}\u201D`).join(", ")}, which the question is about.` } : classified;
   const gatedPacked = evidence.kind === "insufficient" ? [] : packed;
   const gatedIds = new Set(gatedPacked.map((c) => c.chunkId));
@@ -2240,6 +2362,32 @@ function mustRefuse(plan, packedTexts) {
 }
 
 // mcp/src/engine.ts
+import { existsSync, mkdirSync, readFileSync as readFileSync2, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join as join2 } from "node:path";
+var HOME = process.env.INTELLIRAG_HOME || join2(homedir(), ".intellirag");
+var experiences = /* @__PURE__ */ new Map();
+var fileFor = (c) => join2(HOME, `experience-${c.origin.replace(/[^\w.-]+/g, "_").slice(-120)}.json`);
+function experienceOf(c) {
+  let log = experiences.get(c.id);
+  if (!log) {
+    try {
+      log = existsSync(fileFor(c)) ? JSON.parse(readFileSync2(fileFor(c), "utf8")) : emptyExperience();
+    } catch {
+      log = emptyExperience();
+    }
+    experiences.set(c.id, log);
+  }
+  return log;
+}
+function saveExperience(c, log) {
+  experiences.set(c.id, log);
+  try {
+    mkdirSync(HOME, { recursive: true });
+    writeFileSync(fileFor(c), JSON.stringify(log));
+  } catch {
+  }
+}
 var STORAGE = { backend: "ephemeral", durable: false, denseAvailable: false, warning: null };
 var idfCache = /* @__PURE__ */ new WeakMap();
 var idfOf = (c) => {
@@ -2267,7 +2415,8 @@ function run(corpus, query, topK) {
     embeddingModel: null,
     rows: corpus.rows,
     storage: STORAGE,
-    corpusScope: { kind: "corpus", corpusId: corpus.id }
+    corpusScope: { kind: "corpus", corpusId: corpus.id },
+    experience: experienceOf(corpus)
   });
 }
 var toPassage = (c) => ({
@@ -2316,11 +2465,16 @@ ${p.text}`))) {
     coverage: r.coverage && !refused ? { covered: r.coverage.covered, missing: r.coverage.missing } : null
   };
 }
-function feedback(sessionId, ref, helpful) {
+function feedback(sessionId, ref, helpful, corpus, text) {
   const history = sessions.get(sessionId);
-  const turn = history?.slice().reverse().find((t) => t.packed?.some((p) => p.chunkId === ref));
+  const turn = history?.slice().reverse().find((t) => t.packed?.some((p) => p.chunkId === ref)) ?? history?.at(-1);
   if (!turn) return false;
+  const passage = turn.packed?.find((p) => p.chunkId === ref);
   turn.feedback = { ...turn.feedback ?? {}, [ref]: helpful ? 1 : -1 };
+  const body = passage?.text ?? text ?? corpus?.rows.find((r) => r.chunk.id === ref)?.chunk.text;
+  if (corpus && body) {
+    saveExperience(corpus, recordExperience(experienceOf(corpus), { corpusId: corpus.id, question: turn.query, passages: [{ chunkId: ref, text: body }], vote: helpful ? 1 : -1 }));
+  }
   return true;
 }
 
@@ -2353,7 +2507,7 @@ var TOOLS = [
   },
   {
     name: "feedback",
-    description: "Mark a passage from this session's answers helpful or not. Later follow-ups lean toward helpful passages and away from unhelpful ones.",
+    description: "Mark a passage (from ask, or a search result that answered the session's last question) helpful or not. The corpus remembers it across sessions: later questions worded like this one find that passage.",
     inputSchema: { type: "object", required: ["session", "ref", "helpful"], properties: { session: { type: "string" }, ref: { type: "string", description: "A passage ref from ask." }, helpful: { type: "boolean" } } }
   },
   {
@@ -2408,8 +2562,8 @@ async function call(name, a) {
       return { text: r.map((p) => `[${p.ref}] ${p.score} ${p.file}${p.heading ? ` \u203A ${p.heading}` : ""}`).join("\n") || "No candidates.", data: r };
     }
     case "feedback": {
-      const ok = feedback(String(a.session), String(a.ref), Boolean(a.helpful));
-      return { text: ok ? "Noted." : "That passage isn't in this session's recent answers.", data: { ok } };
+      const ok = feedback(String(a.session), String(a.ref), Boolean(a.helpful), current ?? void 0);
+      return { text: ok ? "Noted. Questions worded like this one will find that passage." : "Ask something in this session first.", data: { ok } };
     }
     case "new_topic": {
       resetSession(String(a.session));

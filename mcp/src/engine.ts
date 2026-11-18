@@ -8,6 +8,31 @@ import { retrieveFromRows } from "../../web/src/lib/rag/retrieve-core";
 import { buildIdf, type IdF } from "../../web/src/lib/rag/ranking";
 import { mustRefuse, planTurn, type SessionTurn, type TurnPlan } from "../../web/src/lib/rag/session-intent";
 import type { Corpus } from "./corpus";
+import { emptyExperience, recordExperience, type ExperienceLog } from "../../web/src/lib/rag/experience";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+/**
+ * Experience memory per corpus, kept on disk (~/.intellirag, or INTELLIRAG_HOME)
+ * so a repository an agent works in keeps learning across sessions. Links are
+ * tied to passage fingerprints: when the repo changes, stale ones stop counting.
+ */
+const HOME = process.env.INTELLIRAG_HOME || join(homedir(), ".intellirag");
+const experiences = new Map<string, ExperienceLog>();
+const fileFor = (c: Corpus) => join(HOME, `experience-${c.origin.replace(/[^\w.-]+/g, "_").slice(-120)}.json`);
+function experienceOf(c: Corpus): ExperienceLog {
+  let log = experiences.get(c.id);
+  if (!log) {
+    try { log = existsSync(fileFor(c)) ? (JSON.parse(readFileSync(fileFor(c), "utf8")) as ExperienceLog) : emptyExperience(); } catch { log = emptyExperience(); }
+    experiences.set(c.id, log);
+  }
+  return log;
+}
+function saveExperience(c: Corpus, log: ExperienceLog) {
+  experiences.set(c.id, log);
+  try { mkdirSync(HOME, { recursive: true }); writeFileSync(fileFor(c), JSON.stringify(log)); } catch { /* read-only home: keep it in memory */ }
+}
 
 export interface Passage {
   ref: string;
@@ -51,7 +76,7 @@ export function resetSession(id: string) { sessions.delete(id); }
 function run(corpus: Corpus, query: string, topK: number) {
   return retrieveFromRows({
     query, queryVector: null, mode: "keyword", topK, embeddingModel: null, rows: corpus.rows,
-    storage: STORAGE as never, corpusScope: { kind: "corpus", corpusId: corpus.id },
+    storage: STORAGE as never, corpusScope: { kind: "corpus", corpusId: corpus.id }, experience: experienceOf(corpus),
   });
 }
 
@@ -95,11 +120,21 @@ export function ask(corpus: Corpus, question: string, sessionId?: string): Answe
   };
 }
 
-/** Mark a passage from this session's last answers helpful or not; the next follow-ups lean accordingly. */
-export function feedback(sessionId: string, ref: string, helpful: boolean): boolean {
+/**
+ * Mark a passage from this session's answers helpful or not. Follow-ups in the
+ * session lean accordingly, and the question is filed against the passage in
+ * the corpus's experience memory, so later questions worded like it find it.
+ * A passage `search` returned can be marked too, by passing its text.
+ */
+export function feedback(sessionId: string, ref: string, helpful: boolean, corpus?: Corpus, text?: string): boolean {
   const history = sessions.get(sessionId);
-  const turn = history?.slice().reverse().find((t) => t.packed?.some((p) => p.chunkId === ref));
+  const turn = history?.slice().reverse().find((t) => t.packed?.some((p) => p.chunkId === ref)) ?? history?.at(-1);
   if (!turn) return false;
+  const passage = turn.packed?.find((p) => p.chunkId === ref);
   turn.feedback = { ...(turn.feedback ?? {}), [ref]: helpful ? 1 : -1 };
+  const body = passage?.text ?? text ?? corpus?.rows.find((r) => r.chunk.id === ref)?.chunk.text;
+  if (corpus && body) {
+    saveExperience(corpus, recordExperience(experienceOf(corpus), { corpusId: corpus.id, question: turn.query, passages: [{ chunkId: ref, text: body }], vote: helpful ? 1 : -1 }));
+  }
   return true;
 }
