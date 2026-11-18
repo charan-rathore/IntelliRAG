@@ -7,6 +7,7 @@ import {
   LoaderCircle,
   Lock,
   Plus,
+  Search,
   ShieldAlert,
   X,
 } from "lucide-react";
@@ -72,6 +73,7 @@ import type {
   StorageStatus,
 } from "@/lib/rag/types";
 import { cn } from "@/lib/utils";
+import { SearchPalette } from "@/components/rag/search-palette";
 
 type Snapshot = Awaited<ReturnType<typeof getLabSnapshot>>;
 
@@ -164,6 +166,7 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [desktop, setDesktop] = useState(false);
   useEffect(() => { const media = matchMedia('(min-width: 1024px)'); const update = () => setDesktop(media.matches); update(); media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
   const [corpusOpen, setCorpusOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [mode, setMode] = useState<RetrievalMode>("hybrid");
   const [topK, setTopK] = useState(5);
@@ -288,6 +291,14 @@ export function Console({ initial }: { initial: Snapshot }) {
     if (messages.length === 0) el.scrollTo({ top: 0 });
     else el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setSearchOpen((o) => !o); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -615,6 +626,11 @@ export function Console({ initial }: { initial: Snapshot }) {
           <span data-tour="tour-view">
             <ViewToggle value={view} onChange={setView} />
           </span>
+          <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search sources (Ctrl+K)" className="inline-flex min-h-9 items-center gap-2 rounded-sm border border-border px-2.5 text-sm text-muted hover:border-fg/30 hover:text-fg">
+            <Search className="size-4" aria-hidden />
+            <span className="hidden md:inline">Search code</span>
+            <kbd className="hidden font-mono text-[11px] text-subtle lg:inline">⌘K</kbd>
+          </button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
           <a href="/architecture.html" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline xl:inline-flex">Architecture</a>
@@ -631,6 +647,7 @@ export function Console({ initial }: { initial: Snapshot }) {
         </div>
       </header>
 
+      <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} corpus={corpus} />
       <DemoBanner posture={posture} />
 
       {!hasKey && !demo && (

@@ -138,6 +138,20 @@ export const getSourceDocument = createServerFn({ method: "GET" })
     };
   });
 
+export const searchSources = createServerFn({ method: "GET" })
+  .validator(z.object({ q: z.string().trim().min(1).max(500), corpus: z.string().max(600).nullable().optional(), limit: z.number().int().min(1).max(50).optional() }))
+  .handler(async ({ data }) => {
+    const { searchCorpus } = await import("./search.server");
+    return searchCorpus({ q: data.q, corpus: data.corpus ?? null, limit: data.limit });
+  });
+
+export const suggestSearch = createServerFn({ method: "GET" })
+  .validator(z.object({ prefix: z.string().max(200), corpus: z.string().max(600).nullable().optional() }))
+  .handler(async ({ data }) => {
+    const { suggestCorpus } = await import("./search.server");
+    return suggestCorpus({ prefix: data.prefix, corpus: data.corpus ?? null });
+  });
+
 export const submitSourcePick = createServerFn({ method: "POST" })
   .validator(
     z.object({

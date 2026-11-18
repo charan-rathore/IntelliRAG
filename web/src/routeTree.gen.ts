@@ -17,6 +17,7 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiKeysRouteImport } from './routes/api/keys'
 import { Route as ApiLabRouteImport } from './routes/api/lab'
 import { Route as ApiQueryRouteImport } from './routes/api/query'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as SourcesSlugRouteImport } from './routes/sources.$slug'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +60,11 @@ const ApiQueryRoute = ApiQueryRouteImport.update({
   path: '/api/query',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SourcesSlugRoute = SourcesSlugRouteImport.update({
   id: '/sources/$slug',
   path: '/sources/$slug',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/api/keys': typeof ApiKeysRoute
   '/api/lab': typeof ApiLabRoute
   '/api/query': typeof ApiQueryRoute
+  '/api/search': typeof ApiSearchRoute
   '/sources/$slug': typeof SourcesSlugRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/api/keys': typeof ApiKeysRoute
   '/api/lab': typeof ApiLabRoute
   '/api/query': typeof ApiQueryRoute
+  '/api/search': typeof ApiSearchRoute
   '/sources/$slug': typeof SourcesSlugRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/api/keys': typeof ApiKeysRoute
   '/api/lab': typeof ApiLabRoute
   '/api/query': typeof ApiQueryRoute
+  '/api/search': typeof ApiSearchRoute
   '/sources/$slug': typeof SourcesSlugRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/api/keys'
     | '/api/lab'
     | '/api/query'
+    | '/api/search'
     | '/sources/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/api/keys'
     | '/api/lab'
     | '/api/query'
+    | '/api/search'
     | '/sources/$slug'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/api/keys'
     | '/api/lab'
     | '/api/query'
+    | '/api/search'
     | '/sources/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   ApiKeysRoute: typeof ApiKeysRoute
   ApiLabRoute: typeof ApiLabRoute
   ApiQueryRoute: typeof ApiQueryRoute
+  ApiSearchRoute: typeof ApiSearchRoute
   SourcesSlugRoute: typeof SourcesSlugRoute
 }
 
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiQueryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sources/$slug': {
       id: '/sources/$slug'
       path: '/sources/$slug'
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiKeysRoute: ApiKeysRoute,
   ApiLabRoute: ApiLabRoute,
   ApiQueryRoute: ApiQueryRoute,
+  ApiSearchRoute: ApiSearchRoute,
   SourcesSlugRoute: SourcesSlugRoute,
 }
 export const routeTree = rootRouteImport

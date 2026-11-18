@@ -58,6 +58,19 @@ Three loops improve IntelliRAG as people use it. Each is measured on held-out da
 
 Experience is the "file good answers back" step of [Karpathy's LLM-wiki pattern](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f), done per passage: the source is never edited, and links go stale when the passage they learned about changes. Agents get the same memory through the MCP server's `feedback` tool. It is kept per repository, so a repo keeps learning across sessions.
 
+## Search like GitHub code search
+
+Press ⌘K (Ctrl+K) to search every indexed source instantly. It splits identifiers
+(`parseJSONResponse` matches "parse json response"), weights function names and
+docstrings, and takes operators: `path:src/queue`, `lang:ts`, `sym:resume`,
+`kind:prose`, `"exact words"`, `-word`. Results show the matching lines
+highlighted, with "did you mean" for typos and completions from your sources.
+The same engine answers `GET /api/search?q=…&corpus=…`.
+
+On CoSQA (313 real web queries, 6,267 Python functions) it scores 46.4 nDCG@10
+against 42.9 for plain BM25, with no model. Details and an honest comparison with
+dense retrievers: [eval/code-search](eval/code-search/README.md).
+
 ## Research behind the design
 
 | Paper | What we took | Status here |

@@ -1,0 +1,68 @@
+{
+  "benchmark": "CoSQA dev (label 1) vs all unique CoSQA functions",
+  "queries": 313,
+  "documents": 6267,
+  "settings": {
+    "k1": 1.2,
+    "b": 0.75,
+    "nameWeight": 4,
+    "docWeight": 2,
+    "synonymWeight": 0.35,
+    "prfDocs": 0,
+    "prfTerms": 8,
+    "prfWeight": 0.3,
+    "useLexicon": false,
+    "associationWeight": 0.35,
+    "associationsPerTerm": 2
+  },
+  "arms": [
+    {
+      "arm": "BM25, IntelliRAG prose tokenizer",
+      "mrr10": 0.370833967239718,
+      "ndcg10": 0.42856262592410366,
+      "r1": 0.2715654952076677,
+      "r5": 0.5207667731629393,
+      "r10": 0.6134185303514377
+    },
+    {
+      "arm": "+ identifier-aware tokens",
+      "mrr10": 0.3923842486941529,
+      "ndcg10": 0.4549075966533442,
+      "r1": 0.2779552715654952,
+      "r5": 0.5527156549520766,
+      "r10": 0.6549520766773163
+    },
+    {
+      "arm": "+ name and docstring fields (BM25F)",
+      "mrr10": 0.39827957807191017,
+      "ndcg10": 0.4581641676708342,
+      "r1": 0.2779552715654952,
+      "r5": 0.5399361022364217,
+      "r10": 0.6485623003194888
+    },
+    {
+      "arm": "  (tried, off) + developer lexicon",
+      "mrr10": 0.383252193316091,
+      "ndcg10": 0.44180910366028336,
+      "r1": 0.26198083067092653,
+      "r5": 0.5271565495207667,
+      "r10": 0.6261980830670927
+    },
+    {
+      "arm": "  (tried, off) + pseudo-relevance feedback (RM3)",
+      "mrr10": 0.37328211369744885,
+      "ndcg10": 0.44135808902720697,
+      "r1": 0.25878594249201275,
+      "r5": 0.5303514376996805,
+      "r10": 0.6613418530351438
+    },
+    {
+      "arm": "+ learned query→code associations: search bar",
+      "mrr10": 0.39905040823571175,
+      "ndcg10": 0.464233407529018,
+      "r1": 0.26198083067092653,
+      "r5": 0.5942492012779552,
+      "r10": 0.6677316293929713
+    }
+  ]
+}
