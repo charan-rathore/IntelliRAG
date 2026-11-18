@@ -1,0 +1,2572 @@
+{
+  "dataset": "conversations-v1",
+  "distractors": false,
+  "summary": {
+    "turn-only": {
+      "completeEvidence": 0.6153846153846154,
+      "evidenceRecall": 0.6153846153846154,
+      "followUps": 0.5909090909090909,
+      "switches": 0.3333333333333333,
+      "opening": 0.7142857142857143,
+      "refusals": "1/3"
+    },
+    "concat-history": {
+      "completeEvidence": 0.717948717948718,
+      "evidenceRecall": 0.717948717948718,
+      "followUps": 0.7727272727272727,
+      "switches": 0.3333333333333333,
+      "opening": 0.7142857142857143,
+      "refusals": "1/3"
+    },
+    "session-intent": {
+      "completeEvidence": 0.717948717948718,
+      "evidenceRecall": 0.717948717948718,
+      "followUps": 0.7727272727272727,
+      "switches": 0.3333333333333333,
+      "opening": 0.7142857142857143,
+      "refusals": "2/3"
+    }
+  },
+  "results": [
+    {
+      "arm": "turn-only",
+      "conversation": "rate",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I limit p-queue to four task starts per second?",
+      "searched": "How do I limit p-queue to four task starts per second?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:17",
+        "p-queue:11"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "rate",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "And if bursts at the window boundary are a problem?",
+      "searched": "And if bursts at the window boundary are a problem?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "rate",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Does carrying over pending promises still matter then?",
+      "searched": "Does carrying over pending promises still matter then?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:10",
+        "p-queue:7",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "idle",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I wait until every task in the queue has finished?",
+      "searched": "How do I wait until every task in the queue has finished?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:9",
+        "p-queue:8"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "idle",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "How is that different from onEmpty?",
+      "searched": "How is that different from onEmpty?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:14"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "idle",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And to be told every time, not just once?",
+      "searched": "And to be told every time, not just once?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:10"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "cancel",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I cancel a queued task with an AbortSignal?",
+      "searched": "How do I cancel a queued task with an AbortSignal?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:15",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "cancel",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "What if it is already running?",
+      "searched": "What if it is already running?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:3",
+        "p-queue:5"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "cancel",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Why not just call clear instead?",
+      "searched": "Why not just call clear instead?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "timeout",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I give every task a five second timeout?",
+      "searched": "How do I give every task a five second timeout?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:17",
+        "p-queue:10"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "timeout",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Does time spent waiting in the queue count?",
+      "searched": "Does time spent waiting in the queue count?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:1",
+        "p-queue:2"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "timeout",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Can one slow task get ten seconds instead?",
+      "searched": "Can one slow task get ten seconds instead?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "backpressure",
+      "turn": 1,
+      "kind": "open",
+      "question": "My producer is faster than the consumers. How do I stop the queue growing without bound?",
+      "searched": "My producer is faster than the consumers. How do I stop the queue growing without bound?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:11"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "backpressure",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Does that count the jobs already running?",
+      "searched": "Does that count the jobs already running?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:5",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "backpressure",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What signals that the rate limit itself kicked in?",
+      "searched": "What signals that the rate limit itself kicked in?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:15",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "errors",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I stop the whole queue on the first failure?",
+      "searched": "How do I stop the whole queue on the first failure?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "errors",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Do I still need to catch each one?",
+      "searched": "Do I still need to catch each one?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:15",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "errors",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And how do I keep the remaining tasks from running?",
+      "searched": "And how do I keep the remaining tasks from running?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5",
+        "p-queue:6"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "drain",
+      "turn": 1,
+      "kind": "open",
+      "question": "I need to change shared state while tasks run. How do I wait for only the running ones?",
+      "searched": "I need to change shared state while tasks run. How do I wait for only the running ones?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:14",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "drain",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Will new ones start while I wait?",
+      "searched": "Will new ones start while I wait?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:5",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "drain",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Then how do I let them continue?",
+      "searched": "Then how do I let them continue?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "priority",
+      "turn": 1,
+      "kind": "open",
+      "question": "Which runs first, priority one or priority five?",
+      "searched": "Which runs first, priority one or priority five?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:3",
+        "p-queue:16"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "priority",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Can I change it after adding the task?",
+      "searched": "Can I change it after adding the task?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:5"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "priority",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What is the default if I don't set one?",
+      "searched": "What is the default if I don't set one?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:0",
+        "p-queue:7",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-timeout",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I set a per-task timeout?",
+      "searched": "How do I set a per-task timeout?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-timeout",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Separately: how do I run tasks without awaiting each add in a for loop?",
+      "searched": "Separately: how do I run tasks without awaiting each add in a for loop?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:17",
+        "p-queue:9",
+        "p-queue:13"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-timeout",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What does it return?",
+      "searched": "What does it return?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:18",
+        "p-queue:4",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-idle",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I know when the queue is idle?",
+      "searched": "How do I know when the queue is idle?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:10",
+        "p-queue:4",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-idle",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Different question. What happens to strict mode with carryoverIntervalCount enabled?",
+      "searched": "Different question. What happens to strict mode with carryoverIntervalCount enabled?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:14",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-idle",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Is strict mode more expensive?",
+      "searched": "Is strict mode more expensive?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:14",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-cancel",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I pause the queue?",
+      "searched": "How do I pause the queue?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:3",
+        "p-queue:4",
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-cancel",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Unrelated: how do I add a task that times out after ten seconds?",
+      "searched": "Unrelated: how do I add a task that times out after ten seconds?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:8"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "switch-cancel",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And to change the default timeout for everything later on?",
+      "searched": "And to change the default timeout for everything later on?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "refuse-after",
+      "turn": 1,
+      "kind": "open",
+      "question": "How does p-queue rate limiting work?",
+      "searched": "How does p-queue rate limiting work?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:11",
+        "p-queue:14"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "refuse-after",
+      "turn": 2,
+      "kind": "refuse",
+      "question": "What throughput did the maintainers measure in production for it?",
+      "searched": "What throughput did the maintainers measure in production for it?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 0,
+      "packed": [
+        "p-queue:18"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "refuse-after",
+      "turn": 3,
+      "kind": "refuse",
+      "question": "And what uptime do they guarantee?",
+      "searched": "And what uptime do they guarantee?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": true,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 1,
+      "packed": []
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "refuse-mid",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I wait for the queue to become empty?",
+      "searched": "How do I wait for the queue to become empty?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:10",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "refuse-mid",
+      "turn": 2,
+      "kind": "refuse",
+      "question": "Which customer reported losing data with it last year?",
+      "searched": "Which customer reported losing data with it last year?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 0,
+      "packed": [
+        "p-queue:1",
+        "p-queue:13"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "refuse-mid",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "OK. Does it resolve more than once?",
+      "searched": "OK. Does it resolve more than once?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:10",
+        "p-queue:12"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "concurrency",
+      "turn": 1,
+      "kind": "open",
+      "question": "What is the default concurrency?",
+      "searched": "What is the default concurrency?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:1",
+        "p-queue:14",
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "concurrency",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "How does it interact with intervalCap?",
+      "searched": "How does it interact with intervalCap?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:2"
+      ]
+    },
+    {
+      "arm": "turn-only",
+      "conversation": "concurrency",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And can I change it at runtime?",
+      "searched": "And can I change it at runtime?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "rate",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I limit p-queue to four task starts per second?",
+      "searched": "How do I limit p-queue to four task starts per second?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:17",
+        "p-queue:11"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "rate",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "And if bursts at the window boundary are a problem?",
+      "searched": "How do I limit p-queue to four task starts per second? And if bursts at the window boundary are a problem?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "rate",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Does carrying over pending promises still matter then?",
+      "searched": "How do I limit p-queue to four task starts per second? And if bursts at the window boundary are a problem? Does carrying over pending promises still matter then?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "idle",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I wait until every task in the queue has finished?",
+      "searched": "How do I wait until every task in the queue has finished?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:9",
+        "p-queue:8"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "idle",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "How is that different from onEmpty?",
+      "searched": "How do I wait until every task in the queue has finished? How is that different from onEmpty?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "idle",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And to be told every time, not just once?",
+      "searched": "How do I wait until every task in the queue has finished? How is that different from onEmpty? And to be told every time, not just once?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "cancel",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I cancel a queued task with an AbortSignal?",
+      "searched": "How do I cancel a queued task with an AbortSignal?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:15",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "cancel",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "What if it is already running?",
+      "searched": "How do I cancel a queued task with an AbortSignal? What if it is already running?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:3",
+        "p-queue:15",
+        "p-queue:6"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "cancel",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Why not just call clear instead?",
+      "searched": "How do I cancel a queued task with an AbortSignal? What if it is already running? Why not just call clear instead?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "timeout",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I give every task a five second timeout?",
+      "searched": "How do I give every task a five second timeout?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:17",
+        "p-queue:10"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "timeout",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Does time spent waiting in the queue count?",
+      "searched": "How do I give every task a five second timeout? Does time spent waiting in the queue count?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:1",
+        "p-queue:9",
+        "p-queue:10"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "timeout",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Can one slow task get ten seconds instead?",
+      "searched": "How do I give every task a five second timeout? Does time spent waiting in the queue count? Can one slow task get ten seconds instead?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "backpressure",
+      "turn": 1,
+      "kind": "open",
+      "question": "My producer is faster than the consumers. How do I stop the queue growing without bound?",
+      "searched": "My producer is faster than the consumers. How do I stop the queue growing without bound?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:11"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "backpressure",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Does that count the jobs already running?",
+      "searched": "My producer is faster than the consumers. How do I stop the queue growing without bound? Does that count the jobs already running?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:5",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "backpressure",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What signals that the rate limit itself kicked in?",
+      "searched": "My producer is faster than the consumers. How do I stop the queue growing without bound? Does that count the jobs already running? What signals that the rate limit itself kicked in?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:5",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "errors",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I stop the whole queue on the first failure?",
+      "searched": "How do I stop the whole queue on the first failure?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "errors",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Do I still need to catch each one?",
+      "searched": "How do I stop the whole queue on the first failure? Do I still need to catch each one?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5",
+        "p-queue:15"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "errors",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And how do I keep the remaining tasks from running?",
+      "searched": "How do I stop the whole queue on the first failure? Do I still need to catch each one? And how do I keep the remaining tasks from running?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "drain",
+      "turn": 1,
+      "kind": "open",
+      "question": "I need to change shared state while tasks run. How do I wait for only the running ones?",
+      "searched": "I need to change shared state while tasks run. How do I wait for only the running ones?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:14",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "drain",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Will new ones start while I wait?",
+      "searched": "I need to change shared state while tasks run. How do I wait for only the running ones? Will new ones start while I wait?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:14"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "drain",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Then how do I let them continue?",
+      "searched": "I need to change shared state while tasks run. How do I wait for only the running ones? Will new ones start while I wait? Then how do I let them continue?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:14",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "priority",
+      "turn": 1,
+      "kind": "open",
+      "question": "Which runs first, priority one or priority five?",
+      "searched": "Which runs first, priority one or priority five?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:3",
+        "p-queue:16"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "priority",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Can I change it after adding the task?",
+      "searched": "Which runs first, priority one or priority five? Can I change it after adding the task?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:5",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "priority",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What is the default if I don't set one?",
+      "searched": "Which runs first, priority one or priority five? Can I change it after adding the task? What is the default if I don't set one?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-timeout",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I set a per-task timeout?",
+      "searched": "How do I set a per-task timeout?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-timeout",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Separately: how do I run tasks without awaiting each add in a for loop?",
+      "searched": "How do I set a per-task timeout? Separately: how do I run tasks without awaiting each add in a for loop?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-timeout",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What does it return?",
+      "searched": "How do I set a per-task timeout? Separately: how do I run tasks without awaiting each add in a for loop? What does it return?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-idle",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I know when the queue is idle?",
+      "searched": "How do I know when the queue is idle?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:10",
+        "p-queue:4",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-idle",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Different question. What happens to strict mode with carryoverIntervalCount enabled?",
+      "searched": "How do I know when the queue is idle? Different question. What happens to strict mode with carryoverIntervalCount enabled?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:14",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-idle",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Is strict mode more expensive?",
+      "searched": "How do I know when the queue is idle? Different question. What happens to strict mode with carryoverIntervalCount enabled? Is strict mode more expensive?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:14",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-cancel",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I pause the queue?",
+      "searched": "How do I pause the queue?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:3",
+        "p-queue:4",
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-cancel",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Unrelated: how do I add a task that times out after ten seconds?",
+      "searched": "How do I pause the queue? Unrelated: how do I add a task that times out after ten seconds?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "switch-cancel",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And to change the default timeout for everything later on?",
+      "searched": "How do I pause the queue? Unrelated: how do I add a task that times out after ten seconds? And to change the default timeout for everything later on?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:7",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "refuse-after",
+      "turn": 1,
+      "kind": "open",
+      "question": "How does p-queue rate limiting work?",
+      "searched": "How does p-queue rate limiting work?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:11",
+        "p-queue:14"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "refuse-after",
+      "turn": 2,
+      "kind": "refuse",
+      "question": "What throughput did the maintainers measure in production for it?",
+      "searched": "How does p-queue rate limiting work? What throughput did the maintainers measure in production for it?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 0,
+      "packed": [
+        "p-queue:18"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "refuse-after",
+      "turn": 3,
+      "kind": "refuse",
+      "question": "And what uptime do they guarantee?",
+      "searched": "How does p-queue rate limiting work? What throughput did the maintainers measure in production for it? And what uptime do they guarantee?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": true,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 1,
+      "packed": []
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "refuse-mid",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I wait for the queue to become empty?",
+      "searched": "How do I wait for the queue to become empty?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:10",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "refuse-mid",
+      "turn": 2,
+      "kind": "refuse",
+      "question": "Which customer reported losing data with it last year?",
+      "searched": "How do I wait for the queue to become empty? Which customer reported losing data with it last year?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 0,
+      "packed": [
+        "p-queue:4",
+        "p-queue:9",
+        "p-queue:10"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "refuse-mid",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "OK. Does it resolve more than once?",
+      "searched": "How do I wait for the queue to become empty? Which customer reported losing data with it last year? OK. Does it resolve more than once?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:10",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "concurrency",
+      "turn": 1,
+      "kind": "open",
+      "question": "What is the default concurrency?",
+      "searched": "What is the default concurrency?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:1",
+        "p-queue:14",
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "concurrency",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "How does it interact with intervalCap?",
+      "searched": "What is the default concurrency? How does it interact with intervalCap?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:2",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "concat-history",
+      "conversation": "concurrency",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And can I change it at runtime?",
+      "searched": "What is the default concurrency? How does it interact with intervalCap? And can I change it at runtime?",
+      "mode": "n/a",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "rate",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I limit p-queue to four task starts per second?",
+      "searched": "How do I limit p-queue to four task starts per second?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:17",
+        "p-queue:11"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "rate",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "And if bursts at the window boundary are a problem?",
+      "searched": "How do I limit p-queue to four task starts per second? And if bursts at the window boundary are a problem?",
+      "mode": "follow-up",
+      "carried": [
+        "second",
+        "start",
+        "handl",
+        "limit",
+        "four"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "rate",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Does carrying over pending promises still matter then?",
+      "searched": "How do I limit p-queue to four task starts per second? And if bursts at the window boundary are a problem? Does carrying over pending promises still matter then?",
+      "mode": "follow-up",
+      "carried": [
+        "boundary",
+        "burst",
+        "window",
+        "second",
+        "start"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "idle",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I wait until every task in the queue has finished?",
+      "searched": "How do I wait until every task in the queue has finished?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:9",
+        "p-queue:8"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "idle",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "How is that different from onEmpty?",
+      "searched": "How do I wait until every task in the queue has finished? How is that different from onEmpty?",
+      "mode": "follow-up",
+      "carried": [
+        "until",
+        "finishe",
+        "every",
+        "wait"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "idle",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And to be told every time, not just once?",
+      "searched": "How do I wait until every task in the queue has finished? How is that different from onEmpty? And to be told every time, not just once?",
+      "mode": "follow-up",
+      "carried": [
+        "onempty",
+        "until",
+        "finishe",
+        "wait",
+        "different"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "cancel",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I cancel a queued task with an AbortSignal?",
+      "searched": "How do I cancel a queued task with an AbortSignal?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:15",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "cancel",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "What if it is already running?",
+      "searched": "How do I cancel a queued task with an AbortSignal? What if it is already running?",
+      "mode": "follow-up",
+      "carried": [
+        "cancel",
+        "abortsignal"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:3",
+        "p-queue:15",
+        "p-queue:6"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "cancel",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Why not just call clear instead?",
+      "searched": "How do I cancel a queued task with an AbortSignal? What if it is already running? Why not just call clear instead?",
+      "mode": "follow-up",
+      "carried": [
+        "already",
+        "cancel",
+        "abortsignal",
+        "runn"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "timeout",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I give every task a five second timeout?",
+      "searched": "How do I give every task a five second timeout?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:17",
+        "p-queue:10"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "timeout",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Does time spent waiting in the queue count?",
+      "searched": "How do I give every task a five second timeout? Does time spent waiting in the queue count?",
+      "mode": "follow-up",
+      "carried": [
+        "every",
+        "second",
+        "timeout",
+        "handl"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:1",
+        "p-queue:9",
+        "p-queue:10"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "timeout",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Can one slow task get ten seconds instead?",
+      "searched": "How do I give every task a five second timeout? Does time spent waiting in the queue count? Can one slow task get ten seconds instead?",
+      "mode": "follow-up",
+      "carried": [
+        "count",
+        "wait",
+        "every",
+        "time",
+        "timeout"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "backpressure",
+      "turn": 1,
+      "kind": "open",
+      "question": "My producer is faster than the consumers. How do I stop the queue growing without bound?",
+      "searched": "My producer is faster than the consumers. How do I stop the queue growing without bound?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:11"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "backpressure",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Does that count the jobs already running?",
+      "searched": "My producer is faster than the consumers. How do I stop the queue growing without bound? Does that count the jobs already running?",
+      "mode": "follow-up",
+      "carried": [
+        "grow",
+        "consumer",
+        "faster",
+        "producer",
+        "without"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:5",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "backpressure",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What signals that the rate limit itself kicked in?",
+      "searched": "My producer is faster than the consumers. How do I stop the queue growing without bound? Does that count the jobs already running? What signals that the rate limit itself kicked in?",
+      "mode": "follow-up",
+      "carried": [
+        "jobs",
+        "count",
+        "already",
+        "grow",
+        "consumer"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:5",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "errors",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I stop the whole queue on the first failure?",
+      "searched": "How do I stop the whole queue on the first failure?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "errors",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Do I still need to catch each one?",
+      "searched": "How do I stop the whole queue on the first failure? Do I still need to catch each one?",
+      "mode": "follow-up",
+      "carried": [
+        "stop",
+        "first"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5",
+        "p-queue:15"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "errors",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And how do I keep the remaining tasks from running?",
+      "searched": "How do I stop the whole queue on the first failure? Do I still need to catch each one? And how do I keep the remaining tasks from running?",
+      "mode": "follow-up",
+      "carried": [
+        "catch",
+        "still",
+        "stop",
+        "first",
+        "need"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:5"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "drain",
+      "turn": 1,
+      "kind": "open",
+      "question": "I need to change shared state while tasks run. How do I wait for only the running ones?",
+      "searched": "I need to change shared state while tasks run. How do I wait for only the running ones?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:14",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "drain",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Will new ones start while I wait?",
+      "searched": "I need to change shared state while tasks run. How do I wait for only the running ones? Will new ones start while I wait?",
+      "mode": "follow-up",
+      "carried": [
+        "change",
+        "state",
+        "share",
+        "need",
+        "runn"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:14"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "drain",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Then how do I let them continue?",
+      "searched": "I need to change shared state while tasks run. How do I wait for only the running ones? Will new ones start while I wait? Then how do I let them continue?",
+      "mode": "follow-up",
+      "carried": [
+        "while",
+        "start",
+        "change",
+        "state",
+        "wait"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:14",
+        "p-queue:4"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "priority",
+      "turn": 1,
+      "kind": "open",
+      "question": "Which runs first, priority one or priority five?",
+      "searched": "Which runs first, priority one or priority five?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:3",
+        "p-queue:16"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "priority",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "Can I change it after adding the task?",
+      "searched": "Which runs first, priority one or priority five? Can I change it after adding the task?",
+      "mode": "follow-up",
+      "carried": [
+        "runs",
+        "first",
+        "priority"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:6",
+        "p-queue:5",
+        "p-queue:3"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "priority",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What is the default if I don't set one?",
+      "searched": "Which runs first, priority one or priority five? Can I change it after adding the task? What is the default if I don't set one?",
+      "mode": "follow-up",
+      "carried": [
+        "adding",
+        "runs",
+        "first",
+        "priority",
+        "change"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-timeout",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I set a per-task timeout?",
+      "searched": "How do I set a per-task timeout?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-timeout",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Separately: how do I run tasks without awaiting each add in a for loop?",
+      "searched": "Separately: how do I run tasks without awaiting each add in a for loop?",
+      "mode": "switch",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:17",
+        "p-queue:9",
+        "p-queue:13"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-timeout",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "What does it return?",
+      "searched": "Separately: how do I run tasks without awaiting each add in a for loop? What does it return?",
+      "mode": "follow-up",
+      "carried": [
+        "without",
+        "debug",
+        "await"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:17",
+        "p-queue:18"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-idle",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I know when the queue is idle?",
+      "searched": "How do I know when the queue is idle?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:10",
+        "p-queue:4",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-idle",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Different question. What happens to strict mode with carryoverIntervalCount enabled?",
+      "searched": "Different question. What happens to strict mode with carryoverIntervalCount enabled?",
+      "mode": "switch",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:14",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-idle",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "Is strict mode more expensive?",
+      "searched": "Different question. What happens to strict mode with carryoverIntervalCount enabled? Is strict mode more expensive?",
+      "mode": "related",
+      "carried": [
+        "carryoverintervalcount",
+        "enable",
+        "happen"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:2",
+        "p-queue:14",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-cancel",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I pause the queue?",
+      "searched": "How do I pause the queue?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:3",
+        "p-queue:4",
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-cancel",
+      "turn": 2,
+      "kind": "switch",
+      "question": "Unrelated: how do I add a task that times out after ten seconds?",
+      "searched": "Unrelated: how do I add a task that times out after ten seconds?",
+      "mode": "switch",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:8"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "switch-cancel",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And to change the default timeout for everything later on?",
+      "searched": "Unrelated: how do I add a task that times out after ten seconds? And to change the default timeout for everything later on?",
+      "mode": "follow-up",
+      "carried": [
+        "second",
+        "handl",
+        "time"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:13",
+        "p-queue:7",
+        "p-queue:8"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "refuse-after",
+      "turn": 1,
+      "kind": "open",
+      "question": "How does p-queue rate limiting work?",
+      "searched": "How does p-queue rate limiting work?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 0,
+      "complete": 0,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:11",
+        "p-queue:14"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "refuse-after",
+      "turn": 2,
+      "kind": "refuse",
+      "question": "What throughput did the maintainers measure in production for it?",
+      "searched": "How does p-queue rate limiting work? What throughput did the maintainers measure in production for it?",
+      "mode": "follow-up",
+      "carried": [
+        "rate",
+        "limit",
+        "event"
+      ],
+      "refused": false,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 0,
+      "packed": [
+        "p-queue:18"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "refuse-after",
+      "turn": 3,
+      "kind": "refuse",
+      "question": "And what uptime do they guarantee?",
+      "searched": "How does p-queue rate limiting work? What throughput did the maintainers measure in production for it? And what uptime do they guarantee?",
+      "mode": "follow-up",
+      "carried": [
+        "maintainer",
+        "production",
+        "test",
+        "rate",
+        "limit"
+      ],
+      "refused": true,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 1,
+      "packed": []
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "refuse-mid",
+      "turn": 1,
+      "kind": "open",
+      "question": "How do I wait for the queue to become empty?",
+      "searched": "How do I wait for the queue to become empty?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:10",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "refuse-mid",
+      "turn": 2,
+      "kind": "refuse",
+      "question": "Which customer reported losing data with it last year?",
+      "searched": "How do I wait for the queue to become empty? Which customer reported losing data with it last year?",
+      "mode": "follow-up",
+      "carried": [
+        "empty",
+        "wait"
+      ],
+      "refused": true,
+      "answerable": false,
+      "recall": null,
+      "complete": null,
+      "correctRefusal": 1,
+      "packed": []
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "refuse-mid",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "OK. Does it resolve more than once?",
+      "searched": "How do I wait for the queue to become empty? OK. Does it resolve more than once?",
+      "mode": "follow-up",
+      "carried": [
+        "empty",
+        "wait"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:4",
+        "p-queue:10",
+        "p-queue:9"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "concurrency",
+      "turn": 1,
+      "kind": "open",
+      "question": "What is the default concurrency?",
+      "searched": "What is the default concurrency?",
+      "mode": "fresh",
+      "carried": [],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:1",
+        "p-queue:14",
+        "p-queue:7"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "concurrency",
+      "turn": 2,
+      "kind": "follow-up",
+      "question": "How does it interact with intervalCap?",
+      "searched": "What is the default concurrency? How does it interact with intervalCap?",
+      "mode": "follow-up",
+      "carried": [
+        "default"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:14",
+        "p-queue:2",
+        "p-queue:1"
+      ]
+    },
+    {
+      "arm": "session-intent",
+      "conversation": "concurrency",
+      "turn": 3,
+      "kind": "follow-up",
+      "question": "And can I change it at runtime?",
+      "searched": "What is the default concurrency? How does it interact with intervalCap? And can I change it at runtime?",
+      "mode": "follow-up",
+      "carried": [
+        "interact",
+        "intervalcap",
+        "default"
+      ],
+      "refused": false,
+      "answerable": true,
+      "recall": 1,
+      "complete": 1,
+      "correctRefusal": null,
+      "packed": [
+        "p-queue:7"
+      ]
+    }
+  ]
+}

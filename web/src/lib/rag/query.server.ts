@@ -18,7 +18,8 @@ import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable, selectedEmbedM
 import { bumpCacheHit, findCachedAnswer, saveQueryResult, vectorGraphLookup, rememberRetrievedVectors } from "./graphify/persist.server";
 import { resolveRuntime } from "./keys.server";
 import { classifyIntent } from "./intents";
-import { buildContext, retrieve } from "./retrieve.server";
+import { buildContext, retrieve, sessionIdf } from "./retrieve.server";
+import { mustRefuse, planTurn, type SessionTurn, type TurnPlan } from "./session-intent";
 import { jevSecondOpinion } from "./jev-decision";
 import type { RetrieveResult } from "./retrieve-core";
 import { getStorageStatus } from "./storage";
@@ -64,6 +65,7 @@ export type QueryEvent =
       evidenceGate?: EvidenceGate;
       contextCoverage?: ContextCoverage | null;
     }
+  | { type: "intent"; plan: TurnPlan }
   | { type: "token"; text: string }
   | {
       type: "done";
@@ -157,6 +159,8 @@ export async function runQueryStream(
     skipCache?: boolean;
     graphEdits?: GraphEdits;
     corpus?: string | null;
+    /** Earlier turns of this conversation, oldest first (see session-intent.ts). */
+    history?: SessionTurn[];
   },
   emit: (event: QueryEvent) => void,
   signal?: AbortSignal,
@@ -214,6 +218,15 @@ export async function runQueryStream(
     return;
   }
 
+  // A follow-up is searched as what it means in this conversation, not as its
+  // few words. The plan says why, and the client shows it under the question.
+  let plan: TurnPlan | null = null;
+  if (input.history?.length) {
+    plan = planTurn(question, input.history, await sessionIdf(input.corpus ?? SEED_CORPUS_ID));
+    emit({ type: "intent", plan });
+  }
+  const searchQuery = plan?.usedContext ? plan.resolved : question;
+
   const runtime = resolveRuntime();
   const edits = input.graphEdits ?? EMPTY_EDITS;
   // Source revisions are checked by ensureGraph. Settings and credentials isolate answer variants.
@@ -221,7 +234,9 @@ export async function runQueryStream(
     model: runtime.generate ? generationModelLabel(runtime.generate.provider) : "extractive", runtime, edits })).digest("hex");
   const graphStart = performance.now();
   emit({ type: "stage", name: "graph-lookup" });
-  const graphLook = await findCachedAnswer(question, corpusKey, { policy, edits, skipCache: input.skipCache });
+  // The cache is keyed by what was searched: "and if it's running?" means
+  // something different in every conversation.
+  const graphLook = await findCachedAnswer(searchQuery, corpusKey, { policy, edits, skipCache: input.skipCache });
   emit({ type: "graph", nodes: graphLook.subgraph.nodes, links: graphLook.subgraph.links, slugs: graphLook.preferred,
     cache: input.skipCache ? "bypass" : graphLook.hit ? "hit" : "miss", durationMs: performance.now() - graphStart });
   if (graphLook.hit?.answer) {
@@ -272,7 +287,7 @@ export async function runQueryStream(
   if (canDense) {
     if (runtime.embed) {
       try {
-        const embedded = await embedQuery(question, signal);
+        const embedded = await embedQuery(searchQuery, signal);
         queryVector = embedded.vector;
         embeddingModel = embedded.model;
       } catch (err) {
@@ -287,7 +302,7 @@ export async function runQueryStream(
       // No hosted key: embed the query on this machine with the same local
       // model the ingest fallback stores, so the vectors actually match.
       try {
-        const [vec] = await localEmbed([question], "query");
+        const [vec] = await localEmbed([searchQuery], "query");
         if (vec?.length) {
           queryVector = Array.from(vec);
           embeddingModel = LOCAL_EMBED_MODEL;
@@ -306,7 +321,7 @@ export async function runQueryStream(
 
   const mode: RetrievalMode = queryVector && requested !== "keyword" ? requested : "keyword";
   emit({type:"stage",name:"graph-vector-lookup"});
-  const retrievalOptions={query:question,queryVector,mode,topK:input.topK??5,embeddingModel:embeddingModel??EMBEDDING_MODEL,preferredSlugs:graphLook.preferred,corpus:input.corpus??SEED_CORPUS_ID};
+  const retrievalOptions={query:searchQuery,queryVector,mode,topK:input.topK??5,embeddingModel:embeddingModel??EMBEDDING_MODEL,preferredSlugs:graphLook.preferred,corpus:input.corpus??SEED_CORPUS_ID};
   const routed=await graphFirstRetrieve({...retrievalOptions,storage,scope:corpusScope},{
     lookup:vectorGraphLookup,fetch:loadChunksByIds,full:()=>retrieve(retrievalOptions),
   });
@@ -333,6 +348,11 @@ export async function runQueryStream(
   });
 
   let evidenceKind = retrieved.evidence;
+  // Context may find passages; it may not make an unsupported question look
+  // answered. If none of them mention what this turn itself asks, refuse.
+  if (plan && evidenceKind !== "insufficient" && mustRefuse(plan, retrieved.chunks.map((c) => `${c.heading ?? ""}\n${c.text}`))) {
+    evidenceKind = "insufficient";
+  }
   // Optional Jev second opinion (JEV_DECISION=1 + TYPESAFE_API_KEY). Monotonic:
   // can only tighten a "positive" gate to refuse/clarify, never loosen.
   const jev = await jevSecondOpinion({
@@ -340,7 +360,7 @@ export async function runQueryStream(
     passages: retrieved.chunks.slice(0, 5),
     gate: retrieved.evidenceGate,
   });
-  evidenceKind = jev.kind;
+  if (evidenceKind !== "insufficient") evidenceKind = jev.kind;
   if (queryVector && embeddingModel && evidenceKind==="positive" && retrieved.chunks.length) {
     try { await rememberRetrievedVectors(retrieved.chunks.map(c=>c.chunkId),embeddingModel,queryVector.length,corpusKey); }
     catch { /* A learning-store failure must not break fresh source-grounded answers. */ }
@@ -513,7 +533,10 @@ export async function runQueryStream(
 
   emit({ type: "stage", name: "generating" });
   const promptKind = evidenceKind === "ambiguous" ? "ambiguous" : "positive";
-  const { system, user } = buildContext(question, retrieved.chunks, promptKind);
+  const promptQuestion = plan?.usedContext
+    ? `Earlier in this conversation: ${input.history!.filter((t) => !t.refused).slice(-4).map((t) => `"${t.query}"`).join(", ")}.\nQuestion: ${question}`
+    : question;
+  const { system, user } = buildContext(promptQuestion, retrieved.chunks, promptKind);
   const genStart = performance.now();
   let answer = "";
   try {

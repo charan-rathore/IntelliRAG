@@ -17,6 +17,14 @@ export const Route = createFileRoute("/api/query")({
           skipCache: z.boolean().optional(),
           corpus: z.string().max(600).nullable().optional(),
           graphEdits: graphEditsSchema.optional(),
+          // Earlier turns of this conversation (session-intent.ts). Bounded: a
+          // conversation's last eight turns, each with at most five packed passages.
+          history: z.array(z.object({
+            query: z.string().trim().min(1).max(4000),
+            refused: z.boolean().optional(),
+            packed: z.array(z.object({ chunkId: z.string().max(200), text: z.string().max(20000), heading: z.string().max(400).nullable().optional() })).max(5).optional(),
+            feedback: z.record(z.string().max(200), z.union([z.literal(1), z.literal(-1)])).optional(),
+          })).max(8).optional(),
         }).safeParse(await request.json().catch(() => null));
         if (!parsed.success) return Response.json({ error: "Invalid query or graph edits" }, { status: 400 });
         const body = parsed.data;
@@ -30,6 +38,7 @@ export const Route = createFileRoute("/api/query")({
                 skipCache: body.skipCache,
                 corpus: body.corpus,
                 graphEdits: body.graphEdits,
+                history: body.history,
               },
               send,
               signal,

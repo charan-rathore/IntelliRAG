@@ -1,0 +1,78 @@
+{
+  "version": "conversations-v1",
+  "createdAt": "2026-11-18",
+  "annotation": "First-party. Each turn is asked after the ones before it in the same conversation. 'follow-up' turns lean on earlier turns (pronouns, ellipsis, 'what about…'); 'switch' turns change topic and must not be dragged back; 'refuse' turns must still be refused however much history precedes them. Evidence quotes are verbatim from the frozen p-queue README used by eval/repo-support.",
+  "source": { "fixture": "../repo-support/fixtures/p-queue.md" },
+  "conversations": [
+    { "id": "rate", "turns": [
+      { "q": "How do I limit p-queue to four task starts per second?", "kind": "open", "evidence": ["The max number of runs in the given interval of time.", "The length of time in milliseconds before the interval count resets."] },
+      { "q": "And if bursts at the window boundary are a problem?", "kind": "follow-up", "evidence": ["Whether to use strict mode for rate limiting (sliding window algorithm)."] },
+      { "q": "Does carrying over pending promises still matter then?", "kind": "follow-up", "evidence": ["The `carryoverIntervalCount` option has no effect when `strict` mode is enabled"] }
+    ]},
+    { "id": "idle", "turns": [
+      { "q": "How do I wait until every task in the queue has finished?", "kind": "open", "evidence": ["queue.size === 0 && queue.pending === 0"] },
+      { "q": "How is that different from onEmpty?", "kind": "follow-up", "evidence": ["`.onEmpty` merely signals that the queue is empty"] },
+      { "q": "And to be told every time, not just once?", "kind": "follow-up", "evidence": ["use the `idle` event instead: `queue.on('idle', () => {})`"] }
+    ]},
+    { "id": "cancel", "turns": [
+      { "q": "How do I cancel a queued task with an AbortSignal?", "kind": "open", "evidence": ["When aborted, it will be removed from the queue and the `queue.add()` call will reject"] },
+      { "q": "What if it is already running?", "kind": "follow-up", "evidence": ["If the operation is already running, the signal will need to be handled by the operation itself."] },
+      { "q": "Why not just call clear instead?", "kind": "follow-up", "evidence": ["will **never settle** after calling `.clear()`"] }
+    ]},
+    { "id": "timeout", "turns": [
+      { "q": "How do I give every task a five second timeout?", "kind": "open", "evidence": ["Per-operation timeout in milliseconds."] },
+      { "q": "Does time spent waiting in the queue count?", "kind": "follow-up", "evidence": ["The timeout begins when the operation is dequeued and starts execution, not while it's waiting in the queue."] },
+      { "q": "Can one slow task get ten seconds instead?", "kind": "follow-up", "evidence": ["await queue.add(() => slowTask(), {timeout: 10000});"] }
+    ]},
+    { "id": "backpressure", "turns": [
+      { "q": "My producer is faster than the consumers. How do I stop the queue growing without bound?", "kind": "open", "evidence": ["you can `await queue.onSizeLessThan()` before adding a new item"] },
+      { "q": "Does that count the jobs already running?", "kind": "follow-up", "evidence": ["There could still be up to `concurrency` jobs already running that this call does not include in its calculation."] },
+      { "q": "What signals that the rate limit itself kicked in?", "kind": "follow-up", "evidence": ["Returns a promise that settles when the queue becomes rate-limited due to `intervalCap`."] }
+    ]},
+    { "id": "errors", "turns": [
+      { "q": "How do I stop the whole queue on the first failure?", "kind": "open", "evidence": ["Promise.race([queue.onError(), queue.onIdle()])"] },
+      { "q": "Do I still need to catch each one?", "kind": "follow-up", "evidence": ["You must handle each `add()` promise"] },
+      { "q": "And how do I keep the remaining tasks from running?", "kind": "follow-up", "evidence": ["queue.pause(); // Stop processing remaining tasks"] }
+    ]},
+    { "id": "drain", "turns": [
+      { "q": "I need to change shared state while tasks run. How do I wait for only the running ones?", "kind": "open", "evidence": ["only waits for currently running tasks to finish, ignoring queued tasks"] },
+      { "q": "Will new ones start while I wait?", "kind": "follow-up", "evidence": ["queue.pause();\nawait queue.onPendingZero();"] },
+      { "q": "Then how do I let them continue?", "kind": "follow-up", "evidence": ["Start (or resume) executing enqueued tasks within concurrency limit."] }
+    ]},
+    { "id": "priority", "turns": [
+      { "q": "Which runs first, priority one or priority five?", "kind": "open", "evidence": ["Operations with greater priority will be scheduled first."] },
+      { "q": "Can I change it after adding the task?", "kind": "follow-up", "evidence": ["used to update its priority before execution"] },
+      { "q": "What is the default if I don't set one?", "kind": "follow-up", "evidence": ["Priority of operation."] }
+    ]},
+    { "id": "switch-timeout", "turns": [
+      { "q": "How do I set a per-task timeout?", "kind": "open", "evidence": ["Per-operation timeout in milliseconds."] },
+      { "q": "Separately: how do I run tasks without awaiting each add in a for loop?", "kind": "switch", "evidence": ["Same as `.add()`, but accepts an array of sync or async functions"] },
+      { "q": "What does it return?", "kind": "follow-up", "evidence": ["returns a promise that resolves when all functions are resolved"] }
+    ]},
+    { "id": "switch-idle", "turns": [
+      { "q": "How do I know when the queue is idle?", "kind": "open", "evidence": ["queue.size === 0 && queue.pending === 0"] },
+      { "q": "Different question. What happens to strict mode with carryoverIntervalCount enabled?", "kind": "switch", "evidence": ["The `carryoverIntervalCount` option has no effect when `strict` mode is enabled"] },
+      { "q": "Is strict mode more expensive?", "kind": "follow-up", "evidence": ["Strict mode is more resource-intensive as it tracks individual execution timestamps."] }
+    ]},
+    { "id": "switch-cancel", "turns": [
+      { "q": "How do I pause the queue?", "kind": "open", "evidence": ["Put queue execution on hold."] },
+      { "q": "Unrelated: how do I add a task that times out after ten seconds?", "kind": "switch", "evidence": ["await queue.add(() => slowTask(), {timeout: 10000});"] },
+      { "q": "And to change the default timeout for everything later on?", "kind": "follow-up", "evidence": ["Get or set the default timeout for all tasks. Can be changed at runtime."] }
+    ]},
+    { "id": "refuse-after", "turns": [
+      { "q": "How does p-queue rate limiting work?", "kind": "open", "evidence": ["The max number of runs in the given interval of time."] },
+      { "q": "What throughput did the maintainers measure in production for it?", "kind": "refuse", "evidence": [] },
+      { "q": "And what uptime do they guarantee?", "kind": "refuse", "evidence": [] }
+    ]},
+    { "id": "refuse-mid", "turns": [
+      { "q": "How do I wait for the queue to become empty?", "kind": "open", "evidence": ["Returns a promise that settles when the queue becomes empty."] },
+      { "q": "Which customer reported losing data with it last year?", "kind": "refuse", "evidence": [] },
+      { "q": "OK. Does it resolve more than once?", "kind": "follow-up", "evidence": ["resolves **once** when the queue becomes empty"] }
+    ]},
+    { "id": "concurrency", "turns": [
+      { "q": "What is the default concurrency?", "kind": "open", "evidence": ["Default: `Infinity`\\\nMinimum: `1`\n\nConcurrency limit."] },
+      { "q": "How does it interact with intervalCap?", "kind": "follow-up", "evidence": ["How do the `concurrency` and `intervalCap` options affect each other?"] },
+      { "q": "And can I change it at runtime?", "kind": "follow-up", "evidence": ["#### [.concurrency](#concurrency)"] }
+    ]}
+  ]
+}
