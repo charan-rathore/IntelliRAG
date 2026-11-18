@@ -118,7 +118,7 @@ export function HowItChecks() {
           </ol>
         </div>
         <div ref={visual} className="ir-win ir-chapter-visual" aria-hidden="true">
-          <p className="ir-win-bar"><i /><i /><i /><span>Retrieval, p-queue README</span></p>
+          <p className="ir-win-bar"><span>Retrieval, p-queue README</span></p>
           <p ref={q} className="ir-scene-q ir-chapter-q" />
           {CHUNKS.map((c, i) => (
             <div key={c.label} ref={(el) => { rows.current[i] = el; }} className="ir-rank-row" data-state="scored">
