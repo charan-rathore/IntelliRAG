@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 // Built from mcp/src by mcp/build.mjs. Do not edit.
 
-// src/server.ts
+// mcp/src/server.ts
 import { createInterface } from "node:readline";
 import { resolve } from "node:path";
 
-// src/corpus.ts
+// mcp/src/corpus.ts
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join, relative, sep } from "node:path";
 
-// ../web/src/lib/rag/types.ts
+// web/src/lib/rag/types.ts
 var EMBEDDING_MODEL = "gemini-embedding-2";
 var CHUNK_SIZE_TOKENS = 512;
 var CHUNK_OVERLAP_TOKENS = 25;
@@ -20,7 +20,7 @@ var CONTEXT_RELATIVE_FLOOR = 0.62;
 var CONTEXT_ABSOLUTE_FLOOR = 0.24;
 var CONTEXT_SOLO_MARGIN = 1.35;
 
-// ../web/src/lib/rag/text.ts
+// web/src/lib/rag/text.ts
 var TOKEN_PATTERN = /[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu;
 var QUERY_STOPWORDS = /* @__PURE__ */ new Set([
   "the",
@@ -256,7 +256,7 @@ function parseEmbedding(raw) {
   }
 }
 
-// ../web/src/lib/rag/chunking.ts
+// web/src/lib/rag/chunking.ts
 var SEPARATORS = ["\n## ", "\n### ", "\n#### ", "\n\n", "\n", ". ", " "];
 var CODE_BOUNDARY = {
   typescript: /^(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|const|let|type|interface|enum)\s+(\w+)/m,
@@ -607,7 +607,7 @@ function chunkDocument(body, opts = {}) {
   return chunkProse(normalized, chunkSize, overlap, extras);
 }
 
-// src/corpus.ts
+// mcp/src/corpus.ts
 var PROSE = /* @__PURE__ */ new Set([".md", ".mdx", ".markdown", ".txt", ".rst", ".adoc"]);
 var CODE = {
   ".ts": "typescript",
@@ -739,7 +739,7 @@ async function githubCorpus(repo, opts = {}) {
   return { id, label: repo, origin: `${repo}@${sha}`, rows: rowsFor(id, files), files: files.length, indexedAt: (/* @__PURE__ */ new Date()).toISOString() };
 }
 
-// ../web/src/lib/rag/coverage-pack.ts
+// web/src/lib/rag/coverage-pack.ts
 var FUNCTION_WORDS = new Set(
   "about above across after again against all also among any because been before being below between both but can could did does doing done down during each either else even ever every few further had has have having here into its itself just like make many may might more most much must near need neither never now off often once only other otherwise our ours out over own per rather same should since some such than their them then there these they those though through thus too under until upon very was way were when where whether which while who whom whose will within without would yes yet your yours able actually already always another anyone anything currently establish exactly instead really something still want wants we us use using used one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty hundred thousand single double half".split(" ")
 );
@@ -971,10 +971,10 @@ function coverageReportOf(packed, terms, idf, budget) {
   };
 }
 
-// ../web/src/lib/rag/corpus-scope.ts
+// web/src/lib/rag/corpus-scope.ts
 var SEED_CORPUS_ID = "seed-lab";
 
-// ../web/src/lib/rag/ranking.ts
+// web/src/lib/rag/ranking.ts
 var SCORE_SEMANTICS = "Dense = raw cosine. Keyword = raw BM25. Hybrid = raw RRF (1/(60+rank)). Rerank = calibrated mix (not a cross-encoder, not confidence). The context gate is calibrated-score floor 0.24 AND 62% of rank-1. not an absolute 0.55 cosine threshold.";
 function buildIdf(corpusTexts) {
   const df = /* @__PURE__ */ new Map();
@@ -1466,7 +1466,7 @@ function distinctiveTerms(query) {
   );
 }
 
-// ../web/src/lib/rag/query-focus.ts
+// web/src/lib/rag/query-focus.ts
 var WORD = "[\\p{L}\\p{N}][\\p{L}\\p{N}-]*";
 var SUBJECT_PREDICATES = [
   "produce",
@@ -1512,7 +1512,7 @@ function missingExplicitFocusTerms(query, packedTokens) {
   return terms.filter((term) => !tokenSetMatches(term, packedTokens));
 }
 
-// ../web/src/lib/rag/evidence.ts
+// web/src/lib/rag/evidence.ts
 var MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 function extractQueryDates(query) {
   const forms = [];
@@ -1719,7 +1719,7 @@ ${packedText}`);
   return gate("positive", "Packed chunks have distinctive overlap with the question or a strong dense match.", stats);
 }
 
-// ../web/src/lib/rag/bm25.ts
+// web/src/lib/rag/bm25.ts
 var BM25Index = class {
   k1 = 1.5;
   b = 0.75;
@@ -1785,7 +1785,7 @@ var BM25Index = class {
   }
 };
 
-// ../web/src/lib/rag/trace.ts
+// web/src/lib/rag/trace.ts
 var STOP = /* @__PURE__ */ new Set([
   "the",
   "and",
@@ -1827,7 +1827,7 @@ function overlapTerms(query, text, limit = 5) {
   return hits;
 }
 
-// ../web/src/lib/rag/retrieve-core.ts
+// web/src/lib/rag/retrieve-core.ts
 var INDEX_CACHE = /* @__PURE__ */ new WeakMap();
 var indexStats = { builds: 0, hits: 0 };
 function fingerprint(rows) {
@@ -2112,7 +2112,7 @@ ${r.chunk.text}`);
   };
 }
 
-// ../web/src/lib/rag/session-intent.ts
+// web/src/lib/rag/session-intent.ts
 var SWITCH = /^\s*(separately|unrelated|different (question|topic)|new (question|topic)|switching (topics?|gears)|on another note|another thing|changing (the )?subject)\b/i;
 var FOLLOW_OPENERS = /^\s*(and|also|but|so|then|ok(ay)?|what about|how about|what if|why not|same for|instead|or)\b/i;
 var DEICTIC = /\b(it|its|it's|that|this|these|those|they|them|their|there|then|one|ones|same|such|either|both)\b/i;
@@ -2224,7 +2224,7 @@ function mustRefuse(plan, packedTexts) {
   return plan.own.length > 0 && missing.length === plan.own.length;
 }
 
-// src/engine.ts
+// mcp/src/engine.ts
 var STORAGE = { backend: "ephemeral", durable: false, denseAvailable: false, warning: null };
 var idfCache = /* @__PURE__ */ new WeakMap();
 var idfOf = (c) => {
@@ -2309,7 +2309,7 @@ function feedback(sessionId, ref, helpful) {
   return true;
 }
 
-// src/server.ts
+// mcp/src/server.ts
 var VERSION = "0.1.0";
 var PROTOCOL = "2025-06-18";
 var corpora = /* @__PURE__ */ new Map();
