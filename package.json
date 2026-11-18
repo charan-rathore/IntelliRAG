@@ -1,0 +1,22 @@
+{
+  "name": "intellirag",
+  "version": "0.1.0",
+  "private": true,
+  "description": "IntelliRAG as an MCP server: cited evidence or a refusal, for coding agents (Claude Code, Codex, Hermes).",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "intellirag-mcp": "mcp/dist/intellirag-mcp.mjs"
+  },
+  "files": [
+    "mcp/dist",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "mcp:build": "node mcp/build.mjs",
+    "mcp:test": "node mcp/test/smoke.mjs"
+  }
+}

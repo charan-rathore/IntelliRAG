@@ -1,0 +1,32 @@
+name: MCP server
+on:
+  push:
+    branches: [main]
+    paths: ['mcp/**', 'web/src/lib/rag/**', 'skills/**', 'package.json', '.github/workflows/mcp.yml']
+  pull_request:
+    paths: ['mcp/**', 'web/src/lib/rag/**', 'skills/**', 'package.json', '.github/workflows/mcp.yml']
+jobs:
+  mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # The committed bundle is what `npx github:charan-rathore/IntelliRAG` runs:
+      # rebuild it with the pinned esbuild and fail if it differs from the sources.
+      - name: Rebuild the bundle
+        run: |
+          mkdir -p /tmp/esb && npm install --prefix /tmp/esb --no-save --no-audit --no-fund esbuild@0.28.2
+          ln -s /tmp/esb/node_modules mcp/node_modules
+          node mcp/build.mjs
+          rm mcp/node_modules
+          git diff --exit-code -- mcp/dist || (echo "mcp/dist is stale: run npm run mcp:build and commit it" && exit 1)
+      - name: Drive it over stdio
+        run: node mcp/test/smoke.mjs
+      - name: Runs through npx, as agents start it
+        run: |
+          npm pack --silent >/dev/null
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+            | timeout 60 npx -y ./intellirag-0.1.0.tgz | tee out.jsonl
+          grep -q '"name":"ask"' out.jsonl
