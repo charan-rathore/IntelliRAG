@@ -1,0 +1,44 @@
+name: UI capture
+# Takes the README's screenshots and recording from a real build of the PR and
+# commits them to the PR branch, so the pictures always show the code beside them.
+on:
+  pull_request:
+    paths: ['web/src/components/**', 'web/src/routes/**', 'web/src/styles.css', 'web/scripts/capture-ui.mjs', '.github/workflows/ui-capture.yml']
+permissions:
+  contents: write
+jobs:
+  capture:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run preview:restart
+      - run: node scripts/capture-ui.mjs ../docs/images/ui
+      - name: Encode the recording
+        run: |
+          cd ../docs/images/ui
+          ffmpeg -v error -y -i conversation.webm -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p -movflags +faststart conversation.mp4
+          ffmpeg -v error -y -i conversation.webm -vf "fps=10,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" conversation.gif
+          rm -rf conversation.webm .video
+      - name: Commit the pictures
+        run: |
+          cd ..
+          git add docs/images/ui
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(ui): capture the console from this branch's build"
+          git push
