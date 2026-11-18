@@ -41,25 +41,29 @@ async function ask(page, q) {
   await page.waitForTimeout(900);
 }
 
-const shotLast = (page, file) => page.locator("main article").last().screenshot({ path: join(out, file) });
+// The newest answer, from its top, at the size a reader sees it.
+async function shotLast(page, file) {
+  await page.evaluate(() => { const a = document.querySelectorAll("main article"); a[a.length - 1]?.scrollIntoView({ block: "start" }); });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: join(out, file) });
+}
 
 await session("desktop", { width: 1440, height: 900 }, async (page) => {
   await page.waitForTimeout(800);
   await page.screenshot({ path: join(out, "home.png") });
-  await ask(page, "What caused the Kubernetes pod scheduling failures?");
-  await page.screenshot({ path: join(out, "answer.png") });
-  await ask(page, "How do I fix it?");
+  await ask(page, "How do I cancel a queued task with an AbortSignal?");
+  await shotLast(page, "answer.png");
+  await ask(page, "What if it is already running?");
   await shotLast(page, "follow-up.png");
-  await page.screenshot({ path: join(out, "conversation.png") });
-  await ask(page, "What is the CEO's salary?");
+  await ask(page, "What caused the Kubernetes pod scheduling failures?");
   await shotLast(page, "refusal.png");
 });
 
 await session("phone", { width: 390, height: 844 }, async (page) => {
   await page.waitForTimeout(800);
   await page.screenshot({ path: join(out, "phone-home.png") });
-  await ask(page, "How do you stop a Redis cache stampede?");
-  await page.screenshot({ path: join(out, "phone-answer.png") });
+  await ask(page, "How do I wait until every task has finished?");
+  await shotLast(page, "phone-answer.png");
 });
 
 await browser.close();

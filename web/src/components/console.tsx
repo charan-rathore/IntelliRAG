@@ -614,23 +614,26 @@ export function Console({ initial }: { initial: Snapshot }) {
           </span>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
-          <a href="/architecture.html" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary xl:inline-flex">Architecture</a>
-          <a href="/walkthrough" className="hidden min-h-11 items-center rounded border border-border px-3 text-xs text-primary sm:inline-flex">Watch demo</a>
+          <details className="relative hidden sm:block">
+            <summary className="inline-flex min-h-9 cursor-pointer list-none items-center rounded-sm px-3 text-sm text-muted hover:text-fg [&::-webkit-details-marker]:hidden">Learn</summary>
+            <div className="absolute right-0 z-30 mt-2 grid w-56 gap-0.5 rounded-md border border-border bg-bg p-1.5 shadow-[0_12px_32px_-12px_rgba(28,28,25,0.25)]">
+              <a href="/walkthrough" className="rounded-sm px-3 py-2 text-sm hover:bg-raised">Watch the demo<span className="block text-xs text-subtle">Two minutes, the real app</span></a>
+              <a href="/architecture.html" className="rounded-sm px-3 py-2 text-sm hover:bg-raised">How it works<span className="block text-xs text-subtle">Every stage, in order</span></a>
+              <button type="button" onClick={() => setTourOpen(true)} className="rounded-sm px-3 py-2 text-left text-sm hover:bg-raised">Take the tour<span className="block text-xs text-subtle">Point at each control</span></button>
+            </div>
+          </details>
           <span data-tour="tour-settings">
             <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
               <KeyRound className="size-4" />
               <span className="hidden sm:inline">Settings</span>
             </Button>
           </span>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setTourOpen(true)}>
-            Tour
-          </Button>
         </div>
       </header>
 
       <DemoBanner posture={posture} />
 
-      {!hasKey && !demo && (
+      {!hasKey && !demo && messages.length === 0 && (
         <div className="border-b border-border bg-raised px-4 py-3 md:px-6">
           <div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-fg">

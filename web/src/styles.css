@@ -471,3 +471,12 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
   .ir-explorer-win { animation: none; }
   .sc-caret { animation: none; }
 }
+
+/* Source excerpts: the passages themselves, verbatim, each in its own quoted
+ * block with the highlighter rule on the left, so they read as evidence and
+ * not as an answer the product wrote. */
+.ir-excerpt-lead { font-size: 13px; color: var(--color-muted); margin-bottom: 10px; }
+.ir-excerpt { position: relative; margin: 0 0 12px; padding: 12px 14px 12px 16px; border-radius: var(--radius-sm); background: var(--color-bg); box-shadow: inset 3px 0 0 var(--color-mark), inset 0 0 0 1px var(--color-border); font-size: 15px; line-height: 1.6; max-height: 22rem; overflow: auto; }
+.ir-excerpt .cite-chip { position: sticky; float: right; bottom: 0; margin: 6px 0 0 8px; }
+.ir-excerpt-code > div { font-family: var(--font-mono); font-size: 13px; line-height: 1.55; tab-size: 2; }
+.ir-excerpt-note { margin-top: 4px; font-size: 13px; line-height: 1.5; color: var(--color-subtle); max-width: 62ch; }

@@ -166,6 +166,8 @@ export function formatAnswerHtml(text: string, citations: Citation[]) {
 /** Literal source text: never interpret source markup or source-like citation markers. */
 export function formatSourceExcerptsHtml(chunks: {text:string;title:string}[]) {
   const excerpts = chunks.slice(0,3).map((chunk,index) =>
-    `<div class="whitespace-pre-wrap break-words">${escapeHtml(chunk.text)}</div><a class="cite-chip" href="#cite-${index+1}" title="${escapeHtml(chunk.title)}">[${index+1}]</a>`);
-  return '<p>Relevant source excerpts</p><br>' + excerpts.join('<br><br>') + '<br><br><p>These are retrieved passages, not a generated recommendation. Only the packed source windows are shown, not necessarily whole documents or a complete answer. Add a model in Settings to reason across them.</p>';
+    // Verbatim, never interpreted: an excerpt that carries code is set in the
+    // mono face so its indentation reads as code, but nothing is stripped.
+    `<div class="ir-excerpt${/^\s*(```|~~~)/m.test(chunk.text) ? ' ir-excerpt-code' : ''}"><div class="whitespace-pre-wrap break-words">${escapeHtml(chunk.text)}</div><a class="cite-chip" href="#cite-${index+1}" title="${escapeHtml(chunk.title)}">[${index+1}]</a></div>`);
+  return '<p class="ir-excerpt-lead">Relevant source excerpts</p>' + excerpts.join('') + '<p class="ir-excerpt-note">These are retrieved passages, not a generated recommendation. Only the packed source windows are shown, not necessarily whole documents or a complete answer. Add a model in Settings to reason across them.</p>';
 }
