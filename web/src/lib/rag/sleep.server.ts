@@ -28,7 +28,7 @@ export async function sleepCorpus(corpusId: string, opts: { budget?: number } = 
   const result = sleep({ corpusId: scope.corpusId, passages, packed }, mem.experience, mem.journal ?? emptyJournal(), { budget: opts.budget ?? 24 });
   // Case memory ranks passages here, so the "files" it learned are chunk ids.
   const rankPassages = await rankFiles(scope.corpusId, { by: "passage" });
-  const cases = consolidateCases(mem.cases, rankPassages, { minCases: 6 });
+  const cases = consolidateCases(mem.cases, rankPassages, { minCases: 20, margin: 0.05 });
   await saveSleep(scope.corpusId, { experience: result.log, journal: result.journal, cases });
   return { cycle: result.cycle, cases: cases.journal.at(-1) ?? null, weights: cases.weights, tookMs: Math.round(performance.now() - started) };
 }

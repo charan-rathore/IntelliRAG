@@ -74,6 +74,7 @@ import type {
 } from "@/lib/rag/types";
 import { cn } from "@/lib/utils";
 import { SearchPalette } from "@/components/rag/search-palette";
+import { MemoryPanel } from "@/components/rag/memory-panel";
 
 type Snapshot = Awaited<ReturnType<typeof getLabSnapshot>>;
 
@@ -167,6 +168,7 @@ export function Console({ initial }: { initial: Snapshot }) {
   useEffect(() => { const media = matchMedia('(min-width: 1024px)'); const update = () => setDesktop(media.matches); update(); media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [mode, setMode] = useState<RetrievalMode>("hybrid");
   const [topK, setTopK] = useState(5);
@@ -632,6 +634,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             <kbd className="hidden font-mono text-[11px] text-subtle lg:inline">⌘K</kbd>
           </button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" aria-expanded={memoryOpen} onClick={() => setMemoryOpen(true)}>Memory</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
           <a href="/architecture.html" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline xl:inline-flex">Architecture</a>
           <a href="/walkthrough" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline sm:inline-flex">Watch demo</a>
@@ -941,6 +944,11 @@ export function Console({ initial }: { initial: Snapshot }) {
 
       {corpusOpen && !desktop && <div className="lg:hidden"><Modal title="Sources" onClose={() => setCorpusOpen(false)}>{sourcePanel}</Modal></div>}
       {auditOpen && !desktop && <div className="lg:hidden"><Modal title="Evidence" onClose={() => setAuditOpen(false)}>{auditPanel}</Modal></div>}
+      {memoryOpen && (
+        <Modal title="What this source has learned" onClose={() => setMemoryOpen(false)}>
+          {corpus === ALL_CORPORA ? <p className="text-sm text-muted">Pick one source to see what it has learned.</p> : <MemoryPanel corpusId={corpus} />}
+        </Modal>
+      )}
       <ProductTour open={tourOpen} onClose={() => setTourOpen(false)} />
     </div>
   );
