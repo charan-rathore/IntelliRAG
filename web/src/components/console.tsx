@@ -29,6 +29,7 @@ import { ViewToggle } from "@/components/rag/view-toggle";
 import { DemoBanner } from "@/components/rag/demo-banner";
 import { StageStepper } from "@/components/rag/stage-stepper";
 import { formatAnswerHtml, formatSourceExcerptsHtml } from "@/lib/rag/answer";
+import { PASSAGES_DIVIDER } from "@/lib/rag/extractive";
 import {
   embedNextBatch,
   getCorpusSuggestions,
@@ -1034,7 +1035,24 @@ function Turn({
       {message.error && (
         <p className="text-sm text-bad">{message.error}</p>
       )}
-      {message.text && (
+      {message.text && message.text.includes(PASSAGES_DIVIDER) && (() => {
+        const [quoted, passages] = message.text.split(PASSAGES_DIVIDER);
+        return (
+          <div>
+            <div
+              className="ir-answer text-[15px] leading-[1.7] text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
+              dangerouslySetInnerHTML={{ __html: formatAnswerHtml(quoted ?? "", message.citations ?? []) }}
+            />
+            <details className="group mt-4 rounded-md border border-border bg-surface">
+              <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between px-3 text-sm text-muted hover:text-fg">
+                Full passages, verbatim <span className="text-xs text-subtle group-open:hidden">show</span><span className="hidden text-xs text-subtle group-open:inline">hide</span>
+              </summary>
+              <div className="max-h-[420px] overflow-y-auto border-t border-border px-3 py-3 font-mono text-[12.5px] leading-relaxed text-muted" dangerouslySetInnerHTML={{ __html: formatSourceExcerptsHtml((passages ?? "").split(/\n\[Source \d+\]\n*/).filter((t) => t.trim()).map((text, i) => ({ text, title: message.citations?.[i]?.title ?? `Source ${i + 1}` }))).replace(/^<p>Relevant source excerpts<\/p><br>/, "").replace(/<br><br><p>These are retrieved passages[\s\S]*$/, "") }} />
+            </details>
+          </div>
+        );
+      })()}
+      {message.text && !message.text.includes(PASSAGES_DIVIDER) && (
         <div
           className="ir-answer text-[15px] leading-[1.7] text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
           dangerouslySetInnerHTML={{ __html: message.answerKind === "source_excerpts" && message.chunks && /^Relevant source excerpts/.test(message.text) ? formatSourceExcerptsHtml(message.chunks) : formatAnswerHtml(message.text, message.citations ?? []) }}

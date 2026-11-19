@@ -8,6 +8,9 @@ import { contentTokens } from './text';
  * nothing is paraphrased. It used to paste whole packed windows, raw Markdown
  * and all, which read as noise.
  */
+/** Separates the quoted answer from the verbatim packed passages. */
+export const PASSAGES_DIVIDER = '\n\n---\nFull passages, verbatim:\n\n';
+
 interface Unit { kind: 'sentence' | 'code'; text: string; heading: string | null; source: number; order: number }
 
 const cleanInline = (s: string) =>
@@ -128,6 +131,10 @@ export function extractiveAnswer(question: string, chunks: RetrievedChunk[], opt
     const code = example.text.split('\n').slice(0, 14).join('\n');
     lines.push('', `Example${example.heading ? ` from ${example.heading}` : ''} [Source ${example.source}]:`, '```', code, '```');
   }
-  lines.push('', '_Quoted from the source, not generated. Add a model in Settings for a written answer._');
-  return lines.join('\n');
+  lines.push('', '_Quoted from the source, not a generated recommendation. Add a model in Settings for a written answer._');
+  // The packed windows themselves follow, verbatim and cited, so nothing the
+  // quote selection left out is lost (conditions, unknowns, retractions). The
+  // app shows them folded under the quoted answer.
+  const full = sources.map((c, i) => `${c.text}\n[Source ${i + 1}]`).join('\n\n');
+  return `${lines.join('\n')}${PASSAGES_DIVIDER}${full}`;
 }
