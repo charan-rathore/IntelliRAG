@@ -15,15 +15,23 @@ const {streamGenerate,completeOnce,embedQuery}=require('../src/lib/rag/gemini.se
 const {GenerationError}=require('../src/lib/rag/generation-result.ts');
 const saved=global.fetch;
 function response(event) {return new Response(`data: ${JSON.stringify(event)}\n\ndata: [DONE]\n\n`,{headers:{'Content-Type':'text/event-stream'}});}
-test('actual OpenRouter generation rejects length, preserving usage', async () => {
+test('actual OpenRouter generation continues after a length stop instead of failing', async () => {
   provider='openrouter';
-  global.fetch=async()=>response({choices:[{delta:{content:'partial'},finish_reason:'length'}],usage:{total_tokens:1536}});
-  try { await assert.rejects(streamGenerate({system:'s',user:'u',onToken:()=>{}}), e=>e instanceof GenerationError&&e.reason==='output_budget_exhausted'&&e.usage.total_tokens===1536); } finally {global.fetch=saved;}
+  const replies=[{choices:[{delta:{content:'Use onIdle() once the running '},finish_reason:'length'}],usage:{total_tokens:4096}},{choices:[{delta:{content:'jobs finish [1].'},finish_reason:'stop'}]}];
+  const bodies=[];
+  global.fetch=async(_u,init)=>{bodies.push(JSON.parse(init.body));return response(replies.shift());};
+  try {
+    assert.equal(await streamGenerate({system:'s',user:'u',onToken:()=>{}}),'Use onIdle() once the running jobs finish [1].');
+    assert.match(bodies[1].messages[1].content,/Continue from exactly where it stops/);
+  } finally {global.fetch=saved;}
 });
-test('actual Google generation rejects MAX_TOKENS and blocked prompt', async () => {
+test('actual Google generation trims to whole sentences when the budget keeps running out, and still rejects a blocked prompt', async () => {
   provider='google';
-  global.fetch=async()=>response({candidates:[{content:{parts:[{text:'partial'}]},finishReason:'MAX_TOKENS'}]});
-  try { await assert.rejects(streamGenerate({system:'s',user:'u',onToken:()=>{}}),e=>e instanceof GenerationError&&e.reason==='output_budget_exhausted');
+  let n=0;
+  global.fetch=async()=>response({candidates:[{content:{parts:[{text:n++===0?'First point is whole. Second point is cu':' and still going wi'}]},finishReason:'MAX_TOKENS'}]});
+  try {
+    const answer=await streamGenerate({system:'s',user:'u',onToken:()=>{}});
+    assert.match(answer,/^First point is whole\.\n\n_Shortened to fit/);
     global.fetch=async()=>Response.json({promptFeedback:{blockReason:'SAFETY'}});
     await assert.rejects(completeOnce({system:'s',user:'u'}),e=>e instanceof GenerationError&&e.reason==='content_filtered');
   } finally {global.fetch=saved;}
