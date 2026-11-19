@@ -474,3 +474,11 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
 @keyframes ir-sweep { from { transform: scaleX(0); transform-origin: left; } 50% { transform: scaleX(1); transform-origin: left; } 50.01% { transform-origin: right; } to { transform: scaleX(0); transform-origin: right; } }
 .ir-sweep { animation: ir-sweep 1.6s var(--ease-smooth-out) infinite; }
 @media (prefers-reduced-motion: reduce) { .ir-sweep { animation: none; } }
+
+/* Answers: lists read as lists, code blocks as code, the provenance note quietly. */
+.ir-answer .ans-list { margin: 0.5rem 0; padding-left: 0; list-style: none; display: grid; gap: 0.55rem; }
+.ir-answer .ans-list li { position: relative; padding-left: 1.1rem; }
+.ir-answer .ans-list li::before { content: ""; position: absolute; left: 0.15rem; top: 0.72em; width: 6px; height: 6px; border-radius: 999px; background: var(--color-primary); opacity: 0.75; }
+.ir-answer code:has(br) { display: block; margin: 0.5rem 0; padding: 0.85rem 1rem; border-radius: var(--radius-md); background: #1c1c19 !important; color: #f1f0e8; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; overflow-x: auto; white-space: pre; }
+.ir-answer .ans-note { display: block; margin-top: 0.4rem; font-size: 12.5px; color: var(--color-subtle); }
+.ir-answer strong { font-weight: 600; }

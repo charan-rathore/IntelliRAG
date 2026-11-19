@@ -8,6 +8,12 @@ Ask a question about a pinned source. IntelliRAG finds the passages, checks whet
 
 ![How a question becomes a cited answer or a refusal: 1 ask, 2 query, 3 rank, 4 check support (refuse if nothing is supported), 5 pack within 1,400 tokens, 6 measure coverage, 7 answer, 8 answer with trace; A ingest a pinned GitHub source, B optional model, C a frozen eval replays the same functions](docs/images/architecture.png)
 
+[![Watch the 57-second walkthrough: a question, its sources, and the proof](web/public/demo/intellirag-walkthrough-poster.jpg)](https://intellirag-live-own-track.vercel.app/walkthrough)
+
+[![The web pipeline, stage by stage: index on import, answer on request, evidence gate, optional second opinion, inspect and give feedback](docs/architecture/web-pipeline.svg)](docs/architecture/interactive.html)
+
+Click the pipeline for the [interactive version](docs/architecture/interactive.html), where every stage links to its source file.
+
 Follow the numbers. **1–2**: you ask. **3–7**: the evidence is decided *before* any model runs. **8**: you get the answer, its citations, and the question terms nothing in the context covers. **A–C** happen offline: ingest at a pinned commit, an optional model, and a frozen evaluation that calls the same functions the server does.
 
 ## The problem
@@ -44,7 +50,13 @@ One pinned README ([sindresorhus/p-queue](https://github.com/sindresorhus/p-queu
 | IntelliRAG, rank-order packing (**default**) | 73.3% | **83.3%** | ✓ |
 | IntelliRAG, coverage-aware packing (opt-in) | **76.7%** | 73.3% | ✓ |
 
+![Evidence recall on the clean corpus and with distractors, and every question with distractors including the two neither method answers](eval/repo-support/retrieval-results.svg)
+
 The default ties BM25 on the clean corpus and beats it by 20 points once noise documents are mixed in. The coverage packer wins one extra question on the clean corpus, but the gain's bootstrap interval is [−10, +20] points, and it loses 10 points under distractors. So it stays opt-in. Every run, including the losing ones, is in [`eval/repo-support/runs/`](eval/repo-support/runs/), and the [evaluation write-up](eval/repo-support/README.md) covers method, history and limits.
+
+![Stage time per query on a local CPU: keyword retrieval about 0.1 ms, reranking about 4 ms, context assembly about 0.4 ms](eval/repo-support/stage-latency.svg)
+
+Retrieval itself is fast: the median query spends about 0.1 ms on keyword retrieval, 4 ms reranking and 0.4 ms packing on a laptop CPU. Network, database, embeddings and the model are not included. The [September before/after chart](eval/repo-support/retrieval-history.svg) shows how a deduplication bug cost half the evidence (36.7%) and what fixing it recovered.
 
 ## Tested on real GitHub issues
 
@@ -71,6 +83,8 @@ It sleeps by itself after every 8 ratings, or when you press **Sleep now** in th
 **Answers never stop mid-sentence.** If the model runs out of output budget, it continues from where it stopped. If it still can't finish, the answer is cut back to its last whole sentence or list item, with a one-line note.
 
 ## It gets better the more it's used
+
+![Held-out rewordings and original questions, per learning arm, on the clean corpus and with distractors](eval/learning/learning.svg)
 
 Three loops improve IntelliRAG as people use it. Each is measured on held-out data, and each can only add evidence: none of them can make an unsupported question look answered.
 
