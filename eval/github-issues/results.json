@@ -1,0 +1,3114 @@
+{
+  "benchmark": "SWE-bench Lite, file localization",
+  "repos": [
+    "pytest",
+    "sphinx",
+    "sklearn",
+    "django"
+  ],
+  "summary": [
+    {
+      "repo": "pytest-dev/pytest",
+      "issues": 17,
+      "files": 72,
+      "arms": {
+        "before": {
+          "acc1": 0.47058823529411764,
+          "acc3": 0.5882352941176471,
+          "acc5": 0.5882352941176471,
+          "laterHalfAcc5": 0.5555555555555556
+        },
+        "retrieval": {
+          "acc1": 0.47058823529411764,
+          "acc3": 0.5882352941176471,
+          "acc5": 0.5882352941176471,
+          "laterHalfAcc5": 0.5555555555555556
+        },
+        "search": {
+          "acc1": 0.4117647058823529,
+          "acc3": 0.5882352941176471,
+          "acc5": 0.5882352941176471,
+          "laterHalfAcc5": 0.5555555555555556
+        },
+        "search+entities": {
+          "acc1": 0.47058823529411764,
+          "acc3": 0.5294117647058824,
+          "acc5": 0.5882352941176471,
+          "laterHalfAcc5": 0.5555555555555556
+        },
+        "fixed memory": {
+          "acc1": 0.4117647058823529,
+          "acc3": 0.5294117647058824,
+          "acc5": 0.5882352941176471,
+          "laterHalfAcc5": 0.5555555555555556
+        },
+        "memory+sleep": {
+          "acc1": 0.47058823529411764,
+          "acc3": 0.5294117647058824,
+          "acc5": 0.5882352941176471,
+          "laterHalfAcc5": 0.5555555555555556
+        }
+      },
+      "sleep": [
+        "after 10: kept {\"similar\":0,\"prior\":0} (replay MRR 0.528 → 0.528)"
+      ],
+      "weights": {
+        "similar": 0,
+        "prior": 0
+      }
+    },
+    {
+      "repo": "sphinx-doc/sphinx",
+      "issues": 16,
+      "files": 187,
+      "arms": {
+        "before": {
+          "acc1": 0.25,
+          "acc3": 0.4375,
+          "acc5": 0.5,
+          "laterHalfAcc5": 0.5
+        },
+        "retrieval": {
+          "acc1": 0.3125,
+          "acc3": 0.625,
+          "acc5": 0.625,
+          "laterHalfAcc5": 0.625
+        },
+        "search": {
+          "acc1": 0.3125,
+          "acc3": 0.375,
+          "acc5": 0.5,
+          "laterHalfAcc5": 0.625
+        },
+        "search+entities": {
+          "acc1": 0.3125,
+          "acc3": 0.5625,
+          "acc5": 0.6875,
+          "laterHalfAcc5": 0.75
+        },
+        "fixed memory": {
+          "acc1": 0.375,
+          "acc3": 0.5625,
+          "acc5": 0.5625,
+          "laterHalfAcc5": 0.5
+        },
+        "memory+sleep": {
+          "acc1": 0.3125,
+          "acc3": 0.5625,
+          "acc5": 0.5625,
+          "laterHalfAcc5": 0.5
+        }
+      },
+      "sleep": [
+        "after 10: accepted {\"similar\":0.25,\"prior\":0} (replay MRR 0.457 → 0.520)"
+      ],
+      "weights": {
+        "similar": 0.25,
+        "prior": 0
+      }
+    },
+    {
+      "repo": "scikit-learn/scikit-learn",
+      "issues": 23,
+      "files": 497,
+      "arms": {
+        "before": {
+          "acc1": 0.30434782608695654,
+          "acc3": 0.43478260869565216,
+          "acc5": 0.4782608695652174,
+          "laterHalfAcc5": 0.3333333333333333
+        },
+        "retrieval": {
+          "acc1": 0.43478260869565216,
+          "acc3": 0.4782608695652174,
+          "acc5": 0.5217391304347826,
+          "laterHalfAcc5": 0.3333333333333333
+        },
+        "search": {
+          "acc1": 0.391304347826087,
+          "acc3": 0.43478260869565216,
+          "acc5": 0.4782608695652174,
+          "laterHalfAcc5": 0.3333333333333333
+        },
+        "search+entities": {
+          "acc1": 0.43478260869565216,
+          "acc3": 0.4782608695652174,
+          "acc5": 0.5217391304347826,
+          "laterHalfAcc5": 0.3333333333333333
+        },
+        "fixed memory": {
+          "acc1": 0.30434782608695654,
+          "acc3": 0.4782608695652174,
+          "acc5": 0.5217391304347826,
+          "laterHalfAcc5": 0.3333333333333333
+        },
+        "memory+sleep": {
+          "acc1": 0.30434782608695654,
+          "acc3": 0.4782608695652174,
+          "acc5": 0.5217391304347826,
+          "laterHalfAcc5": 0.3333333333333333
+        }
+      },
+      "sleep": [
+        "after 10: accepted {\"similar\":0,\"prior\":0.25} (replay MRR 0.462 → 0.579)",
+        "after 20: kept {\"similar\":0,\"prior\":0.25} (replay MRR 0.418 → 0.431)"
+      ],
+      "weights": {
+        "similar": 0,
+        "prior": 0.25
+      }
+    },
+    {
+      "repo": "django/django",
+      "issues": 114,
+      "files": 707,
+      "arms": {
+        "before": {
+          "acc1": 0.35964912280701755,
+          "acc3": 0.5701754385964912,
+          "acc5": 0.6491228070175439,
+          "laterHalfAcc5": 0.5964912280701754
+        },
+        "retrieval": {
+          "acc1": 0.47368421052631576,
+          "acc3": 0.6578947368421053,
+          "acc5": 0.7017543859649122,
+          "laterHalfAcc5": 0.6666666666666666
+        },
+        "search": {
+          "acc1": 0.37719298245614036,
+          "acc3": 0.5263157894736842,
+          "acc5": 0.6403508771929824,
+          "laterHalfAcc5": 0.6491228070175439
+        },
+        "search+entities": {
+          "acc1": 0.4649122807017544,
+          "acc3": 0.6403508771929824,
+          "acc5": 0.6929824561403509,
+          "laterHalfAcc5": 0.6842105263157895
+        },
+        "fixed memory": {
+          "acc1": 0.39473684210526316,
+          "acc3": 0.6666666666666666,
+          "acc5": 0.7105263157894737,
+          "laterHalfAcc5": 0.7017543859649122
+        },
+        "memory+sleep": {
+          "acc1": 0.4649122807017544,
+          "acc3": 0.6403508771929824,
+          "acc5": 0.6929824561403509,
+          "laterHalfAcc5": 0.6842105263157895
+        }
+      },
+      "sleep": [
+        "after 10: kept {\"similar\":0,\"prior\":0} (replay MRR 0.781 → 0.781)",
+        "after 20: kept {\"similar\":0,\"prior\":0} (replay MRR 0.618 → 0.618)",
+        "after 30: kept {\"similar\":0,\"prior\":0} (replay MRR 0.557 → 0.557)",
+        "after 40: kept {\"similar\":0,\"prior\":0} (replay MRR 0.586 → 0.588)",
+        "after 50: kept {\"similar\":0,\"prior\":0} (replay MRR 0.563 → 0.580)",
+        "after 60: kept {\"similar\":0,\"prior\":0} (replay MRR 0.559 → 0.574)",
+        "after 70: kept {\"similar\":0,\"prior\":0} (replay MRR 0.575 → 0.588)",
+        "after 80: kept {\"similar\":0,\"prior\":0} (replay MRR 0.584 → 0.593)",
+        "after 90: kept {\"similar\":0,\"prior\":0} (replay MRR 0.578 → 0.584)",
+        "after 100: kept {\"similar\":0,\"prior\":0} (replay MRR 0.575 → 0.575)",
+        "after 110: kept {\"similar\":0,\"prior\":0} (replay MRR 0.572 → 0.572)"
+      ],
+      "weights": {
+        "similar": 0,
+        "prior": 0
+      }
+    }
+  ],
+  "issues": [
+    {
+      "id": "pytest-dev__pytest-5103",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/5103",
+      "title": "Unroll the iterable for all/any calls to get better reports",
+      "gold": [
+        "src/_pytest/assertion/rewrite.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-5221",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/5221",
+      "title": "Display fixture scope with `pytest --fixtures`",
+      "gold": [
+        "src/_pytest/python.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-5227",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/5227",
+      "title": "Improve default logging format",
+      "gold": [
+        "src/_pytest/logging.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-5413",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/5413",
+      "title": "str() on the pytest.raises context variable doesn't behave same as normal exception catch",
+      "gold": [
+        "src/_pytest/_code/code.py"
+      ],
+      "rank": {
+        "before": 6,
+        "retrieval": 6,
+        "search": 9,
+        "search+entities": 9,
+        "fixed memory": 9,
+        "memory+sleep": 9
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-5495",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/5495",
+      "title": "Confusing assertion rewriting message with byte strings",
+      "gold": [
+        "src/_pytest/assertion/util.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-5692",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/5692",
+      "title": "Hostname and timestamp properties in generated JUnit XML reports",
+      "gold": [
+        "src/_pytest/junitxml.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-6116",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/6116",
+      "title": "pytest --collect-only needs a one char shortcut command",
+      "gold": [
+        "src/_pytest/main.py"
+      ],
+      "rank": {
+        "before": 11,
+        "retrieval": 10,
+        "search": 30,
+        "search+entities": 23,
+        "fixed memory": 23,
+        "memory+sleep": 23
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-7168",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/7168",
+      "title": "INTERNALERROR when exception in __repr__",
+      "gold": [
+        "src/_pytest/_io/saferepr.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 40,
+        "search+entities": 40,
+        "fixed memory": 40,
+        "memory+sleep": 40
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-7220",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/7220",
+      "title": "Wrong path to test file when directory changed in fixture",
+      "gold": [
+        "src/_pytest/nodes.py"
+      ],
+      "rank": {
+        "before": 20,
+        "retrieval": 20,
+        "search": 21,
+        "search+entities": 22,
+        "fixed memory": 23,
+        "memory+sleep": 22
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-7373",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/7373",
+      "title": "Incorrect caching of skipif/xfail string condition evaluation",
+      "gold": [
+        "src/_pytest/mark/evaluate.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-7432",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/7432",
+      "title": "skipping: --runxfail breaks pytest.mark.skip location reporting",
+      "gold": [
+        "src/_pytest/skipping.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-7490",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/7490",
+      "title": "Pytest 6: Dynamically adding xfail marker in test no longer ignores failure",
+      "gold": [
+        "src/_pytest/skipping.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 3,
+        "search": 2,
+        "search+entities": 3,
+        "fixed memory": 2,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-8365",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/8365",
+      "title": "tmpdir creation fails when the username contains illegal characters for directory names",
+      "gold": [
+        "src/_pytest/tmpdir.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-8906",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/8906",
+      "title": "Improve handling of skip for module level",
+      "gold": [
+        "src/_pytest/python.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 3,
+        "search": 2,
+        "search+entities": 5,
+        "fixed memory": 6,
+        "memory+sleep": 5
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-9359",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/9359",
+      "title": "Error message prints extra code line when using assert in python3.9",
+      "gold": [
+        "src/_pytest/_code/source.py"
+      ],
+      "rank": {
+        "before": 26,
+        "retrieval": 26,
+        "search": 32,
+        "search+entities": 32,
+        "fixed memory": 34,
+        "memory+sleep": 32
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-11143",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/11143",
+      "title": "Rewrite fails when first expression of file is a number and mistaken as docstring ",
+      "gold": [
+        "src/_pytest/assertion/rewrite.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 8,
+        "search": 7,
+        "search+entities": 7,
+        "fixed memory": 5,
+        "memory+sleep": 7
+      }
+    },
+    {
+      "id": "pytest-dev__pytest-11148",
+      "repo": "pytest-dev/pytest",
+      "url": "https://github.com/pytest-dev/pytest/pull/11148",
+      "title": "Module imported twice under import-mode=importlib",
+      "gold": [
+        "src/_pytest/pathlib.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 36,
+        "search+entities": 36,
+        "fixed memory": 36,
+        "memory+sleep": 36
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-7686",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/7686",
+      "title": "autosummary: The members variable for module template contains imported members",
+      "gold": [
+        "sphinx/ext/autosummary/generate.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 3,
+        "search": 1,
+        "search+entities": 3,
+        "fixed memory": 3,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-7738",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/7738",
+      "title": "overescaped trailing underscore on attribute with napoleon",
+      "gold": [
+        "sphinx/ext/napoleon/docstring.py"
+      ],
+      "rank": {
+        "before": 31,
+        "retrieval": 31,
+        "search": 50,
+        "search+entities": 64,
+        "fixed memory": 64,
+        "memory+sleep": 64
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-7975",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/7975",
+      "title": "Two sections called Symbols in index",
+      "gold": [
+        "sphinx/environment/adapters/indexentries.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 2,
+        "search": 2,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8273",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8273",
+      "title": "Generate man page section directories",
+      "gold": [
+        "sphinx/builders/manpage.py"
+      ],
+      "rank": {
+        "before": 17,
+        "retrieval": 17,
+        "search": 22,
+        "search+entities": 22,
+        "fixed memory": 22,
+        "memory+sleep": 22
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8282",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8282",
+      "title": "autodoc_typehints does not effect to overloaded callables",
+      "gold": [
+        "sphinx/ext/autodoc/__init__.py"
+      ],
+      "rank": {
+        "before": 6,
+        "retrieval": 2,
+        "search": 7,
+        "search+entities": 2,
+        "fixed memory": 3,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8435",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8435",
+      "title": "autodoc_type_aliases does not effect to variables and attributes",
+      "gold": [
+        "sphinx/ext/autodoc/__init__.py"
+      ],
+      "rank": {
+        "before": 4,
+        "retrieval": 2,
+        "search": 6,
+        "search+entities": 2,
+        "fixed memory": 1,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8474",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8474",
+      "title": "v3.3 upgrade started generating \"WARNING: no number is assigned for table\" warnings",
+      "gold": [
+        "sphinx/domains/std.py"
+      ],
+      "rank": {
+        "before": 12,
+        "retrieval": 12,
+        "search": 9,
+        "search+entities": 9,
+        "fixed memory": 9,
+        "memory+sleep": 9
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8506",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8506",
+      "title": "Sphinx 3.2 complains about option:: syntax that earlier versions accepted",
+      "gold": [
+        "sphinx/domains/std.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8595",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8595",
+      "title": "autodoc: empty __all__ attribute is ignored",
+      "gold": [
+        "sphinx/ext/autodoc/__init__.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 1,
+        "search": 6,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8627",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8627",
+      "title": "autodoc isn't able to resolve struct.Struct type annotations",
+      "gold": [
+        "sphinx/util/typing.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8713",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8713",
+      "title": "napoleon_use_param should also affect \"other parameters\" section",
+      "gold": [
+        "sphinx/ext/napoleon/docstring.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8721",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8721",
+      "title": "viewcode creates pages for epub even if `viewcode_enable_epub=False` on `make html epub`",
+      "gold": [
+        "sphinx/ext/viewcode.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-8801",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/8801",
+      "title": "autodoc: The annotation only member in superclass is treated as \"undocumented\"",
+      "gold": [
+        "sphinx/ext/autodoc/importer.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 8,
+        "search": 5,
+        "search+entities": 5,
+        "fixed memory": 7,
+        "memory+sleep": 6
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-10325",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/10325",
+      "title": "inherited-members should support more than one class",
+      "gold": [
+        "sphinx/ext/autodoc/__init__.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-10451",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/10451",
+      "title": "Fix duplicated *args and **kwargs with autodoc_typehints",
+      "gold": [
+        "sphinx/ext/autodoc/typehints.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 8,
+        "search": 4,
+        "search+entities": 5,
+        "fixed memory": 6,
+        "memory+sleep": 6
+      }
+    },
+    {
+      "id": "sphinx-doc__sphinx-11445",
+      "repo": "sphinx-doc/sphinx",
+      "url": "https://github.com/sphinx-doc/sphinx/pull/11445",
+      "title": "Using rst_prolog removes top level headings containing a domain directive",
+      "gold": [
+        "sphinx/util/rst.py"
+      ],
+      "rank": {
+        "before": 11,
+        "retrieval": 2,
+        "search": 41,
+        "search+entities": 8,
+        "fixed memory": 8,
+        "memory+sleep": 8
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-10297",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/10297",
+      "title": "linear_model.RidgeClassifierCV's Parameter store_cv_values issue",
+      "gold": [
+        "sklearn/linear_model/ridge.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-10508",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/10508",
+      "title": "LabelEncoder transform fails for empty lists (for certain inputs)",
+      "gold": [
+        "sklearn/preprocessing/label.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-10949",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/10949",
+      "title": "warn_on_dtype with DataFrame",
+      "gold": [
+        "sklearn/utils/validation.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-11040",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/11040",
+      "title": "Missing parameter validation in Neighbors estimator for float n_neighbors",
+      "gold": [
+        "sklearn/neighbors/base.py"
+      ],
+      "rank": {
+        "before": 5,
+        "retrieval": 5,
+        "search": 4,
+        "search+entities": 3,
+        "fixed memory": 3,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-11281",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/11281",
+      "title": "Should mixture models have a clusterer-compatible interface",
+      "gold": [
+        "sklearn/mixture/base.py"
+      ],
+      "rank": {
+        "before": 23,
+        "retrieval": 23,
+        "search": 19,
+        "search+entities": 19,
+        "fixed memory": 19,
+        "memory+sleep": 19
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-12471",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/12471",
+      "title": "OneHotEncoder ignore unknown error when categories are strings ",
+      "gold": [
+        "sklearn/preprocessing/_encoders.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-13142",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/13142",
+      "title": "GaussianMixture predict and fit_predict disagree when n_init>1",
+      "gold": [
+        "sklearn/mixture/base.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 15,
+        "search+entities": 16,
+        "fixed memory": 13,
+        "memory+sleep": 16
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-13241",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/13241",
+      "title": "Differences among the results of KernelPCA with rbf kernel",
+      "gold": [
+        "sklearn/decomposition/kernel_pca.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-13439",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/13439",
+      "title": "Pipeline should implement __len__",
+      "gold": [
+        "sklearn/pipeline.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-13496",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/13496",
+      "title": "Expose warm_start in Isolation forest",
+      "gold": [
+        "sklearn/ensemble/iforest.py"
+      ],
+      "rank": {
+        "before": 10,
+        "retrieval": 3,
+        "search": 6,
+        "search+entities": 4,
+        "fixed memory": 4,
+        "memory+sleep": 4
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-13497",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/13497",
+      "title": "Comparing string to array in _estimate_mi",
+      "gold": [
+        "sklearn/feature_selection/mutual_info_.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-13584",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/13584",
+      "title": "bug in print_changed_only in new repr: vector values",
+      "gold": [
+        "sklearn/utils/_pprint.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-13779",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/13779",
+      "title": "Voting estimator will fail at fit if weights are passed and an estimator is None",
+      "gold": [
+        "sklearn/ensemble/voting.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-14087",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/14087",
+      "title": "IndexError thrown with LogisticRegressionCV and refit=False",
+      "gold": [
+        "sklearn/linear_model/logistic.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-14092",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/14092",
+      "title": "NCA fails in GridSearch due to too strict parameter checks",
+      "gold": [
+        "sklearn/neighbors/nca.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-14894",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/14894",
+      "title": "ZeroDivisionError in _sparse_fit for SVM with empty support_vectors_",
+      "gold": [
+        "sklearn/svm/base.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 3,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-14983",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/14983",
+      "title": "RepeatedKFold and RepeatedStratifiedKFold do not show correct __repr__ string",
+      "gold": [
+        "sklearn/model_selection/_split.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-15512",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/15512",
+      "title": "Return values of non converged affinity propagation clustering",
+      "gold": [
+        "sklearn/cluster/_affinity_propagation.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-15535",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/15535",
+      "title": "regression in input validation of clustering metrics",
+      "gold": [
+        "sklearn/metrics/cluster/_supervised.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-25500",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/25500",
+      "title": "CalibratedClassifierCV doesn't work with `set_config(transform_output=\"pandas\")`",
+      "gold": [
+        "sklearn/isotonic.py"
+      ],
+      "rank": {
+        "before": 38,
+        "retrieval": 38,
+        "search": 53,
+        "search+entities": 16,
+        "fixed memory": 16,
+        "memory+sleep": 19
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-25570",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/25570",
+      "title": "ColumnTransformer with pandas output can't handle transformers with no features",
+      "gold": [
+        "sklearn/compose/_column_transformer.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-25638",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/25638",
+      "title": "Support nullable pandas dtypes in `unique_labels`",
+      "gold": [
+        "sklearn/utils/multiclass.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "scikit-learn__scikit-learn-25747",
+      "repo": "scikit-learn/scikit-learn",
+      "url": "https://github.com/scikit-learn/scikit-learn/pull/25747",
+      "title": "FeatureUnion not working when aggregating data and pandas transform output selected",
+      "gold": [
+        "sklearn/utils/_set_output.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "django__django-10914",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/10914",
+      "title": "Set default FILE_UPLOAD_PERMISSION to 0o644.",
+      "gold": [
+        "django/conf/global_settings.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 2,
+        "search": 1,
+        "search+entities": 3,
+        "fixed memory": 3,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "django__django-10924",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/10924",
+      "title": "Allow FilePathField path to accept a callable.",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 2,
+        "search": 12,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11001",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11001",
+      "title": "Incorrect removal of order_by clause created as multiline RawSQL",
+      "gold": [
+        "django/db/models/sql/compiler.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 2,
+        "search": 1,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-11019",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11019",
+      "title": "Merging 3 or more media objects can throw unnecessary MediaOrderConflictWarnings",
+      "gold": [
+        "django/forms/widgets.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11039",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11039",
+      "title": "sqlmigrate wraps it's outpout in BEGIN/COMMIT even if the database doesn't support transactional DDL",
+      "gold": [
+        "django/core/management/commands/sqlmigrate.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-11049",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11049",
+      "title": "Correct expected format in invalid DurationField error message",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11099",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11099",
+      "title": "UsernameValidator allows trailing newline in usernames",
+      "gold": [
+        "django/contrib/auth/validators.py"
+      ],
+      "rank": {
+        "before": 4,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11133",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11133",
+      "title": "HttpResponse doesn't handle memoryview objects",
+      "gold": [
+        "django/http/response.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 4,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11179",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11179",
+      "title": "delete() on instances of models without any dependencies doesn't clear PKs.",
+      "gold": [
+        "django/db/models/deletion.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11283",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11283",
+      "title": "Migration auth.0011_update_proxy_permissions fails for models recreated as a proxy.",
+      "gold": [
+        "django/contrib/auth/migrations/0011_update_proxy_permissions.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 3,
+        "search": 4,
+        "search+entities": 4,
+        "fixed memory": 5,
+        "memory+sleep": 4
+      }
+    },
+    {
+      "id": "django__django-11422",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11422",
+      "title": "Autoreloader with StatReloader doesn't track changes in manage.py.",
+      "gold": [
+        "django/utils/autoreload.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11564",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11564",
+      "title": "Add support for SCRIPT_NAME in STATIC_URL and MEDIA_URL",
+      "gold": [
+        "django/conf/__init__.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "django__django-11583",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11583",
+      "title": "Auto-reloading with StatReloader very intermittently throws \"ValueError: embedded null byte\".",
+      "gold": [
+        "django/utils/autoreload.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 2,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11620",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11620",
+      "title": "When DEBUG is True, raising Http404 in a path converter's to_python method does not result in a technical response",
+      "gold": [
+        "django/views/debug.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-11630",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11630",
+      "title": "Django throws error when different apps with different models have the same name table name.",
+      "gold": [
+        "django/core/checks/model_checks.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 2,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11742",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11742",
+      "title": "Add check to ensure max_length fits longest choice.",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 3,
+        "search": 4,
+        "search+entities": 4,
+        "fixed memory": 3,
+        "memory+sleep": 4
+      }
+    },
+    {
+      "id": "django__django-11797",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11797",
+      "title": "Filtering on query result overrides GROUP BY of internal query",
+      "gold": [
+        "django/db/models/lookups.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 16,
+        "search+entities": 18,
+        "fixed memory": 19,
+        "memory+sleep": 18
+      }
+    },
+    {
+      "id": "django__django-11815",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11815",
+      "title": "Migrations uses value of enum object instead of its name.",
+      "gold": [
+        "django/db/migrations/serializer.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 74,
+        "search+entities": 78,
+        "fixed memory": 78,
+        "memory+sleep": 78
+      }
+    },
+    {
+      "id": "django__django-11848",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11848",
+      "title": "django.utils.http.parse_http_date two digit year check is incorrect",
+      "gold": [
+        "django/utils/http.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-11905",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11905",
+      "title": "Prevent using __isnull lookup with non-boolean value.",
+      "gold": [
+        "django/db/models/lookups.py"
+      ],
+      "rank": {
+        "before": 23,
+        "retrieval": 23,
+        "search": 21,
+        "search+entities": 21,
+        "fixed memory": 17,
+        "memory+sleep": 21
+      }
+    },
+    {
+      "id": "django__django-11910",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11910",
+      "title": "ForeignKey's to_field parameter gets the old field's name when renaming a PrimaryKey.",
+      "gold": [
+        "django/db/migrations/autodetector.py"
+      ],
+      "rank": {
+        "before": 11,
+        "retrieval": 14,
+        "search": 19,
+        "search+entities": 22,
+        "fixed memory": 23,
+        "memory+sleep": 22
+      }
+    },
+    {
+      "id": "django__django-11964",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11964",
+      "title": "The value of a TextChoices/IntegerChoices field has a differing type",
+      "gold": [
+        "django/db/models/enums.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "django__django-11999",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/11999",
+      "title": "Cannot override get_FOO_display() in Django 2.2+.",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12113",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12113",
+      "title": "admin_views.test_multidb fails with persistent test SQLite database.",
+      "gold": [
+        "django/db/backends/sqlite3/creation.py"
+      ],
+      "rank": {
+        "before": 25,
+        "retrieval": 25,
+        "search": 16,
+        "search+entities": 18,
+        "fixed memory": 18,
+        "memory+sleep": 18
+      }
+    },
+    {
+      "id": "django__django-12125",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12125",
+      "title": "makemigrations produces incorrect path for inner classes",
+      "gold": [
+        "django/db/migrations/serializer.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 53,
+        "search+entities": 57,
+        "fixed memory": 37,
+        "memory+sleep": 57
+      }
+    },
+    {
+      "id": "django__django-12184",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12184",
+      "title": "Optional URL params crash some view functions.",
+      "gold": [
+        "django/urls/resolvers.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 3,
+        "search": 3,
+        "search+entities": 5,
+        "fixed memory": 6,
+        "memory+sleep": 5
+      }
+    },
+    {
+      "id": "django__django-12284",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12284",
+      "title": "Model.get_FOO_display() does not work correctly with inherited choices.",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 2,
+        "search": 7,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12286",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12286",
+      "title": "translation.E004 shouldn't be raised on sublanguages when a base language is available.",
+      "gold": [
+        "django/core/checks/translation.py"
+      ],
+      "rank": {
+        "before": 4,
+        "retrieval": 4,
+        "search": 5,
+        "search+entities": 6,
+        "fixed memory": 6,
+        "memory+sleep": 6
+      }
+    },
+    {
+      "id": "django__django-12308",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12308",
+      "title": "JSONField are not properly displayed in admin when they are readonly.",
+      "gold": [
+        "django/contrib/admin/utils.py"
+      ],
+      "rank": {
+        "before": 5,
+        "retrieval": 2,
+        "search": 14,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12453",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12453",
+      "title": "`TransactionTestCase.serialized_rollback` fails to restore objects due to ordering constraints",
+      "gold": [
+        "django/db/backends/base/creation.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12470",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12470",
+      "title": "Inherited model doesn't correctly order by \"-pk\" when specified on Parent.Meta.ordering",
+      "gold": [
+        "django/db/models/sql/compiler.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 4,
+        "search": 2,
+        "search+entities": 5,
+        "fixed memory": 1,
+        "memory+sleep": 5
+      }
+    },
+    {
+      "id": "django__django-12497",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12497",
+      "title": "Wrong hint about recursive relationship.",
+      "gold": [
+        "django/db/models/fields/related.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12589",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12589",
+      "title": "Django 3.0: \"GROUP BY\" clauses error with tricky field annotation",
+      "gold": [
+        "django/db/models/sql/query.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 3,
+        "search": 11,
+        "search+entities": 16,
+        "fixed memory": 16,
+        "memory+sleep": 16
+      }
+    },
+    {
+      "id": "django__django-12700",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12700",
+      "title": "Settings are cleaned insufficiently.",
+      "gold": [
+        "django/views/debug.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12708",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12708",
+      "title": "Migration crashes deleting an index_together if there is a unique_together on the same fields",
+      "gold": [
+        "django/db/backends/base/schema.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12747",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12747",
+      "title": "QuerySet.Delete - inconsistent result when zero objects deleted",
+      "gold": [
+        "django/db/models/deletion.py"
+      ],
+      "rank": {
+        "before": 12,
+        "retrieval": 12,
+        "search": 14,
+        "search+entities": 16,
+        "fixed memory": 12,
+        "memory+sleep": 16
+      }
+    },
+    {
+      "id": "django__django-12856",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12856",
+      "title": "Add check for fields of UniqueConstraints.",
+      "gold": [
+        "django/db/models/base.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 3,
+        "fixed memory": 4,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "django__django-12908",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12908",
+      "title": "Union queryset should raise on distinct().",
+      "gold": [
+        "django/db/models/query.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12915",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12915",
+      "title": "Add get_response_async for ASGIStaticFilesHandler",
+      "gold": [
+        "django/contrib/staticfiles/handlers.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-12983",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/12983",
+      "title": "Make django.utils.text.slugify() strip dashes and underscores",
+      "gold": [
+        "django/utils/text.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13028",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13028",
+      "title": "Queryset raises NotSupportedError when RHS has filterable=False attribute.",
+      "gold": [
+        "django/db/models/sql/query.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 88,
+        "search+entities": 91,
+        "fixed memory": 59,
+        "memory+sleep": 91
+      }
+    },
+    {
+      "id": "django__django-13033",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13033",
+      "title": "Self referencing foreign key doesn't correctly order by a relation \"_id\" field.",
+      "gold": [
+        "django/db/models/sql/compiler.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 9,
+        "search": 14,
+        "search+entities": 17,
+        "fixed memory": 8,
+        "memory+sleep": 17
+      }
+    },
+    {
+      "id": "django__django-13158",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13158",
+      "title": "QuerySet.none() on combined queries returns all results.",
+      "gold": [
+        "django/db/models/sql/query.py"
+      ],
+      "rank": {
+        "before": 5,
+        "retrieval": 7,
+        "search": 6,
+        "search+entities": 9,
+        "fixed memory": 1,
+        "memory+sleep": 9
+      }
+    },
+    {
+      "id": "django__django-13220",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13220",
+      "title": "Allow ValidationErrors to equal each other when created identically",
+      "gold": [
+        "django/core/exceptions.py"
+      ],
+      "rank": {
+        "before": 7,
+        "retrieval": 1,
+        "search": 6,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13230",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13230",
+      "title": "Add support for item_comments to syndication framework",
+      "gold": [
+        "django/contrib/syndication/views.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13265",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13265",
+      "title": "AlterOrderWithRespectTo() with ForeignKey crash when _order is included in Index().",
+      "gold": [
+        "django/db/migrations/autodetector.py"
+      ],
+      "rank": {
+        "before": 14,
+        "retrieval": 16,
+        "search": 13,
+        "search+entities": 15,
+        "fixed memory": 5,
+        "memory+sleep": 15
+      }
+    },
+    {
+      "id": "django__django-13315",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13315",
+      "title": "limit_choices_to on a ForeignKey can render duplicate options in formfield",
+      "gold": [
+        "django/forms/models.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 3,
+        "search": 2,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-13321",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13321",
+      "title": "Decoding an invalid session data crashes.",
+      "gold": [
+        "django/contrib/sessions/backends/base.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 2,
+        "search": 3,
+        "search+entities": 2,
+        "fixed memory": 3,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-13401",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13401",
+      "title": "Abstract model field should not be equal across models",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 3,
+        "search": 2,
+        "search+entities": 2,
+        "fixed memory": 1,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-13447",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13447",
+      "title": "Added model class to app_list context",
+      "gold": [
+        "django/contrib/admin/sites.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13448",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13448",
+      "title": "Test runner setup_databases crashes with \"TEST\": {\"MIGRATE\": False}.",
+      "gold": [
+        "django/db/backends/base/creation.py"
+      ],
+      "rank": {
+        "before": 9,
+        "retrieval": 11,
+        "search": 18,
+        "search+entities": 19,
+        "fixed memory": 19,
+        "memory+sleep": 19
+      }
+    },
+    {
+      "id": "django__django-13551",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13551",
+      "title": "Changing user's email could invalidate password reset tokens",
+      "gold": [
+        "django/contrib/auth/tokens.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-13590",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13590",
+      "title": "Upgrading 2.2>3.0 causes named tuples used as arguments to __range to error.",
+      "gold": [
+        "django/db/models/sql/query.py"
+      ],
+      "rank": {
+        "before": 5,
+        "retrieval": 1,
+        "search": 9,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13658",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13658",
+      "title": "ManagementUtility instantiates CommandParser without passing already-computed prog argument",
+      "gold": [
+        "django/core/management/__init__.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-13660",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13660",
+      "title": "shell command crashes when passing (with -c) the python code with functions.",
+      "gold": [
+        "django/core/management/commands/shell.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 3,
+        "fixed memory": 4,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "django__django-13710",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13710",
+      "title": "Use Admin Inline verbose_name as default for Inline verbose_name_plural",
+      "gold": [
+        "django/contrib/admin/options.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13757",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13757",
+      "title": "Using __isnull=True on a KeyTransform should not match JSON null on SQLite and Oracle",
+      "gold": [
+        "django/db/models/fields/json.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "django__django-13768",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13768",
+      "title": "Log exceptions handled in Signal.send_robust()",
+      "gold": [
+        "django/dispatch/dispatcher.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13925",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13925",
+      "title": "models.W042 is raised on inherited manually specified primary key.",
+      "gold": [
+        "django/db/models/base.py"
+      ],
+      "rank": {
+        "before": 25,
+        "retrieval": 27,
+        "search": 36,
+        "search+entities": 38,
+        "fixed memory": 38,
+        "memory+sleep": 38
+      }
+    },
+    {
+      "id": "django__django-13933",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13933",
+      "title": "ModelChoiceField does not provide value of invalid choice when raising ValidationError",
+      "gold": [
+        "django/forms/models.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 3,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-13964",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/13964",
+      "title": "Saving parent object after setting on child leads to data loss for parents with non-numeric primary key.",
+      "gold": [
+        "django/db/models/base.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 4,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14016",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14016",
+      "title": "\"TypeError: cannot pickle\" when applying | operator to a Q object",
+      "gold": [
+        "django/db/models/query_utils.py"
+      ],
+      "rank": {
+        "before": 26,
+        "retrieval": 27,
+        "search": 46,
+        "search+entities": 47,
+        "fixed memory": 47,
+        "memory+sleep": 47
+      }
+    },
+    {
+      "id": "django__django-14017",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14017",
+      "title": "Q(...) & Exists(...) raises a TypeError",
+      "gold": [
+        "django/db/models/query_utils.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14155",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14155",
+      "title": "ResolverMatch.__repr__() doesn't handle functools.partial() nicely.",
+      "gold": [
+        "django/urls/resolvers.py"
+      ],
+      "rank": {
+        "before": 4,
+        "retrieval": 1,
+        "search": 4,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14238",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14238",
+      "title": "DEFAULT_AUTO_FIELD subclass check fails for subclasses of BigAutoField and SmallAutoField.",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": 37,
+        "retrieval": 37,
+        "search": 15,
+        "search+entities": 6,
+        "fixed memory": 6,
+        "memory+sleep": 6
+      }
+    },
+    {
+      "id": "django__django-14382",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14382",
+      "title": "django-admin startapp with trailing slash in directory name results in error",
+      "gold": [
+        "django/core/management/templates.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14411",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14411",
+      "title": "Label for ReadOnlyPasswordHashWidget points to non-labelable element.",
+      "gold": [
+        "django/contrib/auth/forms.py"
+      ],
+      "rank": {
+        "before": 10,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14534",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14534",
+      "title": "BoundWidget.id_for_label ignores id set by ChoiceWidget.options",
+      "gold": [
+        "django/forms/boundfield.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14580",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14580",
+      "title": "Missing import statement in generated migration (NameError: name 'models' is not defined)",
+      "gold": [
+        "django/db/migrations/serializer.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 37,
+        "search+entities": 48,
+        "fixed memory": 20,
+        "memory+sleep": 48
+      }
+    },
+    {
+      "id": "django__django-14608",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14608",
+      "title": "Add `nonform` CSS class for non form errors in FormSets",
+      "gold": [
+        "django/forms/formsets.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 3,
+        "search": 5,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-14667",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14667",
+      "title": "QuerySet.defer() doesn't clear deferred field when chaining with only().",
+      "gold": [
+        "django/db/models/sql/query.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 2,
+        "search": 2,
+        "search+entities": 2,
+        "fixed memory": 1,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-14672",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14672",
+      "title": "Missing call `make_hashable` on `through_fields` in `ManyToManyRel`",
+      "gold": [
+        "django/db/models/fields/reverse_related.py"
+      ],
+      "rank": {
+        "before": 3,
+        "retrieval": 4,
+        "search": 1,
+        "search+entities": 3,
+        "fixed memory": 3,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "django__django-14730",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14730",
+      "title": "Prevent developers from defining a related_name on symmetrical ManyToManyFields",
+      "gold": [
+        "django/db/models/fields/related.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14752",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14752",
+      "title": "Refactor AutocompleteJsonView to support extra fields in autocomplete response",
+      "gold": [
+        "django/contrib/admin/views/autocomplete.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14787",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14787",
+      "title": "method_decorator() should preserve wrapper assignments",
+      "gold": [
+        "django/utils/decorators.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-14855",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14855",
+      "title": "Wrong URL generated by get_admin_url for readonly field in custom Admin Site",
+      "gold": [
+        "django/contrib/admin/helpers.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 2,
+        "search": 8,
+        "search+entities": 2,
+        "fixed memory": 3,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-14915",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14915",
+      "title": "ModelChoiceIteratorValue is not hashable.",
+      "gold": [
+        "django/forms/models.py"
+      ],
+      "rank": {
+        "before": 12,
+        "retrieval": 12,
+        "search": 7,
+        "search+entities": 8,
+        "fixed memory": 9,
+        "memory+sleep": 8
+      }
+    },
+    {
+      "id": "django__django-14997",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14997",
+      "title": "Remaking table with unique constraint crashes on SQLite.",
+      "gold": [
+        "django/db/backends/ddl_references.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "django__django-14999",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/14999",
+      "title": "RenameModel with db_table should be a noop.",
+      "gold": [
+        "django/db/migrations/operations/models.py"
+      ],
+      "rank": {
+        "before": 27,
+        "retrieval": 10,
+        "search": 8,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15061",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15061",
+      "title": "Remove \"for = ...\" from MultiWidget's <label>.",
+      "gold": [
+        "django/forms/widgets.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15202",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15202",
+      "title": "URLField throws ValueError instead of ValidationError on clean",
+      "gold": [
+        "django/core/validators.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 2,
+        "search": 1,
+        "search+entities": 2,
+        "fixed memory": 3,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-15213",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15213",
+      "title": "ExpressionWrapper for ~Q(pk__in=[]) crashes.",
+      "gold": [
+        "django/db/models/fields/__init__.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": 32,
+        "search": 4,
+        "search+entities": 3,
+        "fixed memory": 1,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "django__django-15252",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15252",
+      "title": "MigrationRecorder does not obey db_router allow_migrate rules",
+      "gold": [
+        "django/db/migrations/executor.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 2,
+        "search": 2,
+        "search+entities": 2,
+        "fixed memory": 3,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-15320",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15320",
+      "title": "Subquery.as_sql() generates invalid SQL.",
+      "gold": [
+        "django/db/models/expressions.py"
+      ],
+      "rank": {
+        "before": 9,
+        "retrieval": 2,
+        "search": 3,
+        "search+entities": 1,
+        "fixed memory": 3,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15347",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15347",
+      "title": "Messages framework incorrectly serializes/deserializes extra_tags when it's an empty string",
+      "gold": [
+        "django/contrib/messages/storage/cookie.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15388",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15388",
+      "title": "Dev Server fails to restart after adding BASE_DIR to TEMPLATES[0]['DIRS'] in settings",
+      "gold": [
+        "django/template/autoreload.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": null,
+        "search+entities": null,
+        "fixed memory": null,
+        "memory+sleep": null
+      }
+    },
+    {
+      "id": "django__django-15400",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15400",
+      "title": "SimpleLazyObject doesn't implement __radd__",
+      "gold": [
+        "django/utils/functional.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15498",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15498",
+      "title": "Fix handling empty string for If-Modified-Since header",
+      "gold": [
+        "django/views/static.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 3,
+        "search+entities": 3,
+        "fixed memory": 3,
+        "memory+sleep": 3
+      }
+    },
+    {
+      "id": "django__django-15695",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15695",
+      "title": "RenameIndex() crashes when unnamed index is moving backward and forward.",
+      "gold": [
+        "django/db/migrations/operations/models.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 2,
+        "search+entities": 2,
+        "fixed memory": 2,
+        "memory+sleep": 2
+      }
+    },
+    {
+      "id": "django__django-15738",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15738",
+      "title": "Models migration with change field foreign to many and deleting unique together.",
+      "gold": [
+        "django/db/migrations/autodetector.py"
+      ],
+      "rank": {
+        "before": 5,
+        "retrieval": 7,
+        "search": 11,
+        "search+entities": 13,
+        "fixed memory": 8,
+        "memory+sleep": 13
+      }
+    },
+    {
+      "id": "django__django-15781",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15781",
+      "title": "Customizable management command formatters.",
+      "gold": [
+        "django/core/management/base.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15789",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15789",
+      "title": "Add an encoder parameter to django.utils.html.json_script().",
+      "gold": [
+        "django/utils/html.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15790",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15790",
+      "title": "check_for_template_tags_with_the_same_name with libraries in TEMPLATES",
+      "gold": [
+        "django/core/checks/templates.py"
+      ],
+      "rank": {
+        "before": 4,
+        "retrieval": 4,
+        "search": 9,
+        "search+entities": 9,
+        "fixed memory": 10,
+        "memory+sleep": 9
+      }
+    },
+    {
+      "id": "django__django-15814",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15814",
+      "title": "QuerySet.only() after select_related() crash on proxy models.",
+      "gold": [
+        "django/db/models/sql/query.py"
+      ],
+      "rank": {
+        "before": 23,
+        "retrieval": 24,
+        "search": 14,
+        "search+entities": 15,
+        "fixed memory": 15,
+        "memory+sleep": 15
+      }
+    },
+    {
+      "id": "django__django-15819",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15819",
+      "title": "inspectdb should generate related_name on same relation links.",
+      "gold": [
+        "django/core/management/commands/inspectdb.py"
+      ],
+      "rank": {
+        "before": 6,
+        "retrieval": 6,
+        "search": 5,
+        "search+entities": 5,
+        "fixed memory": 6,
+        "memory+sleep": 5
+      }
+    },
+    {
+      "id": "django__django-15851",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15851",
+      "title": "dbshell additional parameters should be passed before dbname on PostgreSQL.",
+      "gold": [
+        "django/db/backends/postgresql/client.py"
+      ],
+      "rank": {
+        "before": 15,
+        "retrieval": 15,
+        "search": 27,
+        "search+entities": 27,
+        "fixed memory": 28,
+        "memory+sleep": 27
+      }
+    },
+    {
+      "id": "django__django-15902",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15902",
+      "title": "\"default.html\" deprecation warning raised for ManagementForm's",
+      "gold": [
+        "django/forms/formsets.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-15996",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/15996",
+      "title": "Support for serialization of combination of Enum flags.",
+      "gold": [
+        "django/db/migrations/serializer.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16041",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16041",
+      "title": "Rendering empty_form crashes when empty_permitted is passed to form_kwargs",
+      "gold": [
+        "django/forms/formsets.py"
+      ],
+      "rank": {
+        "before": 9,
+        "retrieval": 11,
+        "search": 8,
+        "search+entities": 15,
+        "fixed memory": 1,
+        "memory+sleep": 15
+      }
+    },
+    {
+      "id": "django__django-16046",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16046",
+      "title": "Fix numberformat.py \"string index out of range\" when null",
+      "gold": [
+        "django/utils/numberformat.py"
+      ],
+      "rank": {
+        "before": 21,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16139",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16139",
+      "title": "Accessing UserAdmin via to_field leads to link to PasswordResetForm being broken (404)",
+      "gold": [
+        "django/contrib/auth/forms.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16229",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16229",
+      "title": "ModelForm fields with callable defaults don't correctly propagate default values",
+      "gold": [
+        "django/forms/boundfield.py"
+      ],
+      "rank": {
+        "before": 30,
+        "retrieval": 31,
+        "search": 55,
+        "search+entities": 63,
+        "fixed memory": 64,
+        "memory+sleep": 63
+      }
+    },
+    {
+      "id": "django__django-16255",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16255",
+      "title": "Sitemaps without items raise ValueError on callable lastmod.",
+      "gold": [
+        "django/contrib/sitemaps/__init__.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 1,
+        "search": 4,
+        "search+entities": 1,
+        "fixed memory": 3,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16379",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16379",
+      "title": "FileBasedCache has_key is susceptible to race conditions",
+      "gold": [
+        "django/core/cache/backends/filebased.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 1,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16400",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16400",
+      "title": "migrate management command does not respect database parameter when adding Permissions.",
+      "gold": [
+        "django/contrib/auth/management/__init__.py"
+      ],
+      "rank": {
+        "before": 19,
+        "retrieval": 21,
+        "search": 38,
+        "search+entities": 40,
+        "fixed memory": 41,
+        "memory+sleep": 40
+      }
+    },
+    {
+      "id": "django__django-16408",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16408",
+      "title": "Multi-level FilteredRelation with select_related() may set wrong related object.",
+      "gold": [
+        "django/db/models/sql/compiler.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 2,
+        "search": 7,
+        "search+entities": 7,
+        "fixed memory": 7,
+        "memory+sleep": 7
+      }
+    },
+    {
+      "id": "django__django-16527",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16527",
+      "title": "\"show_save_as_new\" in admin can add without this permission",
+      "gold": [
+        "django/contrib/admin/templatetags/admin_modify.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16595",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16595",
+      "title": "Migration optimizer does not reduce multiple AlterField",
+      "gold": [
+        "django/db/migrations/operations/fields.py"
+      ],
+      "rank": {
+        "before": 10,
+        "retrieval": 1,
+        "search": 5,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16816",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16816",
+      "title": "Error E108 does not cover some cases",
+      "gold": [
+        "django/contrib/admin/checks.py"
+      ],
+      "rank": {
+        "before": 8,
+        "retrieval": 9,
+        "search": 10,
+        "search+entities": 15,
+        "fixed memory": 15,
+        "memory+sleep": 15
+      }
+    },
+    {
+      "id": "django__django-16820",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16820",
+      "title": "Squashing migrations with Meta.index_together -> indexes transition should remove deprecation warnings.",
+      "gold": [
+        "django/db/migrations/operations/models.py"
+      ],
+      "rank": {
+        "before": 11,
+        "retrieval": 11,
+        "search": 4,
+        "search+entities": 4,
+        "fixed memory": 4,
+        "memory+sleep": 4
+      }
+    },
+    {
+      "id": "django__django-16873",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16873",
+      "title": "Template filter `join` should not escape the joining string if `autoescape` is `off`",
+      "gold": [
+        "django/template/defaultfilters.py"
+      ],
+      "rank": {
+        "before": 5,
+        "retrieval": 1,
+        "search": 5,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-16910",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/16910",
+      "title": "QuerySet.only() doesn't work with select_related() on a reverse OneToOneField relation.",
+      "gold": [
+        "django/db/models/sql/query.py"
+      ],
+      "rank": {
+        "before": 2,
+        "retrieval": 5,
+        "search": 19,
+        "search+entities": 21,
+        "fixed memory": 1,
+        "memory+sleep": 21
+      }
+    },
+    {
+      "id": "django__django-17051",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/17051",
+      "title": "Allow returning IDs in QuerySet.bulk_create() when updating conflicts.",
+      "gold": [
+        "django/db/models/query.py"
+      ],
+      "rank": {
+        "before": 1,
+        "retrieval": 1,
+        "search": 1,
+        "search+entities": 1,
+        "fixed memory": 2,
+        "memory+sleep": 1
+      }
+    },
+    {
+      "id": "django__django-17087",
+      "repo": "django/django",
+      "url": "https://github.com/django/django/pull/17087",
+      "title": "Class methods from nested classes cannot be used as Field.default.",
+      "gold": [
+        "django/db/migrations/serializer.py"
+      ],
+      "rank": {
+        "before": null,
+        "retrieval": null,
+        "search": 68,
+        "search+entities": 69,
+        "fixed memory": 52,
+        "memory+sleep": 69
+      }
+    }
+  ]
+}

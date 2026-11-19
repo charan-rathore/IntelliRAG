@@ -46,6 +46,30 @@ One pinned README ([sindresorhus/p-queue](https://github.com/sindresorhus/p-queu
 
 The default ties BM25 on the clean corpus and beats it by 20 points once noise documents are mixed in. The coverage packer wins one extra question on the clean corpus, but the gain's bootstrap interval is [−10, +20] points, and it loses 10 points under distractors. So it stays opt-in. Every run, including the losing ones, is in [`eval/repo-support/runs/`](eval/repo-support/runs/), and the [evaluation write-up](eval/repo-support/README.md) covers method, history and limits.
 
+## Tested on real GitHub issues
+
+![170 real GitHub issues, before and after](eval/github-issues/chart.svg)
+
+Paste a bug report and IntelliRAG ranks the repository's files. I tested it on 170 real issues from django, scikit-learn, sphinx and pytest (SWE-bench Lite), using the reporter's own text. The file the fix changed now comes first 45.3% of the time, up from 35.3%, and is in the top 5 65.9% of the time, up from 60.6%. No model is involved. The gain comes from reading the code an issue names (traceback paths, `module.Class`, function calls) and linking it to the files that define it. Settings were tuned on different issues (sympy). Method, per-repository numbers and a negative result: [eval/github-issues](eval/github-issues/README.md).
+
+## It sleeps
+
+The design follows Google's "Language Models Need Sleep" (Behrouz, Hashemi, Mirrokni) and Self-Improvement Memory (Yu et al., arXiv 2611.18856). IntelliRAG has no weights to train, so the sleep acts on its memory:
+
+| Phase | What happens | Guard |
+|---|---|---|
+| Awake | Every rated answer and every picked source is filed against the passages it came from. | The source text is never edited. |
+| Replay | During sleep, the questions people confirmed are asked again. | This is the metric. |
+| Consolidate | It learns which words people use for which words the sources use. | Kept in separate memory; the source's term statistics never change. |
+| Dream | It writes practice questions for passages nobody has asked about: words hidden in identifiers, section context, people's vocabulary, or a model's questions when one is configured. | Each dream is tried on a copy of memory. It is kept only if its passage is now found, no confirmed question is lost, and no dead end comes back. A final full replay rolls back the whole sleep if anything slipped through. |
+| Journal | Each strategy's kept-of-tried count and the reason for every rejection are recorded. | The next sleep budgets toward what worked and pauses a strategy that failed twice running. |
+
+It sleeps by itself after every 8 ratings, or when you press **Sleep now** in the Memory panel. The panel shows what was kept and why everything else wasn't.
+
+**Measured honestly.** On the 14-question rewording test, one sleep neither helped nor hurt (54.8% before and after on held-out wordings). On the GitHub issues, sleep's guard cut the damage of a memory that didn't transfer from −6.5 to −1.8 points, but didn't turn it into a gain. The gains so far come from ratings and picks (held-out rewordings 50.0% → 54.8%, original questions 71.4% → 81.0%) and from the code links above. With a model configured, the model-written dream strategy is where the paper expects the bigger effect. That hasn't been measured here yet.
+
+**Answers never stop mid-sentence.** If the model runs out of output budget, it continues from where it stopped. If it still can't finish, the answer is cut back to its last whole sentence or list item, with a one-line note.
+
 ## It gets better the more it's used
 
 Three loops improve IntelliRAG as people use it. Each is measured on held-out data, and each can only add evidence: none of them can make an unsupported question look answered.
