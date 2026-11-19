@@ -24,9 +24,9 @@ Kapa, Guru and [Onyx](https://www.ycombinator.com/companies/onyx) already addres
 
 ## What we have actually tested
 
-- Two previously unseen repository READMEs, `sindresorhus/p-debounce` and `sindresorhus/p-throttle`, were imported locally. Supported answers stayed inside their selected corpus; graph answer edges matched **only** cited source documents; exact repeats reused the cache; unsupported password questions refused without citations. [Machine-readable results](../../audit/graph-provenance-local.json).
+- Two previously unseen repository READMEs, `sindresorhus/p-debounce` and `sindresorhus/p-throttle`, were imported locally. Supported answers stayed inside their selected corpus; graph answer edges matched **only** cited source documents; exact repeats reused the cache; unsupported password questions refused without citations. [Machine-readable results](../audit/graph-provenance-local.json).
 - Whole-repository tree requests hit GitHub HTTP 403 during the local audit. Direct README imports passed. This is an ingestion reliability gap, not a successful full-repository test.
-- The public browser experiment imports node-postgres issue 3745, produces a cited extract, exposes its source graph, refuses an unrelated question, and reuses the exact cached result. [Capture assertions](../../audit/walkthrough-capture.json), [watch the experiment](https://intellirag-live-own-track.vercel.app/walkthrough).
+- The public browser experiment imports node-postgres issue 3745, produces a cited extract, exposes its source graph, refuses an unrelated question, and reuses the exact cached result. [Capture assertions](../audit/walkthrough-capture.json), [watch the experiment](https://intellirag-live-own-track.vercel.app/walkthrough).
 - The public deployment uses keyword retrieval and cited extracts. Its imports and graph history are temporary without Postgres. Current checks do not establish semantic-model accuracy, production cost savings, tenant isolation, automatic source synchronization or customer ROI.
 
 ## A two-week pilot, after setup gates

@@ -13,4 +13,4 @@ for _ in range(45):
  time.sleep(.5)
 assert run('eval','document.querySelector("select")?.value')=='url:github.com/brianc/node-postgres/issues/3745'
 print('Upstream issue imported and selected on final Vercel deployment',flush=True)
-subprocess.run([sys.executable,'audit/issue-tests.py','intellirag-production','node-postgres'],check=True)
+subprocess.run([sys.executable,'docs/audit/issue-tests.py','intellirag-production','node-postgres'],check=True)

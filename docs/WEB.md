@@ -38,9 +38,9 @@ Document metadata and chunk replacement now commit together. Failed writes roll 
 From `web/`:
 
 ```bash
-npm run acceptance:production -- https://intellirag-live-own-track.vercel.app ../audit/production-acceptance.json
+npm run acceptance:production -- https://intellirag-live-own-track.vercel.app ../docs/audit/production-acceptance.json
 # After a fresh deployment/worker, without changing the indexed corpus:
-npm run acceptance:production -- https://intellirag-live-own-track.vercel.app ../audit/production-acceptance-after-restart.json ../audit/production-acceptance.json
+npm run acceptance:production -- https://intellirag-live-own-track.vercel.app ../docs/audit/production-acceptance-after-restart.json ../docs/audit/production-acceptance.json
 ```
 
 The command records a fixture hash, deployment worker ID, index fingerprint and raw query results. It exits with status 2 when setup is incomplete or acceptance fails. It checks real hybrid execution, provider generation and expected cited documents with cache bypass. The optional previous report requires a changed worker ID, unchanged index fingerprint and passing queries in both runs. A warm-worker rerun is not cold-start proof. Use an imported sentinel document too: seeds alone can be reconstructed, so verify the sentinel survives with the same chunk IDs and vectors.

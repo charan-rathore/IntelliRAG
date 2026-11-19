@@ -2,9 +2,9 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 const base = process.argv[2] || "https://intellirag-live-own-track.vercel.app";
-const destination = process.argv[3] || "../audit/production-acceptance.json";
+const destination = process.argv[3] || "../docs/audit/production-acceptance.json";
 const fixture = JSON.parse(
-  await readFile(new URL("../../audit/golden.json", import.meta.url), "utf8"),
+  await readFile(new URL("../../docs/audit/golden.json", import.meta.url), "utf8"),
 );
 const report = {
   runId: crypto.randomUUID(),
