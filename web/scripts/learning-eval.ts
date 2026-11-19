@@ -15,6 +15,7 @@ import { chunkDocument } from '../src/lib/rag/chunking';
 import { retrieveFromRows, type SearchRow } from '../src/lib/rag/retrieve-core';
 import { SEED_DOCUMENTS } from '../src/lib/rag/corpus';
 import { emptyExperience, recordExperience, type ExperienceLog } from '../src/lib/rag/experience';
+import { sleep as sleepCycle, type SleepPassage } from '../src/lib/rag/sleep';
 
 const root = resolve(import.meta.dirname, '../../eval');
 const base = JSON.parse(readFileSync(root + '/repo-support/dataset.json', 'utf8'));
@@ -36,6 +37,10 @@ for (const doc of [{ slug: 'p-queue', title: 'p-queue README', body: source }, .
 const ask = (query: string, experience: ExperienceLog | null) => retrieveFromRows({ query, queryVector: null, mode: 'keyword', topK: 5, embeddingModel: null, rows,
   corpusScope: { kind: 'corpus', corpusId: 'learn' }, storage: { backend: 'ephemeral', durable: false, denseAvailable: false, warning: null } as never, experience });
 
+const passages: SleepPassage[] = rows.map((r) => ({ chunkId: r.chunk.id, text: r.chunk.text, heading: r.chunk.heading, symbol: r.chunk.symbol, filepath: r.chunk.filepath, title: r.title }));
+const packedIds = (q: string, log: ExperienceLog) => ask(q, log).chunks.map((c) => c.chunkId);
+// One sleep cycle (sleep.ts): replay, consolidate, dream, keep only dreams that don't cost a real question.
+const doSleep = (log: ExperienceLog) => sleepCycle({ corpusId: 'learn', passages, packed: packedIds }, log, undefined, { now: '2026-11-19T00:00:00Z' }).log;
 const gold = new Map<string, string[]>(base.cases.filter((c: any) => c.answerable).map((c: any) => [c.id, c.evidence.map((e: any) => e.quote)]));
 const complete = (packed: string[], quotes: string[]) => quotes.every((q) => packed.some((p) => norm(p).includes(norm(q))));
 
@@ -85,13 +90,16 @@ const arms = [
   { name: 'ratings on originals + other wordings', learn: { from: 'originals+wordings' as const, noise: 0, picks: false } },
   { name: '… plus source picks when an answer missed', learn: { from: 'originals+wordings' as const, noise: 0, picks: true } },
   { name: '… with 20% of ratings wrong', learn: { from: 'originals+wordings' as const, noise: 0.2, picks: true } },
-];
+  { name: 'sleep only, nobody rated anything', learn: null, sleep: true },
+  { name: 'ratings + picks, then one sleep', learn: { from: 'originals+wordings' as const, noise: 0, picks: true }, sleep: true },
+] as Array<{ name: string; learn: null | { from: 'originals' | 'originals+wordings'; noise: number; picks: boolean }; sleep?: boolean }>;
 for (const arm of arms) {
   const folds: number[] = [], orig: number[] = [], refused: string[] = [];
   for (let fold = 0; fold < 3; fold++) {
     const test = ids.map((id) => ({ id, q: para.cases[id][fold] as string }));
     const others = ids.flatMap((id) => (para.cases[id] as string[]).map((q, i) => ({ id, q, i })).filter((x) => x.i !== fold).map(({ id, q }) => ({ id, q })));
-    const log = arm.learn ? train(arm.learn.from === 'originals' ? originals : [...originals, ...others], arm.learn.noise, 17 + fold, arm.learn.picks) : null;
+    let log = arm.learn ? train(arm.learn.from === 'originals' ? originals : [...originals, ...others], arm.learn.noise, 17 + fold, arm.learn.picks) : null;
+    if (arm.sleep) log = doSleep(log ?? emptyExperience());
     folds.push(score(test, log));
     orig.push(score(originals, log));
     refused.push(refusals(log));

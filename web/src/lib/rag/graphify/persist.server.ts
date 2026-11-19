@@ -3,6 +3,7 @@
  * kept together. Mirrors graphify-out/ so repeat queries skip Flash.
  */
 import { emptyExperience, recordExperience, type Vote } from "../experience";
+import { addCase, emptyCaseMemory } from "../case-memory";
 import { readFileSync } from "node:fs";
 import { writeAtomicJson } from "./atomic-json.mjs";
 import { singleFlight } from "./single-flight.mjs";
@@ -254,6 +255,13 @@ const EXPERIENCE_CAP = 4000;
 
 function fileExperience(state: GraphState, input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string }>; vote: Vote }) {
   const log = recordExperience(state.experience ?? emptyExperience(), input);
+  // A confirmed answer is also a resolved case: its passages answered this question.
+  if (input.vote > 0 && input.passages.length) {
+    state.cases ??= {};
+    state.cases[input.corpusId] = addCase(state.cases[input.corpusId] ?? emptyCaseMemory(), { q: input.question, files: input.passages.map((p) => p.chunkId), at: Date.now() });
+  }
+  state.sinceSleep ??= {};
+  state.sinceSleep[input.corpusId] = (state.sinceSleep[input.corpusId] ?? 0) + 1;
   const keys = Object.keys(log.entries);
   if (keys.length > EXPERIENCE_CAP) {
     const newest = (k: string) => log.entries[k]!.asked.at(-1)?.at ?? "";
@@ -267,6 +275,27 @@ function passagesOf(chunks: unknown): Array<{ chunkId: string; text: string }> {
   return chunks
     .filter((c): c is { chunkId: string; text: string } => typeof c?.chunkId === "string" && typeof c?.text === "string")
     .map((c) => ({ chunkId: c.chunkId, text: c.text }));
+}
+
+/** Everything a corpus has learned, for the sleep cycle and the Memory panel. */
+export async function corpusMemory(corpusId: string) {
+  const state = await ensureGraph();
+  return {
+    experience: state.experience ?? emptyExperience(),
+    journal: state.sleep?.[corpusId] ?? null,
+    cases: state.cases?.[corpusId] ?? emptyCaseMemory(),
+    sinceSleep: state.sinceSleep?.[corpusId] ?? 0,
+  };
+}
+
+/** Save what a sleep cycle produced. */
+export async function saveSleep(corpusId: string, input: { experience: import("../experience").ExperienceLog; journal: import("../sleep").SleepJournal; cases: import("../case-memory").CaseMemoryState }) {
+  const state = await ensureGraph();
+  state.experience = input.experience;
+  state.sleep = { ...(state.sleep ?? {}), [corpusId]: input.journal };
+  state.cases = { ...(state.cases ?? {}), [corpusId]: input.cases };
+  state.sinceSleep = { ...(state.sinceSleep ?? {}), [corpusId]: 0 };
+  await persist(state);
 }
 
 /** The experience log, for retrieval. */

@@ -1,6 +1,8 @@
 /** Provider completion is a protocol outcome, not just a string of tokens. */
 export type GenerationFailure = "output_budget_exhausted" | "content_filtered" | "empty_output" | "incomplete_stream" | "invalid_response" | "unexpected_stop";
 export class GenerationError extends Error {
+  /** Text the model produced before it stopped, for a budget stop: the answer so far. */
+  partial?: string;
   constructor(public reason: GenerationFailure, public usage?: Record<string, unknown>) {
     const messages: Record<GenerationFailure, string> = {
       output_budget_exhausted: "The answer exceeded the model's output budget. It was not saved as a complete answer.",
@@ -16,7 +18,11 @@ export class GenerationError extends Error {
 export type Completion = { text: string; stopReason?: string | null; usage?: Record<string, unknown> };
 export function validateCompletion(result: Completion): string {
   const stop = result.stopReason?.toLowerCase();
-  if (stop === "length" || stop === "max_tokens") throw new GenerationError("output_budget_exhausted", result.usage);
+  if (stop === "length" || stop === "max_tokens" || stop === "max_output_tokens") {
+    const error = new GenerationError("output_budget_exhausted", result.usage);
+    error.partial = result.text;
+    throw error;
+  }
   if (["content_filter", "safety", "recitation", "blocklist", "prohibited_content", "spii", "language", "escalation"].includes(stop ?? "")) throw new GenerationError("content_filtered", result.usage);
   if (!stop) throw new GenerationError("incomplete_stream", result.usage);
   if (stop !== "stop") throw new GenerationError("unexpected_stop", result.usage);

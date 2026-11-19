@@ -33,6 +33,13 @@ export interface AskedAs {
   q: string;
   vote: Vote;
   at: string;
+  /**
+   * Who asked it: a person (absent), or a dream the sleep cycle generated and
+   * kept because it helped without costing any real question (sleep.ts).
+   */
+  by?: "dream";
+  /** For a dream: which strategy produced it. */
+  strategy?: string;
 }
 
 export interface ExperienceEntry {
@@ -49,6 +56,22 @@ export interface ExperienceLog {
 }
 
 export const MAX_ASKED_PER_PASSAGE = 16;
+/** Dreams never take more than this many of a passage's slots. */
+export const MAX_DREAMS_PER_PASSAGE = 3;
+
+/** Keep the newest links, evicting dreams before anything a person said. */
+function trim(asked: AskedAs[]): AskedAs[] {
+  let dreams = asked.filter((a) => a.by === "dream");
+  if (dreams.length > MAX_DREAMS_PER_PASSAGE) {
+    const drop = new Set(dreams.slice(0, dreams.length - MAX_DREAMS_PER_PASSAGE));
+    asked = asked.filter((a) => !drop.has(a));
+  }
+  while (asked.length > MAX_ASKED_PER_PASSAGE) {
+    const i = asked.findIndex((a) => a.by === "dream");
+    asked = i >= 0 ? asked.filter((_, j) => j !== i) : asked.slice(1);
+  }
+  return asked;
+}
 
 /**
  * How strongly experience counts. These are the knobs the self-improvement
@@ -87,7 +110,7 @@ const normalize = (q: string) => q.normalize("NFKC").toLowerCase().replace(/\s+/
 /** File a rated answer against the passages it was built from. Returns a new log. */
 export function recordExperience(
   log: ExperienceLog,
-  input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string }>; vote: Vote; at?: string },
+  input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string }>; vote: Vote; at?: string; dream?: { strategy: string } },
 ): ExperienceLog {
   const at = input.at ?? new Date().toISOString();
   const entries = { ...log.entries };
@@ -98,9 +121,17 @@ export function recordExperience(
     const fp = fingerprint(p.text);
     const prev = entries[key];
     // Learning about older text doesn't carry over to new text.
-    const asked = prev && prev.fingerprint === fp ? prev.asked.filter((a) => normalize(a.q) !== nq) : [];
-    asked.push({ q: input.question.trim(), vote: input.vote, at });
-    entries[key] = { corpusId: input.corpusId, chunkId: p.chunkId, fingerprint: fp, asked: asked.slice(-MAX_ASKED_PER_PASSAGE) };
+    let asked = prev && prev.fingerprint === fp ? prev.asked.filter((a) => normalize(a.q) !== nq) : [];
+    // A person outranks a dream: a dead end on this passage retires the dreams
+    // that resemble the question.
+    if (!input.dream && input.vote < 0) {
+      const qt = new Set(contentTokens(input.question));
+      asked = asked.filter((a) => a.by !== "dream" || overlap(qt, new Set(contentTokens(a.q))) < 0.5);
+    }
+    // ...and a dream never overwrites a rating a person gave the same words.
+    if (input.dream && prev && prev.fingerprint === fp && prev.asked.some((a) => !a.by && normalize(a.q) === nq)) continue;
+    asked.push(input.dream ? { q: input.question.trim(), vote: input.vote, at, by: "dream", strategy: input.dream.strategy } : { q: input.question.trim(), vote: input.vote, at });
+    entries[key] = { corpusId: input.corpusId, chunkId: p.chunkId, fingerprint: fp, asked: trim(asked) };
   }
   return { version: 1, entries };
 }

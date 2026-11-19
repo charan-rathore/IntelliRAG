@@ -469,3 +469,8 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
   .ir-explorer-win { animation: none; }
   .sc-caret { animation: none; }
 }
+
+/* A sleep in progress: a thin line sweeping across, like a scan. */
+@keyframes ir-sweep { from { transform: scaleX(0); transform-origin: left; } 50% { transform: scaleX(1); transform-origin: left; } 50.01% { transform-origin: right; } to { transform: scaleX(0); transform-origin: right; } }
+.ir-sweep { animation: ir-sweep 1.6s var(--ease-smooth-out) infinite; }
+@media (prefers-reduced-motion: reduce) { .ir-sweep { animation: none; } }

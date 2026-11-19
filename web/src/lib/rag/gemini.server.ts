@@ -1,4 +1,5 @@
 import { decodeCompletion, validateCompletion, readGenerationStream } from "./generation-result";
+import { completeAnswer, continuationPrompt } from "./answer-completion";
 import { localModel, streamLocal } from "./ollama.server";
 import {
   EMBEDDING_DIMENSIONS,
@@ -215,7 +216,7 @@ function generationBody(system: string, user: string, withThinking: boolean) {
     contents: [{ role: "user", parts: [{ text: user }] }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 1536,
+      maxOutputTokens: 4096,
       ...(withThinking ? { thinkingConfig: { thinkingLevel: "LOW" } } : {}),
     },
   };
@@ -260,7 +261,7 @@ async function generateOpenRouter(opts: {
       body: JSON.stringify({
         model: GENERATION_MODEL_OPENROUTER,
         temperature: 0.1,
-        max_tokens: 1536,
+        max_tokens: 4096,
         stream: false,
         messages: [
           { role: "system", content: opts.system },
@@ -323,7 +324,7 @@ async function streamOpenRouter(opts: {
     JSON.stringify({
       model: GENERATION_MODEL_OPENROUTER,
       temperature: 0.1,
-      max_tokens: 1536,
+      max_tokens: 4096,
       stream: true,
       stream_options: { include_usage: true },
       messages: [
@@ -379,7 +380,7 @@ async function generateXai(opts: {
     body: JSON.stringify({
       model: GENERATION_MODEL_XAI,
       temperature: 0.1,
-      max_tokens: 1024,
+      max_tokens: 4096,
       stream: false,
       messages: [
         { role: "system", content: opts.system },
@@ -410,7 +411,7 @@ async function streamXai(opts: {
     body: JSON.stringify({
       model: GENERATION_MODEL_XAI,
       temperature: 0.1,
-      max_tokens: 1024,
+      max_tokens: 4096,
       stream: true,
       stream_options: { include_usage: true },
       messages: [
@@ -439,7 +440,25 @@ async function streamXai(opts: {
   return readGenerationStream(res.body, "openai", opts.onToken);
 }
 
+/**
+ * Stream an answer; if the model runs out of output budget, keep going from
+ * where it stopped, and never leave a cut-off sentence (answer-completion.ts).
+ */
 export async function streamGenerate(opts: {
+  system: string;
+  user: string;
+  onToken: (text: string) => void;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const result = await completeAnswer({
+    turn: (soFar) => streamGenerateOnce({ ...opts, user: soFar ? continuationPrompt(opts.user, soFar) : opts.user }),
+  });
+  // The final event carries this text, so a shortened answer replaces the
+  // cut-off tail the person saw streaming.
+  return result.text;
+}
+
+async function streamGenerateOnce(opts: {
   system: string;
   user: string;
   onToken: (text: string) => void;
@@ -460,6 +479,15 @@ export async function streamGenerate(opts: {
 }
 
 export async function completeOnce(opts: {
+  system: string;
+  user: string;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const result = await completeAnswer({ turn: (soFar) => completeOnceRaw({ ...opts, user: soFar ? continuationPrompt(opts.user, soFar) : opts.user }) });
+  return result.text;
+}
+
+async function completeOnceRaw(opts: {
   system: string;
   user: string;
   signal?: AbortSignal;
