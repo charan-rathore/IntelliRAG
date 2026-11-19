@@ -55,7 +55,7 @@ import { overlapTerms } from "./trace";
 import { DefinitionIndex, devEntities } from "./dev-entities";
 
 /** Definitions index per searchable row set, like the BM25 cache. */
-const DEF_CACHE = new WeakMap<SearchRow[], Map<string, { fp: string; defs: DefinitionIndex }>>();
+const DEF_CACHE = new WeakMap<SearchRow[], Map<string, { fp: ReturnType<typeof fingerprint>; defs: DefinitionIndex }>>();
 function defsFor(all: SearchRow[], scoped: SearchRow[], scopeKey: string): DefinitionIndex {
   let byScope = DEF_CACHE.get(all);
   if (!byScope) DEF_CACHE.set(all, (byScope = new Map()));
