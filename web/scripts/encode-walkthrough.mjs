@@ -27,5 +27,5 @@ writeFileSync(resolve(media, 'intellirag-walkthrough.vtt'), 'WEBVTT\n\n' + chapt
 mkdirSync(resolve(root, 'src/data'), { recursive: true });
 writeFileSync(resolve(root, 'src/data/walkthrough.json'), JSON.stringify({ duration, durationLabel: stamp(duration), chapters }, null, 2) + '\n');
 const audit = { recordedAt: new Date().toISOString(), url: report.url, sourceUrl: report.sourceUrl, duration, bytes: Number(encoded.format.size), codec: encoded.streams[0].codec_name, dimensions: [encoded.streams[0].width, encoded.streams[0].height], checks: report.checks, supportedCoverage: report.supported.done.coverage, citations: report.supported.done.citations.length, refusedCoverage: report.refused.done.coverage, repeatCacheHit: report.repeated.done.cacheHit, browserErrors: report.errors, presentation: 'Automated public browser recording. Captions and cursor added; responses and graph data are real. Keyword/cited-extract mode, no model generation.' };
-writeFileSync(resolve(root, '../audit/walkthrough-capture.json'), JSON.stringify(audit, null, 2) + '\n');
+writeFileSync(resolve(root, '../docs/audit/walkthrough-capture.json'), JSON.stringify(audit, null, 2) + '\n');
 console.log(JSON.stringify(audit, null, 2));

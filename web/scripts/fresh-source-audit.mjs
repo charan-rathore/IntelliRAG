@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 const base=process.argv[2] || 'http://localhost:8080';
-const destination=process.argv[3] || '../audit/fresh-source-local.json';
+const destination=process.argv[3] || '../docs/audit/fresh-source-local.json';
 const report={base,startedAt:new Date().toISOString(),health:null,before:[],imports:[],cases:[],failures:[]};
 async function json(path,body){const r=await fetch(base+path,{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(120000)});const data=await r.json();if(!r.ok)throw Error(JSON.stringify(data));return data;}
 async function ask(question,corpus,extra={}){const started=performance.now();const r=await fetch(base+'/api/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,corpus,retrievalMode:'keyword',topK:5,...extra}),signal:AbortSignal.timeout(60000)});const raw=await r.text();const events=raw.split('\n').filter(l=>l.startsWith('data: ')).map(l=>JSON.parse(l.slice(6)));return {question,corpus,ms:performance.now()-started,graph:events.find(e=>e.type==='graph'),done:events.find(e=>e.type==='done'),errors:events.filter(e=>e.type==='error')};}

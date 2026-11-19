@@ -6,15 +6,14 @@ Ask a question about a pinned source. IntelliRAG finds the passages, checks whet
 
 [**Try the live console**](https://intellirag-live-own-track.vercel.app/) · [Interactive architecture](https://intellirag-live-own-track.vercel.app/architecture.html) · [Browser walkthrough](https://intellirag-live-own-track.vercel.app/walkthrough) · [Measured evaluation](eval/repo-support/README.md) · [Code graph](docs/codegraph/README.md)
 
-![How a question becomes a cited answer or a refusal: 1 ask, 2 query, 3 rank, 4 check support (refuse if nothing is supported), 5 pack within 1,400 tokens, 6 measure coverage, 7 answer, 8 answer with trace; A ingest a pinned GitHub source, B optional model, C a frozen eval replays the same functions](docs/images/architecture.png)
+![How IntelliRAG works. Before any question (offline): bring sources, cut into passages, index every word, optionally add meaning vectors, store; a sleep cycle replays rated questions. On every question (online): ask, read the code it names, search two ways, rank with memory, evidence gate, answer or refuse. After the answer: your rating is filed and improves the next answer.](docs/images/how-it-works.svg)
+
+**In plain words**
+- **Offline, once per source:** IntelliRAG reads your repository or documents, cuts them into passages and builds an index. Nothing here waits on a question.
+- **Online, per question:** it finds the passages that match, ranks them, and lets only the ones that clear an evidence gate be cited. That's about 5 ms of search before any model runs. With no passage strong enough, it says the source doesn't cover it.
+- **Afterwards:** marking an answer useful or wrong, or picking the passage that answered you, makes the next similar question better. A background "sleep" builds on those ratings, and keeps a change only if no answer that already works breaks.
 
 [![Watch the 57-second walkthrough: a question, its sources, and the proof](web/public/demo/intellirag-walkthrough-poster.jpg)](https://intellirag-live-own-track.vercel.app/walkthrough)
-
-[![The web pipeline, stage by stage: index on import, answer on request, evidence gate, optional second opinion, inspect and give feedback](docs/architecture/web-pipeline.svg)](docs/architecture/interactive.html)
-
-Click the pipeline for the [interactive version](docs/architecture/interactive.html), where every stage links to its source file.
-
-Follow the numbers. **1–2**: you ask. **3–7**: the evidence is decided *before* any model runs. **8**: you get the answer, its citations, and the question terms nothing in the context covers. **A–C** happen offline: ingest at a pinned commit, an optional model, and a frozen evaluation that calls the same functions the server does.
 
 ## The problem
 
@@ -33,6 +32,16 @@ Most of these errors happen when the retrieved context is *relevant but insuffic
 | Measure | Lists the question terms (function words and quantities removed) that appear in no packed passage, shown under every answer | [`coverage-pack.ts`](web/src/lib/rag/coverage-pack.ts), [`context-coverage.tsx`](web/src/components/rag/context-coverage.tsx) |
 | Answer | With a server or visitor key: temperature 0 and a cite-or-refuse prompt. Without one: cited extracts, labelled as extracts. | [`query.server.ts`](web/src/lib/rag/query.server.ts) |
 | Cache | Keyed by question, corpus and a policy hash covering retrieval mode, evidence policy, model and graph edits. Corrections invalidate it. | [`graphify/persist.server.ts`](web/src/lib/rag/graphify/persist.server.ts), [`query.server.ts`](web/src/lib/rag/query.server.ts) |
+
+## The pipeline in detail
+
+![How a question becomes a cited answer or a refusal: 1 ask, 2 query, 3 rank, 4 check support (refuse if nothing is supported), 5 pack within 1,400 tokens, 6 measure coverage, 7 answer, 8 answer with trace; A ingest a pinned GitHub source, B optional model, C a frozen eval replays the same functions](docs/images/architecture.png)
+
+Follow the numbers. **1–2**: you ask. **3–7**: the evidence is decided *before* any model runs. **8**: you get the answer, its citations, and the question terms nothing in the context covers. **A–C** happen offline: ingest at a pinned commit, an optional model, and a frozen evaluation that calls the same functions the server does.
+
+[![The web pipeline, stage by stage: index on import, answer on request, evidence gate, optional second opinion, inspect and give feedback](docs/architecture/web-pipeline.svg)](docs/architecture/interactive.html)
+
+Click the pipeline for the [interactive version](docs/architecture/interactive.html), where every stage links to its source file.
 
 The coverage line reads like this on a question the source can't settle:
 
@@ -159,7 +168,7 @@ npx tsx scripts/repo-support-eval.ts                 # the measured table above,
 npx tsx scripts/repo-support-eval.ts --distractors   # the noise stress test
 ~~~
 
-[WEB.md](WEB.md) covers the Vercel setup, security posture and release gate. Durable imports, persistent semantic search and provider generation need private configuration; they aren't a frontend toggle.
+[docs/WEB.md](docs/WEB.md) covers the Vercel setup, security posture and release gate. Durable imports, persistent semantic search and provider generation need private configuration; they aren't a frontend toggle.
 
 ## Repository map
 
@@ -177,6 +186,16 @@ flowchart LR
   EV["web/scripts/repo-support-eval.ts"] -.same functions.-> R
   PY["rag-platform/<br/>Python reference + benchmarks"]
 ```
+
+| Folder | What's in it |
+|---|---|
+| [`web/`](web/) | The app you use: TanStack Start UI and the retrieval pipeline in `web/src/lib/rag/` |
+| [`mcp/`](mcp/) | The same pipeline as an MCP server for Claude Code, Codex and Hermes |
+| [`eval/`](eval/) | Frozen benchmarks: repository support, rewordings, conversations, code search, real GitHub issues |
+| [`docs/`](docs/) | Diagrams, deployment ([`WEB.md`](docs/WEB.md)), roadmap, audit trail, code graph |
+| [`rag-platform/`](rag-platform/) | Python reference implementation and benchmarks (not the served runtime) |
+| [`skills/`](skills/), [`integrations/`](integrations/) | Agent skill and editor integrations |
+| [`scripts/`](scripts/) | Code graph and diagram generators |
 
 [`docs/codegraph/`](docs/codegraph/README.md) is a generated dependency graph of the whole repository (files, imports, hubs and import cycles), rebuilt with `node scripts/codegraph.mjs`. Start there to find the blast radius of a change. The Python [`rag-platform/`](rag-platform/) is a separate benchmark and reference implementation; it is not the serving runtime.
 

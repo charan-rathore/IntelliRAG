@@ -1,6 +1,6 @@
 # IntelliRAG browser lab
 
-[Live application](https://intellirag-live-own-track.vercel.app/) · [Deployment and provider setup](../WEB.md) · [Measured audit](../audit/REPORT.md)
+[Live application](https://intellirag-live-own-track.vercel.app/) · [Deployment and provider setup](../docs/WEB.md) · [Measured audit](../docs/audit/REPORT.md)
 
 This directory is deployed from **charan-rathore/IntelliRAG**, the sole canonical GitHub repository. The older `intellirag-web` repository has been retired.
 
@@ -16,4 +16,4 @@ npx --yes tsx --test src/lib/rag/*.test.ts
 npm run build
 ```
 
-See [WEB.md](../WEB.md) for private environment configuration, migrations, frozen production acceptance, cold-start verification and the distinction between pipeline checks and real answer-quality evaluation. No provider credentials belong in this repository.
+See [WEB.md](../docs/WEB.md) for private environment configuration, migrations, frozen production acceptance, cold-start verification and the distinction between pipeline checks and real answer-quality evaluation. No provider credentials belong in this repository.

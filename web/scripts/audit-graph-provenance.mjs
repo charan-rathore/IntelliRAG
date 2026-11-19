@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
 const base=process.argv[2] || 'http://localhost:8080';
-const destination=process.argv[3] || '../audit/graph-provenance-local.json';
+const destination=process.argv[3] || '../docs/audit/graph-provenance-local.json';
 const report={base,at:new Date().toISOString(),sources:[],pass:false};
 async function json(path,body) { const r=await fetch(base+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(90000)});const d=await r.json();assert.ok(r.ok,JSON.stringify(d));return d; }
 async function ask(question,corpus) { const r=await fetch(base+'/api/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,corpus,retrievalMode:'keyword',topK:5}),signal:AbortSignal.timeout(60000)});const events=(await r.text()).split('\n').filter(l=>l.startsWith('data: ')).map(l=>JSON.parse(l.slice(6)));assert.ok(events.find(e=>e.type==='graph'));const done=events.find(e=>e.type==='done');assert.ok(done,JSON.stringify(events));return done; }
