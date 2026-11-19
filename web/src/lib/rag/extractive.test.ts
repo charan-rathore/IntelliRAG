@@ -22,7 +22,7 @@ it('quotes the sentences that answer, each cited, instead of pasting whole windo
 it('reads Markdown: headings name the point, code stays fenced, callouts and links are unwrapped', () => {
   const text = '#### .pause()\n\nPut queue execution on hold.\n\n> [!NOTE]\n> Pausing does not cancel running tasks.\n\n```js\nqueue.pause();\nawait queue.onPendingZero();\n```\n\nSee [the docs](#docs) for pause details.';
   const answer = extractiveAnswer('how do I pause the queue', [chunk(text)]);
-  assert.match(answer, /\*\*`\.pause\(\)`\*\*: Put queue execution on hold\. \[Source 1\]/);
+  assert.match(answer, /`\.pause\(\)`: Put queue execution on hold\. \[Source 1\]/);
   assert.ok(!answer.includes('[!NOTE]'));
   assert.match(answer, /```\nqueue\.pause\(\);\nawait queue\.onPendingZero\(\);\n```/);
   assert.ok(!answer.includes('](#docs)'));

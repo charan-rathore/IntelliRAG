@@ -123,7 +123,8 @@ export function extractiveAnswer(question: string, chunks: RetrievedChunk[], opt
   } else {
     lines.push('What the source says about this:');
     for (const { u } of points) {
-      const lead = u.heading && !u.text.includes(u.heading) ? `**${u.heading.startsWith('.') || /\(\)$/.test(u.heading) ? `\`${u.heading}\`` : u.heading}**: ` : '';
+      // An API name reads as code; a section name reads bold.
+      const lead = u.heading && !u.text.includes(u.heading) ? (u.heading.startsWith('.') || /\(\)$/.test(u.heading) ? `\`${u.heading}\`: ` : `**${u.heading}**: `) : '';
       lines.push(`- ${lead}${u.text} [Source ${u.source}]`);
     }
   }
