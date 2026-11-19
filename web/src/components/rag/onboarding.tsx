@@ -109,8 +109,10 @@ export function WelcomeOnboarding({
   customSources = true,
   onEvidence,
   onLab,
+  onGraph,
 }: {
   view: ConsoleView;
+  onGraph?: () => void;
   onEvidence?: () => void;
   onLab?: () => void;
   customSources?: boolean;
@@ -148,6 +150,11 @@ export function WelcomeOnboarding({
             <Button size="lg" variant="ghost" onClick={onSources}>
               {customSources ? "Bring your own source" : "See the sources"}
             </Button>
+            {onGraph && (
+              <Button size="lg" variant="ghost" onClick={onGraph}>
+                Explore the graph
+              </Button>
+            )}
           </div>
           {importError ? (
             <p role="alert" className="mt-3 text-sm text-bad">

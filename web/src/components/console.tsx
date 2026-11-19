@@ -638,7 +638,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             <kbd className="hidden font-mono text-[11px] text-subtle lg:inline">⌘K</kbd>
           </button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" aria-expanded={graphOpen} onClick={() => setGraphOpen(true)}>Graph</Button>
+          <Button variant="ghost" size="sm" aria-expanded={graphOpen} onClick={() => setGraphOpen(true)}>Graph</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" aria-expanded={memoryOpen} onClick={() => setMemoryOpen(true)}>Memory</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
           <a href="/architecture.html" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline xl:inline-flex">Architecture</a>
@@ -679,6 +679,7 @@ export function Console({ initial }: { initial: Snapshot }) {
               <WelcomeOnboarding
                 view={view}
                 onSources={() => setCorpusOpen(true)}
+                onGraph={() => setGraphOpen(true)}
                 hasKey={hasKey}
                 onAsk={(q) => void ask(q)}
                 onTour={() => setTourOpen(true)}
@@ -949,6 +950,11 @@ export function Console({ initial }: { initial: Snapshot }) {
 
       {corpusOpen && !desktop && <div className="lg:hidden"><Modal title="Sources" onClose={() => setCorpusOpen(false)}>{sourcePanel}</Modal></div>}
       {auditOpen && !desktop && <div className="lg:hidden"><Modal title="Evidence" onClose={() => setAuditOpen(false)}>{auditPanel}</Modal></div>}
+      {graphOpen && !snapshot.graph && (
+        <Modal title="Knowledge graph" onClose={() => setGraphOpen(false)}>
+          <p className="text-sm text-muted">The graph is still loading. It appears here as soon as the sources are indexed.</p>
+        </Modal>
+      )}
       {graphOpen && snapshot.graph && (
         <Modal title="Knowledge graph" onClose={() => setGraphOpen(false)}>
           <p className="mb-4 max-w-2xl text-sm text-muted">Every document, section and shared term, linked. Sources that answered rated questions glow; click a node to see what it connects.</p>
@@ -1264,11 +1270,11 @@ function DocRow({
           </button>
         )}
       </div>
-      <p className="mt-1 font-mono text-xs tabular-nums text-subtle">
+      <p className="mt-1 break-all font-mono text-xs tabular-nums text-subtle">
         {denseAvailable
           ? `v${doc.version}, ${doc.embeddedCount}/${doc.chunkCount} embedded`
           : `v${doc.version}, ${doc.chunkCount} chunks, keyword`}
-        {doc.corpusId ? `, ${doc.corpusId}` : ""}
+        {doc.corpusId ? `, ${doc.corpusId.replace(/^github:/, "").replace(/@([0-9a-f]{7})[0-9a-f]+$/, "@$1")}` : ""}
       </p>
       {stale.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">

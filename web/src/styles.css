@@ -293,7 +293,8 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
 .ir-chapter { position: relative; height: 1900px; }
 .ir-chapter-stage {
   position: sticky; top: 12px;
-  height: min(640px, calc(100dvh - 140px));
+  /* Grows with its copy instead of letting it spill onto what follows. */
+  min-height: min(640px, calc(100dvh - 140px));
   display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 48px; align-items: center;
   padding: 40px; border-radius: 28px;
   background: var(--color-mark); color: var(--color-fg);
@@ -337,9 +338,18 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
   padding: 11px 14px; border-radius: 10px; border: 1px solid var(--color-border); background: var(--color-surface);
   font-size: 14px; color: var(--color-fg); opacity: 0;
 }
+/* Between the side panels the column is narrow even on a wide screen: stack. */
+@container (max-width: 899px) {
+  .ir-chapter { height: 1600px; }
+  .ir-chapter-stage { grid-template-columns: 1fr; gap: 16px; align-content: start; padding: 24px 20px; border-radius: 22px; }
+  .ir-steps { margin-top: 12px; grid-template-areas: "s"; }
+  .ir-steps li { grid-area: s; opacity: 0; transition: opacity 300ms var(--ease-smooth-out); }
+  .ir-steps li.is-on { opacity: 1; }
+  .ir-chapter-visual { height: 470px; }
+}
 @media (max-width: 899px) {
   .ir-chapter { height: 1600px; }
-  .ir-chapter-stage { grid-template-columns: 1fr; gap: 16px; align-content: start; padding: 20px 16px; border-radius: 20px; height: min(740px, calc(100dvh - 120px)); }
+  .ir-chapter-stage { grid-template-columns: 1fr; gap: 16px; align-content: start; padding: 20px 16px; border-radius: 20px; min-height: min(740px, calc(100dvh - 120px)); }
   .ir-steps { margin-top: 12px; grid-template-areas: "s"; }
   .ir-steps li { grid-area: s; opacity: 0; transition: opacity 300ms var(--ease-smooth-out); }
   .ir-steps li.is-on { opacity: 1; }
