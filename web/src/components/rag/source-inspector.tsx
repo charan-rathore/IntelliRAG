@@ -160,6 +160,25 @@ function CandidateRow({
   );
 }
 
+/**
+ * A packed window starts wherever the chunker cut it, often mid-word, and is
+ * raw Markdown. For a two-line preview: drop the cut-off opening up to the
+ * first sentence or heading, and the Markdown punctuation.
+ */
+function readablePreview(text: string): string {
+  let t = text;
+  const cut = /^[a-z0-9:;,.)\]`'"]/.test(t.trim()) ? t.search(/(?:^|\n)\s*#{1,6}\s|[.!?]\s+(?=[A-Z`#])/) : -1;
+  if (cut > 0 && cut < 400) t = t.slice(cut).replace(/^[.!?]\s+/, "");
+  return t
+    .replace(/```[\s\S]*?(```|$)/g, " ")
+    .replace(/^\s*>\s?(\[!\w+\])?/gm, "")
+    .replace(/^\s*#{1,6}\s*/gm, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
   if (!chunks.length) return null;
   return (
@@ -175,9 +194,11 @@ export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
               className="block rounded-md border border-border bg-raised px-3 py-2"
             >
               <p className="text-sm font-medium text-fg">
-                [{i + 1}] {c.title}
+                <span className="mr-1.5 inline-flex size-5 items-center justify-center rounded-sm bg-primary/10 text-[11px] text-primary">{i + 1}</span>
+                {c.heading ? <span className="font-mono text-[13px]">{c.heading}</span> : c.title}
+                {c.heading && <span className="ml-2 text-xs font-normal text-subtle">{c.title}</span>}
               </p>
-              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{chunkPreview(c.text, c.chunkKind)}</p>
+              <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{c.chunkKind === "code" ? chunkPreview(c.text, c.chunkKind) : readablePreview(c.text)}</p>
             </Link>
           </li>
         ))}

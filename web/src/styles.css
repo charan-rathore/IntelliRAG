@@ -350,7 +350,7 @@ a.cite-chip:hover { transform: translateY(-1px); background: color-mix(in oklab,
 
 
 /* ── Welcome type ─────────────────────────────────────────────────── */
-.ir-h1 { font: 620 clamp(38px, 4.3vw, 58px)/1 var(--font-display); letter-spacing: -0.048em; text-wrap: balance; }
+.ir-h1 { font: 620 clamp(34px, 5.4cqi, 58px)/1.02 var(--font-display); letter-spacing: -0.048em; text-wrap: balance; }
 .ir-h2 { font: 600 clamp(26px, 2.6vw, 34px)/1.08 var(--font-display); letter-spacing: -0.035em; text-wrap: balance; }
 .ir-welcome p, .ir-welcome li { text-wrap: pretty; }
 .ir-facts { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 14px; color: var(--color-muted); }

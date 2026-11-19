@@ -132,8 +132,8 @@ export function WelcomeOnboarding({
       }));
 
   return (
-    <section className="ir-welcome mx-auto flex max-w-6xl flex-col gap-14 pb-10 pt-2 sm:gap-20 sm:pt-6">
-      <div className="grid items-center gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:gap-12">
+    <section className="ir-welcome @container mx-auto flex max-w-6xl flex-col gap-14 pb-10 pt-2 sm:gap-20 sm:pt-6">
+      <div className="grid items-center gap-8 @4xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] @4xl:gap-12">
         <div>
           <h1 className="ir-h1 text-fg">Ask a source. See exactly where the answer came from.</h1>
           <p className="mt-5 max-w-[34rem] text-[17px] leading-[1.6] text-muted">
