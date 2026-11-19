@@ -1158,6 +1158,8 @@ ${c.text}`);
     const titleTok = new Set(contentTokens(`${c.title} ${c.heading ?? ""}`));
     if ((c.corpusId ?? SEED_CORPUS_ID) === SEED_CORPUS_ID && ents.some((e) => tokenSetMatches(e, titleTok))) score = Math.min(1, score + 0.12);
     if (opts.preferredSlugs?.includes(c.slug)) score = Math.min(1, score + 0.03);
+    const link = opts.codeLinks?.get(c.slug);
+    if (link) score = Math.min(1, score + Math.min(CODE_LINK_CAP, CODE_LINK_STEP * link));
     const pathCost = opts.graphPathCosts?.get(c.chunkId);
     if (pathCost !== void 0) score = Math.min(1, score + 0.04 / (1 + pathCost));
     const learnedBoost = opts.learnedBoost?.get(c.chunkId);
@@ -1177,6 +1179,8 @@ ${c.text}`);
   return { ranked, scores, signals };
 }
 var LEARNED_SUPPORT = 0.45;
+var CODE_LINK_STEP = 0.12;
+var CODE_LINK_CAP = 0.3;
 function isSupported(signals, calibrated) {
   if ((signals.learned ?? 0) >= LEARNED_SUPPORT && calibrated > 0) return true;
   if (calibrated < CONTEXT_ABSOLUTE_FLOOR) return false;
@@ -1851,6 +1855,19 @@ function overlapTerms(query, text, limit = 5) {
 
 // web/src/lib/rag/experience.ts
 var MAX_ASKED_PER_PASSAGE = 16;
+var MAX_DREAMS_PER_PASSAGE = 3;
+function trim(asked) {
+  let dreams = asked.filter((a) => a.by === "dream");
+  if (dreams.length > MAX_DREAMS_PER_PASSAGE) {
+    const drop = new Set(dreams.slice(0, dreams.length - MAX_DREAMS_PER_PASSAGE));
+    asked = asked.filter((a) => !drop.has(a));
+  }
+  while (asked.length > MAX_ASKED_PER_PASSAGE) {
+    const i = asked.findIndex((a) => a.by === "dream");
+    asked = i >= 0 ? asked.filter((_, j) => j !== i) : asked.slice(1);
+  }
+  return asked;
+}
 var DEFAULT_EXPERIENCE_POLICY = { boost: 0.25, boostFloor: 0.2, demoteBy: 0.12, demoteSimilarity: 0.5, fuse: true };
 var emptyExperience = () => ({ version: 1, entries: {} });
 function fingerprint(text) {
@@ -1872,9 +1889,14 @@ function recordExperience(log, input) {
     const key = keyOf(input.corpusId, p.chunkId);
     const fp = fingerprint(p.text);
     const prev = entries[key];
-    const asked = prev && prev.fingerprint === fp ? prev.asked.filter((a) => normalize(a.q) !== nq) : [];
-    asked.push({ q: input.question.trim(), vote: input.vote, at });
-    entries[key] = { corpusId: input.corpusId, chunkId: p.chunkId, fingerprint: fp, asked: asked.slice(-MAX_ASKED_PER_PASSAGE) };
+    let asked = prev && prev.fingerprint === fp ? prev.asked.filter((a) => normalize(a.q) !== nq) : [];
+    if (!input.dream && input.vote < 0) {
+      const qt = new Set(contentTokens(input.question));
+      asked = asked.filter((a) => a.by !== "dream" || overlap(qt, new Set(contentTokens(a.q))) < 0.5);
+    }
+    if (input.dream && prev && prev.fingerprint === fp && prev.asked.some((a) => !a.by && normalize(a.q) === nq)) continue;
+    asked.push(input.dream ? { q: input.question.trim(), vote: input.vote, at, by: "dream", strategy: input.dream.strategy } : { q: input.question.trim(), vote: input.vote, at });
+    entries[key] = { corpusId: input.corpusId, chunkId: p.chunkId, fingerprint: fp, asked: trim(asked) };
   }
   return { version: 1, entries };
 }
@@ -1928,6 +1950,91 @@ function recallExperience(log, corpusId, passages, question, policy = {}) {
   return { expansions, boost, learned, demote, used };
 }
 
+// web/src/lib/rag/dev-entities.ts
+var EXT = "(?:py|pyi|ts|tsx|js|jsx|mjs|go|rs|java|kt|rb|php|c|h|cc|cpp|hpp|cs|swift|scala|md|rst|toml|ya?ml|json)";
+var PATH_RE = new RegExp(`[\\w.\\-/\\\\]*[\\w\\-]+\\.${EXT}\\b`, "g");
+var DOTTED_RE = /\b[A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*){1,6}\b/g;
+var CAMEL_RE = /\b[A-Z][a-z0-9]+(?:[A-Z][A-Za-z0-9]*)+\b|\b[A-Z]{2,}[a-z]\w*\b/g;
+var SNAKE_RE = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g;
+var CALL_RE = /\b([A-Za-z_]\w{2,})\s*\(/g;
+var TICK_RE = /`([^`\n]{2,80})`/g;
+var NOISE = /* @__PURE__ */ new Set(["self", "print", "len", "str", "int", "list", "dict", "set", "tuple", "type", "range", "isinstance", "super", "return", "import", "from", "assert", "lambda", "true", "false", "none", "null"]);
+function devEntities(text) {
+  const paths = /* @__PURE__ */ new Set(), modules = /* @__PURE__ */ new Set(), symbols = /* @__PURE__ */ new Set();
+  for (const m of text.match(PATH_RE) ?? []) {
+    const p = m.replace(/\\/g, "/").replace(/^.*?(?:site-packages|dist-packages|node_modules)\//, "").replace(/^\.?\//, "");
+    if (p.split("/").pop().length > 3) paths.add(p);
+  }
+  const scrubbed = text.replace(PATH_RE, " ");
+  for (const m of scrubbed.match(DOTTED_RE) ?? []) {
+    const parts = m.split(".");
+    if (parts.some((x) => x.length < 2) || /^\d/.test(parts[1])) continue;
+    modules.add(m);
+    symbols.add(parts.at(-1));
+  }
+  for (const re of [CAMEL_RE, SNAKE_RE]) for (const m of scrubbed.match(re) ?? []) symbols.add(m);
+  for (const m of scrubbed.matchAll(CALL_RE)) symbols.add(m[1]);
+  for (const m of text.matchAll(TICK_RE)) for (const w of m[1].match(/[A-Za-z_]\w{2,}/g) ?? []) if (/[A-Z_]/.test(w.slice(1)) || w.length > 5) symbols.add(w);
+  return {
+    paths: [...paths],
+    modules: [...modules],
+    symbols: [...symbols].filter((s) => s.length > 2 && !NOISE.has(s.toLowerCase()))
+  };
+}
+var DEF_RE = /^[ \t]*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:def|class|function|interface|type|struct|enum|trait|fn|func|const|let|var)\s+([A-Za-z_$][\w$]*)/gm;
+var DefinitionIndex = class {
+  defs = /* @__PURE__ */ new Map();
+  files = [];
+  constructor(docs) {
+    const seen = /* @__PURE__ */ new Set();
+    for (const d of docs) {
+      if (!seen.has(d.path)) {
+        seen.add(d.path);
+        this.files.push(d.path);
+      }
+      for (const m of d.text.matchAll(DEF_RE)) {
+        const name = m[1];
+        let s = this.defs.get(name);
+        if (!s) this.defs.set(name, s = /* @__PURE__ */ new Set());
+        s.add(d.path);
+      }
+    }
+  }
+  definedIn(name) {
+    return [...this.defs.get(name) ?? []];
+  }
+  /**
+   * Files the question's code points at, with a strength: a path it quotes
+   * (3), a module path it names (2), a rarely defined name it uses (1, less
+   * the more files define it). Names defined in many files say little.
+   */
+  link(e) {
+    const score = /* @__PURE__ */ new Map();
+    const add = (f, w) => score.set(f, (score.get(f) ?? 0) + w);
+    for (const p of e.paths) {
+      const tail = p.split("/").slice(-3).join("/");
+      for (const f of this.files) if (f.endsWith(tail) || tail.split("/").length < 2 && f.endsWith("/" + tail)) add(f, 3);
+    }
+    for (const m of e.modules) {
+      const parts = m.split(".");
+      for (let cut = parts.length; cut >= 2; cut--) {
+        const stem = parts.slice(0, cut).join("/");
+        const hits = this.files.filter((f) => f.endsWith(`${stem}.py`) || f.endsWith(`${stem}/__init__.py`) || f.endsWith(`${stem}.ts`) || f.endsWith(`${stem}/index.ts`));
+        if (hits.length) {
+          for (const f of hits) add(f, cut === parts.length ? 2 : 1.5);
+          break;
+        }
+      }
+    }
+    for (const s of e.symbols) {
+      const where = this.definedIn(s);
+      if (!where.length || where.length > 6) continue;
+      for (const f of where) add(f, 1 / where.length);
+    }
+    return score;
+  }
+};
+
 // web/src/lib/rag/retrieve-core.ts
 var INDEX_CACHE = /* @__PURE__ */ new WeakMap();
 var indexStats = { builds: 0, hits: 0 };
@@ -1956,6 +2063,17 @@ function indexFor(all, scoped, scopeKey) {
 ${r.chunk.text}` })));
   byScope.set(scopeKey, { fp, index });
   return index;
+}
+var DEF_CACHE = /* @__PURE__ */ new WeakMap();
+function defsFor(all, scoped, scopeKey) {
+  let byScope = DEF_CACHE.get(all);
+  if (!byScope) DEF_CACHE.set(all, byScope = /* @__PURE__ */ new Map());
+  const fp = fingerprint2(scoped);
+  const hit = byScope.get(scopeKey);
+  if (hit && hit.fp === fp) return hit.defs;
+  const defs = new DefinitionIndex(scoped.filter((r) => r.chunk.chunk_kind === "code").map((r) => ({ path: r.slug, text: r.chunk.text })));
+  byScope.set(scopeKey, { fp, defs });
+  return defs;
 }
 function toRetrieved(chunkId, meta, score, rank, retriever) {
   const row = meta.get(chunkId);
@@ -2100,6 +2218,26 @@ ${r.chunk.text}`);
       keyword = [...byId.values()].sort((a, b) => (rrf.get(b.chunkId) ?? 0) - (rrf.get(a.chunkId) ?? 0)).map((c, i) => ({ ...c, rank: i + 1 }));
     }
   }
+  let codeLinks;
+  if (opts.linkCode !== false && scope.kind === "corpus" && scope.corpusId !== SEED_CORPUS_ID && scopedRows.some((r) => r.chunk.chunk_kind === "code")) {
+    const ents = devEntities(opts.query);
+    if (ents.paths.length || ents.modules.length || ents.symbols.length) {
+      const link = defsFor(opts.rows, scopedRows, scope.corpusId).link(ents);
+      if (link.size) {
+        codeLinks = new Map([...link].sort((a, b) => b[1] - a[1]).slice(0, 4));
+        const have = new Set(keyword.map((c) => c.chunkId));
+        for (const row of scopedRows) {
+          if (!codeLinks.has(row.slug) || have.has(row.chunk.id)) continue;
+          const extra = toRetrieved(row.chunk.id, meta, 0, keyword.length + 1, "keyword");
+          if (extra) {
+            keyword.push(extra);
+            have.add(row.chunk.id);
+            if (!keywordScores.has(row.chunk.id)) keywordScores.set(row.chunk.id, 0);
+          }
+        }
+      }
+    }
+  }
   const keywordMs = performance.now() - kwStart;
   const useHybrid = Boolean(dense.length && keyword.length && opts.mode === "hybrid");
   const fusedPack = useHybrid ? rrfFuse(dense, keyword, retrieveN) : null;
@@ -2117,7 +2255,8 @@ ${r.chunk.text}`);
     expansions: recall?.expansions,
     demote: recall?.demote,
     learnedBoost: recall?.boost,
-    learned: recall?.learned
+    learned: recall?.learned,
+    codeLinks
   });
   const rerankMs = performance.now() - rerankStart;
   const assembleStart = performance.now();

@@ -52,6 +52,20 @@ function indexFor(all: SearchRow[], scoped: SearchRow[], scopeKey: string): BM25
   return index;
 }
 import { overlapTerms } from "./trace";
+import { DefinitionIndex, devEntities } from "./dev-entities";
+
+/** Definitions index per searchable row set, like the BM25 cache. */
+const DEF_CACHE = new WeakMap<SearchRow[], Map<string, { fp: string; defs: DefinitionIndex }>>();
+function defsFor(all: SearchRow[], scoped: SearchRow[], scopeKey: string): DefinitionIndex {
+  let byScope = DEF_CACHE.get(all);
+  if (!byScope) DEF_CACHE.set(all, (byScope = new Map()));
+  const fp = fingerprint(scoped);
+  const hit = byScope.get(scopeKey);
+  if (hit && hit.fp === fp) return hit.defs;
+  const defs = new DefinitionIndex(scoped.filter((r) => r.chunk.chunk_kind === "code").map((r) => ({ path: r.slug, text: r.chunk.text })));
+  byScope.set(scopeKey, { fp, defs });
+  return defs;
+}
 import { recallExperience, type ExperienceLog, type ExperiencePolicy } from "./experience";
 import type {
   ChunkKind,
@@ -190,6 +204,8 @@ export function retrieveFromRows(opts: {
   experiencePolicy?: Partial<ExperiencePolicy>;
   /** Packing knobs the self-improvement loop may edit (defaults: types.ts). */
   packingPolicy?: { relativeFloor?: number; soloMargin?: number; maxPassages?: number };
+  /** Link code the question names to the files defining it (default on; evals turn it off for a baseline). */
+  linkCode?: boolean;
 }): RetrieveResult {
   const scope = opts.corpusScope ?? { kind: "corpus", corpusId: SEED_CORPUS_ID };
   const scopedRows =
@@ -314,6 +330,25 @@ export function retrieveFromRows(opts: {
         .map((c, i) => ({ ...c, rank: i + 1 }));
     }
   }
+  // Code the question names (a traceback's file, `module.Class`, a function
+  // call) links to the files that define it (dev-entities.ts). Those files'
+  // passages join the candidates and get a bounded lift in the reranker.
+  let codeLinks: Map<string, number> | undefined;
+  if (opts.linkCode !== false && scope.kind === "corpus" && scope.corpusId !== SEED_CORPUS_ID && scopedRows.some((r) => r.chunk.chunk_kind === "code")) {
+    const ents = devEntities(opts.query);
+    if (ents.paths.length || ents.modules.length || ents.symbols.length) {
+      const link = defsFor(opts.rows, scopedRows, scope.corpusId).link(ents);
+      if (link.size) {
+        codeLinks = new Map([...link].sort((a, b) => b[1] - a[1]).slice(0, 4));
+        const have = new Set(keyword.map((c) => c.chunkId));
+        for (const row of scopedRows) {
+          if (!codeLinks.has(row.slug) || have.has(row.chunk.id)) continue;
+          const extra = toRetrieved(row.chunk.id, meta, 0, keyword.length + 1, "keyword");
+          if (extra) { keyword.push(extra); have.add(row.chunk.id); if (!keywordScores.has(row.chunk.id)) keywordScores.set(row.chunk.id, 0); }
+        }
+      }
+    }
+  }
   const keywordMs = performance.now() - kwStart;
 
   const useHybrid = Boolean(dense.length && keyword.length && opts.mode === "hybrid");
@@ -336,6 +371,7 @@ export function retrieveFromRows(opts: {
     demote: recall?.demote,
     learnedBoost: recall?.boost,
     learned: recall?.learned,
+    codeLinks,
   });
   const rerankMs = performance.now() - rerankStart;
 

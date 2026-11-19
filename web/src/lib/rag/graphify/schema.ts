@@ -97,6 +97,12 @@ export type LearningSidecar = {
 export type GraphState = {
   /** Wordings filed against the passages that answered them (experience.ts). */
   experience?: import("../experience").ExperienceLog;
+  /** Per corpus: what each sleep cycle tried, kept and why (sleep.ts). */
+  sleep?: Record<string, import("../sleep").SleepJournal>;
+  /** Per corpus: resolved questions and the passages that answered them (case-memory.ts). */
+  cases?: Record<string, import("../case-memory").CaseMemoryState>;
+  /** Per corpus: ratings since the last sleep, to decide when to sleep again. */
+  sinceSleep?: Record<string, number>;
   vectorMemory?: import("./vector").VectorMemory;
   corpusFingerprint?: string;
   graph: GraphJson;

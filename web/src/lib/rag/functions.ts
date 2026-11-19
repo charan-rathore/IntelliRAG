@@ -161,7 +161,47 @@ export const submitSourcePick = createServerFn({ method: "POST" })
       text: z.string().min(1).max(40000),
     }),
   )
-  .handler(async ({ data }) => recordSourcePick(data));
+  .handler(async ({ data }) => {
+    const out = await recordSourcePick(data);
+    if (data.corpusId) {
+      const { maybeSleep } = await import("./sleep.server");
+      await maybeSleep(data.corpusId);
+    }
+    return out;
+  });
+
+/** What a corpus has learned: wake memory, sleep cycles, case memory. */
+export const getCorpusMemory = createServerFn({ method: "GET" })
+  .validator(z.object({ corpusId: z.string().min(1).max(500) }))
+  .handler(async ({ data }) => {
+    const { corpusMemory } = await import("./graphify/persist.server");
+    const { SLEEP_EVERY } = await import("./sleep.server");
+    const m = await corpusMemory(data.corpusId);
+    const entries = Object.values(m.experience.entries).filter((e) => e.corpusId === data.corpusId);
+    const asked = entries.flatMap((e) => e.asked.map((a) => ({ ...a, chunkId: e.chunkId })));
+    return {
+      wake: {
+        confirmed: asked.filter((a) => !a.by && a.vote > 0).length,
+        deadEnds: asked.filter((a) => !a.by && a.vote < 0).length,
+        dreams: asked.filter((a) => a.by === "dream").length,
+        passages: entries.length,
+        recent: asked.filter((a) => !a.by).sort((x, y) => y.at.localeCompare(x.at)).slice(0, 6).map((a) => ({ q: a.q, vote: a.vote, at: a.at })),
+      },
+      sleeps: (m.journal?.cycles ?? []).slice(-8),
+      totals: m.journal?.totals ?? {},
+      cases: { count: m.cases.cases.length, weights: m.cases.weights, journal: m.cases.journal.slice(-6) },
+      sinceSleep: m.sinceSleep,
+      sleepEvery: SLEEP_EVERY,
+    };
+  });
+
+/** Sleep now: replay, consolidate, dream, filter, journal. */
+export const runSleep = createServerFn({ method: "POST" })
+  .validator(z.object({ corpusId: z.string().min(1).max(500) }))
+  .handler(async ({ data }) => {
+    const { sleepCorpus } = await import("./sleep.server");
+    return sleepCorpus(data.corpusId);
+  });
 
 export const submitGraphFeedback = createServerFn({ method: "POST" })
   .validator(
@@ -173,10 +213,15 @@ export const submitGraphFeedback = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    return recordOutcome({
+    const snapshot = await recordOutcome({
       question: data.question,
       outcome: data.outcome,
       correction: data.correction,
       corpusId: data.corpusId,
     });
+    if (data.corpusId) {
+      const { maybeSleep } = await import("./sleep.server");
+      await maybeSleep(data.corpusId);
+    }
+    return snapshot;
   });
