@@ -158,9 +158,32 @@ export function formatAnswerHtml(text: string, citations: Citation[]) {
     }
     // Fence marker lines were dropped; their line boundaries survive as
     // one break each, so prose and code never merge into one word.
-    out.push(renderProseSegment(segment.text.replace(/^\n+|\n+$/g, ""), byIndex));
+    out.push(renderBlocks(segment.text.replace(/^\n+|\n+$/g, ""), byIndex));
   }
   return out.join("<br>").replace(/\n/g, "<br>");
+}
+
+/**
+ * Line-level structure inside prose: "- " items become a list and a line that
+ * is wholly _emphasised_ becomes a quiet note. Everything else is unchanged.
+ */
+function renderBlocks(text: string, byIndex: Map<string, Citation>): string {
+  const lines = text.split("\n");
+  const out: string[] = [];
+  let items: string[] = [];
+  const flush = () => {
+    if (items.length) out.push(`<ul class="ans-list">${items.map((i) => `<li>${renderProseSegment(i, byIndex)}</li>`).join("")}</ul>`);
+    items = [];
+  };
+  for (const line of lines) {
+    const item = line.match(/^\s*[-*]\s+(.*)$/);
+    if (item) { items.push(item[1]!); continue; }
+    flush();
+    const note = line.match(/^_([^_].*[^_])_$/);
+    out.push(note ? `<span class="ans-note">${renderProseSegment(note[1]!, byIndex)}</span>` : renderProseSegment(line, byIndex));
+  }
+  flush();
+  return out.join("\n").replace(/\n(<ul)/g, "$1").replace(/(<\/ul>)\n/g, "$1");
 }
 
 /** Literal source text: never interpret source markup or source-like citation markers. */

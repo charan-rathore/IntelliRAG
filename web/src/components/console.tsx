@@ -3,7 +3,6 @@ import {
   ArrowUp,
   Copy,
   KeyRound,
-  Layers,
   LoaderCircle,
   Lock,
   Plus,
@@ -30,6 +29,7 @@ import { ViewToggle } from "@/components/rag/view-toggle";
 import { DemoBanner } from "@/components/rag/demo-banner";
 import { StageStepper } from "@/components/rag/stage-stepper";
 import { formatAnswerHtml, formatSourceExcerptsHtml } from "@/lib/rag/answer";
+import { PASSAGES_DIVIDER } from "@/lib/rag/extractive";
 import {
   embedNextBatch,
   getCorpusSuggestions,
@@ -166,6 +166,10 @@ export function Console({ initial }: { initial: Snapshot }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [desktop, setDesktop] = useState(false);
   useEffect(() => { const media = matchMedia('(min-width: 1024px)'); const update = () => setDesktop(media.matches); update(); media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
+  // On a wide screen the space is used: sources on the left, evidence and
+  // graph on the right, the conversation in the middle.
+  useEffect(() => { if (matchMedia('(min-width: 1280px)').matches) { setCorpusOpen(true); setAuditOpen(true); } }, []);
+  const [graphOpen, setGraphOpen] = useState(false);
   const [corpusOpen, setCorpusOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
@@ -606,12 +610,12 @@ export function Console({ initial }: { initial: Snapshot }) {
     <div className="flex h-dvh flex-col overflow-hidden bg-bg text-fg">
       <header className="relative z-20 flex shrink-0 items-center justify-between gap-2 border-b border-border bg-bg px-3 py-3 sm:gap-3 md:px-6">
         <div className="flex min-w-0 items-center gap-3" data-tour="tour-brand">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-sm border border-border bg-raised">
-            <Layers className="size-4 text-primary" />
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-fg text-bg" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-[18px]"><path d="M6 5h5a4 4 0 0 1 0 8H6z" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/><path d="M6 13v6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/><circle cx="17.5" cy="17.5" r="2.5" fill="#f4e36b"/></svg>
           </span>
           <div className="min-w-0">
             <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
-            <p className="hidden text-xs text-muted sm:block">
+            <p className="hidden whitespace-nowrap text-xs text-muted lg:block">
               Ask a source, see the proof
             </p>
           </div>
@@ -634,6 +638,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             <kbd className="hidden font-mono text-[11px] text-subtle lg:inline">⌘K</kbd>
           </button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
+          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" aria-expanded={graphOpen} onClick={() => setGraphOpen(true)}>Graph</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" aria-expanded={memoryOpen} onClick={() => setMemoryOpen(true)}>Memory</Button>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
           <a href="/architecture.html" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline xl:inline-flex">Architecture</a>
@@ -666,8 +671,8 @@ export function Console({ initial }: { initial: Snapshot }) {
         </div>
       )}
 
-      <div className="mx-auto grid min-h-0 w-full max-w-[1600px] flex-1 grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
-        {corpusOpen && desktop && <aside aria-label="Source management" className="hidden w-[280px] overflow-y-auto border-r border-border lg:col-start-1 lg:row-start-1 lg:block">{sourcePanel}</aside>}
+      <div className="grid min-h-0 w-full flex-1 grid-cols-1 lg:grid-cols-[auto_minmax(0,1fr)_auto]">
+        {corpusOpen && desktop && <aside aria-label="Source management" className="hidden w-[300px] overflow-y-auto border-r border-border bg-surface/60 lg:col-start-1 lg:row-start-1 lg:block">{sourcePanel}</aside>}
         <main className="flex min-h-0 min-w-0 flex-col lg:col-start-2 lg:row-start-1">
           <div ref={threadRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6">
             {messages.length === 0 ? (
@@ -686,7 +691,7 @@ export function Console({ initial }: { initial: Snapshot }) {
                 customSources={posture.customSources}
               />
             ) : (
-              <div className="mx-auto flex max-w-3xl flex-col gap-6">
+              <div className="mx-auto flex max-w-4xl flex-col gap-6">
                 {messages.map((m, i) => (
                   <Turn
                     key={m.id}
@@ -735,12 +740,12 @@ export function Console({ initial }: { initial: Snapshot }) {
           )}
           </div>
         </main>
-        {auditOpen && desktop && <aside aria-label="Retrieval diagnostics" className="hidden w-[300px] overflow-y-auto border-l border-border lg:col-start-3 lg:row-start-1 lg:block">{auditPanel}</aside>}
+        {auditOpen && desktop && <aside aria-label="Retrieval diagnostics" className="hidden w-[360px] overflow-y-auto border-l border-border bg-surface/60 lg:col-start-3 lg:row-start-1 lg:block xl:w-[400px]">{auditPanel}</aside>}
       </div>
 
       <footer className="relative z-20 shrink-0 border-t border-border bg-bg px-4 py-3 md:px-6">
         <form
-          className="mx-auto flex max-w-3xl items-end gap-2 rounded-lg border border-border bg-surface p-2"
+          className="mx-auto flex max-w-4xl items-end gap-2 rounded-xl border border-border bg-surface p-2 shadow-[0_8px_24px_-16px_rgba(28,28,25,0.35)] focus-within:border-primary/50"
           data-tour="tour-composer"
           onSubmit={(e) => {
             e.preventDefault();
@@ -944,6 +949,21 @@ export function Console({ initial }: { initial: Snapshot }) {
 
       {corpusOpen && !desktop && <div className="lg:hidden"><Modal title="Sources" onClose={() => setCorpusOpen(false)}>{sourcePanel}</Modal></div>}
       {auditOpen && !desktop && <div className="lg:hidden"><Modal title="Evidence" onClose={() => setAuditOpen(false)}>{auditPanel}</Modal></div>}
+      {graphOpen && snapshot.graph && (
+        <Modal title="Knowledge graph" onClose={() => setGraphOpen(false)}>
+          <p className="mb-4 max-w-2xl text-sm text-muted">Every document, section and shared term, linked. Sources that answered rated questions glow; click a node to see what it connects.</p>
+          <KnowledgeGraph
+            nodes={snapshot.graph.nodes}
+            links={snapshot.graph.links}
+            learning={snapshot.graph.learning}
+            nodeCount={snapshot.graph.nodeCount}
+            edgeCount={snapshot.graph.edgeCount}
+            cacheCount={snapshot.graph.cacheCount}
+            preferred={snapshot.graph.preferred}
+            durable={snapshot.storage.durable}
+          />
+        </Modal>
+      )}
       {memoryOpen && (
         <Modal title="What this source has learned" onClose={() => setMemoryOpen(false)}>
           {corpus === ALL_CORPORA ? <p className="text-sm text-muted">Pick one source to see what it has learned.</p> : <MemoryPanel corpusId={corpus} />}
@@ -1015,10 +1035,27 @@ function Turn({
       {message.error && (
         <p className="text-sm text-bad">{message.error}</p>
       )}
-      {message.text && (
+      {message.text && message.text.includes(PASSAGES_DIVIDER) && (() => {
+        const [quoted, passages] = message.text.split(PASSAGES_DIVIDER);
+        return (
+          <div>
+            <div
+              className="ir-answer text-[15px] leading-[1.7] text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
+              dangerouslySetInnerHTML={{ __html: formatAnswerHtml(quoted ?? "", message.citations ?? []) }}
+            />
+            <details className="group mt-4 rounded-md border border-border bg-surface">
+              <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between px-3 text-sm text-muted hover:text-fg">
+                Full passages, verbatim <span className="text-xs text-subtle group-open:hidden">show</span><span className="hidden text-xs text-subtle group-open:inline">hide</span>
+              </summary>
+              <div className="max-h-[420px] overflow-y-auto border-t border-border px-3 py-3 font-mono text-[12.5px] leading-relaxed text-muted" dangerouslySetInnerHTML={{ __html: formatSourceExcerptsHtml((passages ?? "").split(/\n\[Source \d+\]\n*/).filter((t) => t.trim()).map((text, i) => ({ text, title: message.citations?.[i]?.title ?? `Source ${i + 1}` }))).replace(/^<p>Relevant source excerpts<\/p><br>/, "").replace(/<br><br><p>These are retrieved passages[\s\S]*$/, "") }} />
+            </details>
+          </div>
+        );
+      })()}
+      {message.text && !message.text.includes(PASSAGES_DIVIDER) && (
         <div
-          className="text-base leading-relaxed text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
-          dangerouslySetInnerHTML={{ __html: message.answerKind === "source_excerpts" && message.chunks ? formatSourceExcerptsHtml(message.chunks) : formatAnswerHtml(message.text, message.citations ?? []) }}
+          className="ir-answer text-[15px] leading-[1.7] text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
+          dangerouslySetInnerHTML={{ __html: message.answerKind === "source_excerpts" && message.chunks && /^Relevant source excerpts/.test(message.text) ? formatSourceExcerptsHtml(message.chunks) : formatAnswerHtml(message.text, message.citations ?? []) }}
         />
       )}
       {coach ? <div className="mt-4">{coach}</div> : null}
@@ -1415,7 +1452,7 @@ function Modal({
         onAnimationEnd={(e) => {
           if (closing && e.target === e.currentTarget) onClose();
         }}
-        className={cn("ir-sheet relative z-10 max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl", title === "Evidence" ? "max-w-5xl" : "max-w-lg")}
+        className={cn("ir-sheet relative z-10 max-h-[88dvh] w-full overflow-y-auto rounded-t-xl border border-border bg-surface p-5 sm:rounded-xl", title === "Evidence" || title === "Knowledge graph" ? "max-w-6xl" : "max-w-lg")}
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-xl tracking-[-0.02em]">{title}</h2>

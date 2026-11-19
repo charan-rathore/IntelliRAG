@@ -148,7 +148,8 @@ describe("extractive answer excerpts keep code evidence through formatting", () 
     assert.ok(answer.includes("2**3 + 4**5"), `excerpt lost operators: ${answer}`);
     const html = formatAnswerHtml(answer, []);
     assert.ok(html.includes("2**3 + 4**5"), `formatter ate operators: ${html}`);
-    assert.ok(!html.includes("<strong>"), `phantom bold in excerpt: ${html}`);
+    // The heading may be bold as the point's label; the operators never are.
+    assert.ok(!/<strong>3 \+ 4<\/strong>/.test(html), `phantom bold in excerpt: ${html}`);
   });
 });
 

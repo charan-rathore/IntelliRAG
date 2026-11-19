@@ -12,7 +12,7 @@ The first eight cases are marked development and the remaining twelve evaluation
 
 ## What actually happened
 
-![Evidence retention by method and question](retrieval-results.svg)
+![Evidence retention before and after the passage fix, 16 Sep 2026](retrieval-history.svg)
 
 | Method | Mean required-evidence recall | All required anchors retained |
 |---|---:|---:|
@@ -40,7 +40,7 @@ What did ship on the default path is the measurement this exposed: every answer 
 
 Before: [`15:15` raw results](runs/2026-09-16T15-15-18-135Z/results.json). After: [`15:18` raw results](runs/2026-09-16T15-18-44-879Z/results.json). The earlier `15:11` run is an exploratory mixed-corpus noise test and is not included in this comparison. All artifacts retain candidates, selected text, decisions and timings. There were **no model answers in these runs**.
 
-![Local stage timings](stage-latency.svg)
+![Local stage timings, 16 Sep 2026](stage-latency-2026-09.svg)
 
 Stage timings are a single local CPU pass. They exclude persistence, network, embedding and LLM work; they are not deployment latency. Chart generation: `python plot_results.py BEFORE/results.json AFTER/results.json`, with Matplotlib and NumPy installed. The generator asserts identical datasets and corpus conditions.
 
