@@ -393,6 +393,11 @@ function overlapTail(text, count) {
   const first = text.charCodeAt(start);
   const previous = text.charCodeAt(start - 1);
   if (first >= 56320 && first <= 57343 && previous >= 55296 && previous <= 56319) start -= 1;
+  if (start > 0 && text[start - 1] !== "\n") {
+    const nextLine = text.indexOf("\n", start);
+    if (nextLine === -1) return "";
+    start = nextLine + 1;
+  }
   return text.slice(start).trim();
 }
 function chunkProse(body, chunkSize, overlap2, extra) {
