@@ -90,6 +90,10 @@ export async function replaceChunks(
   const sql = transaction ?? (await getSql());
   if (!transaction)
     return sql.transaction((tx) => replaceChunks(documentId, body, opts, corpusId, tx));
+  // Chunk membership and readiness change together under the same parent
+  // lock used by embedding writers, including direct/empty replacements.
+  await sql`update documents set embedding_model = null, indexed_at = null,
+    updated_at = now() where id = ${documentId}`;
   await sql`delete from chunks where document_id = ${documentId}`;
   const drafts = chunkDocument(body, opts);
   for (const draft of drafts) {
@@ -365,35 +369,48 @@ export async function saveChunkEmbeddings(
   if (!getStorageStatus().denseAvailable) return;
   if (vercelWithoutDatabase()) return memory.saveChunkEmbeddings(updates);
   const sql = await getSql();
-  const touched = new Set<string>();
-  for (const u of updates) {
-    if (!u.embedding.length) continue;
-    const json = JSON.stringify(u.embedding);
-    const rows = await sql<{ document_id: string }>`
-      update chunks
-      set embedding = ${json}, embedding_model = ${u.model}
-      where id = ${u.id}
-      returning document_id
+  await sql.transaction(async (tx) => {
+    // Serialize batches touching the same document, including batches writing
+    // different chunks. Otherwise each can inspect an incomplete snapshot and
+    // race the document's final readiness marker. Stable order avoids deadlocks.
+    await tx`
+      select id from documents
+      where id in (
+        select document_id from chunks where id = any(${updates.map((u) => u.id)}::text[])
+      )
+      order by id for update
     `;
-    if (rows[0]) touched.add(rows[0].document_id);
-  }
-  const expected = updates[0]?.model ?? EMBEDDING_MODEL;
-  for (const documentId of touched) {
-    const leftover = await sql<{ n: number }>`
-      select count(*)::int as n from chunks
-      where document_id = ${documentId}
-        and (embedding is null or coalesce(embedding_model, '') <> ${expected})
-    `;
-    if ((leftover[0]?.n ?? 1) === 0) {
-      await sql`
-        update documents
-        set embedding_model = ${updates[0]!.model},
-            indexed_at = now(),
-            updated_at = now()
-        where id = ${documentId}
-      `;
+    const batch = new Map<string, (typeof updates)[number]>();
+    for (const update of updates) {
+      if (update.embedding.length) batch.set(update.id, update);
     }
-  }
+    const rows = await tx<{ document_id: string }>`
+      update chunks as c
+      set embedding = u.embedding::text, embedding_model = u.model
+      from jsonb_to_recordset(${JSON.stringify([...batch.values()])}::jsonb)
+        as u(id text, embedding jsonb, model text)
+      where c.id = u.id
+      returning c.document_id
+    `;
+    const touched = [...new Set(rows.map((row) => row.document_id))];
+    await tx`
+      update documents as d
+      set embedding_model = readiness.model,
+          indexed_at = case when readiness.model is not null then now() else null end,
+          updated_at = now()
+      from (
+        select document_id,
+          case when count(embedding) = count(*)
+                 and count(embedding_model) = count(*)
+                 and count(distinct embedding_model) = 1
+                 and min(embedding_model) <> ''
+            then min(embedding_model) else null end as model
+        from chunks where document_id = any(${touched}::text[])
+        group by document_id
+      ) as readiness
+      where d.id = readiness.document_id
+    `;
+  });
 }
 
 export async function listCorpora(): Promise<CorpusSummary[]> {

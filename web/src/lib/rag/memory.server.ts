@@ -123,6 +123,12 @@ async function replaceChunks(
   corpusId: string = SEED_CORPUS_ID,
 ): Promise<number> {
   const s = state();
+  const document = s.documents.find((d) => d.id === documentId);
+  if (document) {
+    document.embedding_model = null;
+    document.indexed_at = null;
+    document.updated_at = nowIso();
+  }
   s.chunks = s.chunks.filter((c) => c.document_id !== documentId);
   const drafts = chunkDocument(body, opts);
   const created = nowIso();
@@ -347,20 +353,17 @@ export async function saveChunkEmbeddings(
     chunk.embedding_model = u.model;
     touched.add(chunk.document_id);
   }
-  const expected = updates[0]?.model ?? EMBEDDING_MODEL;
   for (const documentId of touched) {
-    const leftover = s.chunks.filter(
-      (c) =>
-        c.document_id === documentId &&
-        (!c.embedding || (c.embedding_model ?? "") !== expected),
-    ).length;
-    if (leftover === 0) {
-      const doc = s.documents.find((d) => d.id === documentId);
-      if (doc) {
-        doc.embedding_model = expected;
-        doc.indexed_at = nowIso();
-        doc.updated_at = nowIso();
-      }
+    const chunks = s.chunks.filter((c) => c.document_id === documentId);
+    const model = chunks[0]?.embedding_model;
+    const complete = Boolean(model) && chunks.every(
+      (c) => c.embedding && c.embedding_model === model,
+    );
+    const doc = s.documents.find((d) => d.id === documentId);
+    if (doc) {
+      doc.embedding_model = complete ? model! : null;
+      doc.indexed_at = complete ? nowIso() : null;
+      doc.updated_at = nowIso();
     }
   }
   persist();
