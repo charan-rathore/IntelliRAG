@@ -980,7 +980,7 @@ export function Console({ initial }: { initial: Snapshot }) {
   );
 }
 
-function Turn({
+export function Turn({
   message,
   view,
   coach,
@@ -1047,13 +1047,13 @@ function Turn({
           <div>
             <div
               className="ir-answer text-[15px] leading-[1.7] text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
-              dangerouslySetInnerHTML={{ __html: formatAnswerHtml(quoted ?? "", message.citations ?? []) }}
+              dangerouslySetInnerHTML={{ __html: formatAnswerHtml(quoted ?? "", message.citations ?? [], message.id) }}
             />
             <details className="group mt-4 rounded-md border border-border bg-surface">
               <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between px-3 text-sm text-muted hover:text-fg">
                 Full passages, verbatim <span className="text-xs text-subtle group-open:hidden">show</span><span className="hidden text-xs text-subtle group-open:inline">hide</span>
               </summary>
-              <div className="max-h-[420px] overflow-y-auto border-t border-border px-3 py-3 font-mono text-[12.5px] leading-relaxed text-muted" dangerouslySetInnerHTML={{ __html: formatSourceExcerptsHtml((passages ?? "").split(/\n\[Source \d+\]\n*/).filter((t) => t.trim()).map((text, i) => ({ text, title: message.citations?.[i]?.title ?? `Source ${i + 1}` }))).replace(/^<p>Relevant source excerpts<\/p><br>/, "").replace(/<br><br><p>These are retrieved passages[\s\S]*$/, "") }} />
+              <div className="max-h-[420px] overflow-y-auto border-t border-border px-3 py-3 font-mono text-[12.5px] leading-relaxed text-muted" dangerouslySetInnerHTML={{ __html: formatSourceExcerptsHtml((passages ?? "").split(/\n\[Source \d+\]\n*/).filter((t) => t.trim()).map((text, i) => ({ text, title: message.citations?.[i]?.title ?? `Source ${i + 1}` })), message.id).replace(/^<p>Relevant source excerpts<\/p><br>/, "").replace(/<br><br><p>These are retrieved passages[\s\S]*$/, "") }} />
             </details>
           </div>
         );
@@ -1061,7 +1061,7 @@ function Turn({
       {message.text && !message.text.includes(PASSAGES_DIVIDER) && (
         <div
           className="ir-answer text-[15px] leading-[1.7] text-fg [&_a.cite-chip]:mx-0.5 [&_a.cite-chip]:rounded-sm [&_a.cite-chip]:bg-raised [&_a.cite-chip]:px-1.5 [&_a.cite-chip]:py-0.5 [&_a.cite-chip]:text-xs [&_a.cite-chip]:text-primary [&_code]:rounded-xs [&_code]:bg-raised [&_code]:px-1"
-          dangerouslySetInnerHTML={{ __html: message.answerKind === "source_excerpts" && message.chunks && /^Relevant source excerpts/.test(message.text) ? formatSourceExcerptsHtml(message.chunks) : formatAnswerHtml(message.text, message.citations ?? []) }}
+          dangerouslySetInnerHTML={{ __html: message.answerKind === "source_excerpts" && message.chunks && /^Relevant source excerpts/.test(message.text) ? formatSourceExcerptsHtml(message.chunks, message.id) : formatAnswerHtml(message.text, message.citations ?? [], message.id) }}
         />
       )}
       {coach ? <div className="mt-4">{coach}</div> : null}
@@ -1082,6 +1082,7 @@ function Turn({
           picked={new Set(message.picked ?? [])}
           candidates={message.candidates}
           packed={message.chunks ?? []}
+          citationScope={message.id}
           contextTokens={message.contextTokens ?? 0}
           dense={message.dense}
           evidence={message.evidence}
@@ -1091,7 +1092,7 @@ function Turn({
           evidenceGate={message.evidenceGate}
         />
       ) : (
-        message.chunks && message.chunks.length > 0 && <PackedSources chunks={message.chunks} />
+        message.chunks && message.chunks.length > 0 && <PackedSources chunks={message.chunks} citationScope={message.id} />
       )}
       {message.text && onFeedback && !message.stage && !message.error && (
         <AnswerFeedback

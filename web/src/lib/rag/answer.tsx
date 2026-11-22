@@ -1,4 +1,5 @@
 import type { Citation } from "./types";
+import { citationAnchorHref } from "./citation-anchor";
 
 function escapeHtml(value: string) {
   return value
@@ -63,7 +64,7 @@ function segmentAnswer(text: string): Segment[] {
   return segments;
 }
 
-function renderProse(piece: string, byIndex: Map<string, Citation>): string {
+function renderProse(piece: string, byIndex: Map<string, Citation>, citationScope?: string): string {
   // Transforms run on escaped SOURCE text only, never on generated HTML.
   // Boundary-hugging emphasis: 2**3+4**5 and a**b**c stay verbatim;
   // `;` and `&` are boundaries because quotes are &quot; at this point.
@@ -80,7 +81,7 @@ function renderProse(piece: string, byIndex: Map<string, Citation>): string {
       .map((num) => {
         const cite = byIndex.get(num);
         const title = cite?.title ?? `Source ${num}`;
-        return `<a class="cite-chip" href="#cite-${num}" title="${escapeHtml(title)}">[${num}]</a>`;
+        return `<a class="cite-chip" href="${citationAnchorHref(num, citationScope)}" title="${escapeHtml(title)}">[${num}]</a>`;
       })
       .join("");
   });
@@ -139,15 +140,15 @@ export function scanInlineSpans(text: string): InlinePiece[] {
 
 /** Render one prose segment: shielded code spans (escaped verbatim, no
  * emphasis or chips inside) interleaved with prose pieces. */
-function renderProseSegment(text: string, byIndex: Map<string, Citation>): string {
+function renderProseSegment(text: string, byIndex: Map<string, Citation>, citationScope?: string): string {
   return scanInlineSpans(text)
     .map((piece) =>
-      piece.kind === "code" ? `<code>${escapeHtml(piece.text)}</code>` : renderProse(piece.text, byIndex),
+      piece.kind === "code" ? `<code>${escapeHtml(piece.text)}</code>` : renderProse(piece.text, byIndex, citationScope),
     )
     .join("");
 }
 
-export function formatAnswerHtml(text: string, citations: Citation[]) {
+export function formatAnswerHtml(text: string, citations: Citation[], citationScope?: string) {
   const byIndex = new Map(citations.map((c) => [String(c.sourceIndex), c]));
   const out: string[] = [];
   for (const segment of segmentAnswer(text)) {
@@ -158,7 +159,7 @@ export function formatAnswerHtml(text: string, citations: Citation[]) {
     }
     // Fence marker lines were dropped; their line boundaries survive as
     // one break each, so prose and code never merge into one word.
-    out.push(renderBlocks(segment.text.replace(/^\n+|\n+$/g, ""), byIndex));
+    out.push(renderBlocks(segment.text.replace(/^\n+|\n+$/g, ""), byIndex, citationScope));
   }
   return out.join("<br>").replace(/\n/g, "<br>");
 }
@@ -167,12 +168,12 @@ export function formatAnswerHtml(text: string, citations: Citation[]) {
  * Line-level structure inside prose: "- " items become a list and a line that
  * is wholly _emphasised_ becomes a quiet note. Everything else is unchanged.
  */
-function renderBlocks(text: string, byIndex: Map<string, Citation>): string {
+function renderBlocks(text: string, byIndex: Map<string, Citation>, citationScope?: string): string {
   const lines = text.split("\n");
   const out: string[] = [];
   let items: string[] = [];
   const flush = () => {
-    if (items.length) out.push(`<ul class="ans-list">${items.map((i) => `<li>${renderProseSegment(i, byIndex)}</li>`).join("")}</ul>`);
+    if (items.length) out.push(`<ul class="ans-list">${items.map((i) => `<li>${renderProseSegment(i, byIndex, citationScope)}</li>`).join("")}</ul>`);
     items = [];
   };
   for (const line of lines) {
@@ -180,15 +181,15 @@ function renderBlocks(text: string, byIndex: Map<string, Citation>): string {
     if (item) { items.push(item[1]!); continue; }
     flush();
     const note = line.match(/^_([^_].*[^_])_$/);
-    out.push(note ? `<span class="ans-note">${renderProseSegment(note[1]!, byIndex)}</span>` : renderProseSegment(line, byIndex));
+    out.push(note ? `<span class="ans-note">${renderProseSegment(note[1]!, byIndex, citationScope)}</span>` : renderProseSegment(line, byIndex, citationScope));
   }
   flush();
   return out.join("\n").replace(/\n(<ul)/g, "$1").replace(/(<\/ul>)\n/g, "$1");
 }
 
 /** Literal source text: never interpret source markup or source-like citation markers. */
-export function formatSourceExcerptsHtml(chunks: {text:string;title:string}[]) {
+export function formatSourceExcerptsHtml(chunks: {text:string;title:string}[], citationScope?: string) {
   const excerpts = chunks.slice(0,3).map((chunk,index) =>
-    `<div class="whitespace-pre-wrap break-words">${escapeHtml(chunk.text)}</div><a class="cite-chip" href="#cite-${index+1}" title="${escapeHtml(chunk.title)}">[${index+1}]</a>`);
+    `<div class="whitespace-pre-wrap break-words">${escapeHtml(chunk.text)}</div><a class="cite-chip" href="${citationAnchorHref(index + 1, citationScope)}" title="${escapeHtml(chunk.title)}">[${index+1}]</a>`);
   return '<p>Relevant source excerpts</p><br>' + excerpts.join('<br><br>') + '<br><br><p>These are retrieved passages, not a generated recommendation. Only the packed source windows are shown, not necessarily whole documents or a complete answer. Add a model in Settings to reason across them.</p>';
 }

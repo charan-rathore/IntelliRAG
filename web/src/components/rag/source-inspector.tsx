@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { citationAnchorId } from "../../lib/rag/citation-anchor";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import type { DenseDiagnostics, EvidenceGate, EvidenceKind, RetrievalCandidate, RetrievedChunk, RetrievalMode, RetrievalStageScores } from "@/lib/rag/types";
@@ -40,18 +41,20 @@ function CandidateRow({
   candidate,
   index,
   contextIndex,
+  citationScope,
   onPick,
   picked,
 }: {
   candidate: RetrievalCandidate;
   index: number;
   contextIndex?: number;
+  citationScope?: string;
   onPick?: (c: RetrievalCandidate) => void;
   picked?: boolean;
 }) {
   const [open, setOpen] = useState(index === 0);
   return (
-    <li className="rounded-md border border-border bg-raised" id={contextIndex ? `cite-${contextIndex}` : undefined}>
+    <li className="rounded-md border border-border bg-raised" id={contextIndex ? citationAnchorId(contextIndex, citationScope) : undefined}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -179,7 +182,7 @@ function readablePreview(text: string): string {
     .trim();
 }
 
-export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
+export function PackedSources({ chunks, citationScope }: { chunks: RetrievedChunk[]; citationScope?: string }) {
   if (!chunks.length) return null;
   return (
     <div className="mt-4">
@@ -188,7 +191,7 @@ export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
         {chunks.map((c, i) => (
           <li key={c.chunkId}>
             <Link
-              id={`cite-${i + 1}`}
+              id={citationAnchorId(i + 1, citationScope)}
               to="/sources/$slug"
               params={{ slug: c.slug }}
               className="block rounded-md border border-border bg-raised px-3 py-2"
@@ -210,6 +213,7 @@ export function PackedSources({ chunks }: { chunks: RetrievedChunk[] }) {
 export function SourceInspector({
   candidates,
   packed,
+  citationScope,
   contextTokens,
   dense,
   evidence,
@@ -225,6 +229,7 @@ export function SourceInspector({
   picked?: Set<string>;
   candidates: RetrievalCandidate[];
   packed: RetrievedChunk[];
+  citationScope?: string;
   contextTokens: number;
   dense?: DenseDiagnostics;
   evidence?: EvidenceKind;
@@ -268,6 +273,7 @@ export function SourceInspector({
             candidate={c}
             index={i}
             contextIndex={contextIndex.get(c.chunkId)}
+            citationScope={citationScope}
             onPick={onPick}
             picked={picked?.has(c.chunkId)}
           />
