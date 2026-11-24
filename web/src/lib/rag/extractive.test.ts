@@ -55,3 +55,32 @@ it('keeps every packed window verbatim after the quoted answer, so nothing selec
   assert.ok(passages!.includes(text));
   assert.match(passages!, /\[Source 1\]/);
 });
+
+it('does not omit the matching section and its first remedy because its heading repeats', () => {
+  const text = '# Redis Cache Stampede and TTL Guide\n\n## Stampede\nWhen a hot key expires, many workers recompute it at once. Use:\n1. Probabilistic early refresh\n2. Single-flight lock (SET key:lock NX EX 10)\n3. Serve stale while one worker rebuilds\n\n## TTL\nJitter TTLs so keys do not expire together.\n\n## Eviction\nallkeys-lru for a pure cache. volatile-lru if some keys must never drop.\n\n## Persistence\nA cache is not a source of truth. If Redis dies, the app must rebuild from Postgres.';
+  const answer = extractiveAnswer('How do you stop a Redis cache stampede?', [chunk(text)]);
+  assert.match(answer, /Probabilistic early refresh/);
+});
+
+it('keeps bodies with no headings byte-identical to their previous quote selection', () => {
+  const answer = extractiveAnswer('Recovery', [chunk('Recovery requires supervisor approval. Never proceed while the cover is open. Routine unrelated background.')]);
+  assert.match(answer, /Recovery requires supervisor approval/);
+  assert.match(answer, /Never proceed while the cover is open/);
+  assert.ok(!answer.includes('Routine unrelated background'));
+});
+
+it('does not let a repeated same-title section merge across sources', () => {
+  const answer = full('Recovery', [chunk('## Recovery\nVerify the required sensor reading.'), chunk('## Recovery\nConfirm the separate coolant pressure.')]);
+  assert.match(answer.split(PASSAGES_DIVIDER)[0]!, /sensor reading.*Source 1/);
+  assert.match(answer.split(PASSAGES_DIVIDER)[0]!, /coolant pressure.*Source 2/);
+});
+
+
+it('keeps explicit body facts ahead of a weak body under a matching heading', () => {
+  for (const question of ['Recovery', 'Recovery approval']) {
+    const text = `## ${question}\nFollow unrelated housekeeping instructions.\n\n## Background\n${question} requires supervisor approval.`;
+    const answer = extractiveAnswer(question, [chunk(text)], { maxPoints: 1 });
+    assert.match(answer, /requires supervisor approval/);
+    assert.ok(!answer.includes('housekeeping'));
+  }
+});

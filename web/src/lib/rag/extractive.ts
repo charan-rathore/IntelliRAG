@@ -81,18 +81,29 @@ export function extractiveAnswer(question: string, chunks: RetrievedChunk[], opt
   if (!sources.length) return 'No passage in the source answers this.';
   const q = new Set(contentTokens(question));
   const units = sources.flatMap((c, i) => unitsOf(c.text, i + 1, i * 1000));
-  // idf over the packed sentences: words every sentence shares say little.
+  // Body frequency is per sentence, but a heading belongs to its section.
+  // Count it once rather than once per list item: adding relevant bullets
+  // must not make their shared topic look like repeated background text.
   const df = new Map<string, number>();
-  for (const u of units) for (const t of new Set(contentTokens(`${u.heading ?? ''} ${u.text}`))) df.set(t, (df.get(t) ?? 0) + 1);
+  const tokens = units.map((u) => ({ own: new Set(contentTokens(u.text)), head: new Set(contentTokens(u.heading ?? '')) }));
+  let previous: Unit | undefined;
+  for (let i = 0; i < units.length; i++) {
+    const u = units[i]!;
+    const { own, head } = tokens[i]!;
+    for (const t of own) df.set(t, (df.get(t) ?? 0) + 1);
+    if (!previous || previous.source !== u.source || previous.heading !== u.heading) {
+      for (const t of head) if (!own.has(t)) df.set(t, (df.get(t) ?? 0) + 1);
+    }
+    previous = u;
+  }
   const idf = (t: string) => Math.log(1 + units.length / (1 + (df.get(t) ?? 0)));
-  const score = (u: Unit) => {
-    const own = new Set(contentTokens(u.text));
-    const head = new Set(contentTokens(u.heading ?? ''));
+  const score = (_u: Unit, i: number) => {
+    const { own, head } = tokens[i]!;
     let s = 0;
-    for (const t of q) { if (own.has(t)) s += idf(t); else if (head.has(t)) s += 0.6 * idf(t); }
+    for (const t of q) if (own.has(t)) s += idf(t); else if (head.has(t)) s += 0.6 * idf(t);
     return s;
   };
-  const scored = units.map((u) => ({ u, s: score(u) }));
+  const scored = units.map((u, i) => ({ u, s: score(u, i) }));
   const max = opts.maxPoints ?? 5;
   const top = Math.max(0, ...scored.filter((x) => x.u.kind === 'sentence').map((x) => x.s));
   const points = scored
