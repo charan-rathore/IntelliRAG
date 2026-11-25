@@ -19,6 +19,19 @@ describe("ingestion guards", () => {
     assert.throws(() => assertNotPdf(bomPrefixed), /PDF ingestion is not supported/);
   });
 
+  it("reports binary PDF responses as unsupported PDF before decoding", async () => {
+    const fetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(
+      Uint8Array.of(0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0xff),
+      { headers: { "Content-Type": "Application/PDF; charset=binary" } },
+    );
+    try {
+      await assert.rejects(fetchRemoteDocument("https://1.1.1.1/opaque"), /PDF ingestion is not supported/);
+    } finally {
+      globalThis.fetch = fetch;
+    }
+  });
+
   it("accepts ordinary text mentioning %PDF- past the first 1024 bytes", () => {
     const filler = "plain prose about document formats. ".repeat(40);
     const body = filler + "a %PDF- marker appears late in this text, well past the header window";
