@@ -105,7 +105,7 @@ describe("GitHub repository file names survive raw URL construction", () => {
       const stored = await getDocumentBySlug(result.titles[0]!);
       assert.equal(stored?.body, body.trim());
       assert.equal(stored?.source_uri, `https://github.com/probe/special-paths/blob/${commit}/docs/hash%23percent%25%20space.md`);
-      assert.equal(result.originRef, `main@${commit.slice(0, 7)}`);
+      assert.equal(stored?.origin_ref, `main@${commit.slice(0, 7)}`);
     } finally { globalThis.fetch = original; }
   });
 });
