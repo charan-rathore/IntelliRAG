@@ -15,6 +15,7 @@ import {
   listGithubFiles,
   parseGithubUrl,
   resolveDefaultBranch,
+  resolveGithubCommit,
 } from "./github";
 import { resolveRuntime } from "./keys.server";
 import { getStorageStatus } from "./storage";
@@ -263,10 +264,11 @@ async function ingestGithubRepo(target: {
 }) {
   const token = githubToken();
   const ref = target.ref || (await resolveDefaultBranch(target.owner, target.repo, token));
-  const { sha, files } = await listGithubFiles({
+  const { sha, treeSha } = await resolveGithubCommit(target.owner, target.repo, ref, token);
+  const { files } = await listGithubFiles({
     owner: target.owner,
     repo: target.repo,
-    ref,
+    ref: treeSha,
     prefix: target.path,
     token,
   });
@@ -279,7 +281,7 @@ async function ingestGithubRepo(target: {
   const titles: string[] = [];
   for (const file of files) {
     if (total >= GITHUB_MAX_TOTAL_BYTES) break;
-    const raw = githubRawUrl(target.owner, target.repo, ref, file.path);
+    const raw = githubRawUrl(target.owner, target.repo, sha, file.path);
     try {
       const body = await fetchText(raw);
       total += body.length;
@@ -288,7 +290,7 @@ async function ingestGithubRepo(target: {
         title: file.path,
         body,
         sourceType: "github",
-        sourceUri: `https://github.com/${encodeURIComponent(target.owner)}/${encodeURIComponent(target.repo)}/blob/${encodeURIComponent(ref)}/${file.path.split("/").map(encodeURIComponent).join("/")}`,
+        sourceUri: `https://github.com/${encodeURIComponent(target.owner)}/${encodeURIComponent(target.repo)}/blob/${sha}/${file.path.split("/").map(encodeURIComponent).join("/")}`,
         slugHint: `${target.repo}-${file.path}`,
         originRepo: `${target.owner}/${target.repo}`,
         originRef: `${ref}@${sha.slice(0, 7)}`,

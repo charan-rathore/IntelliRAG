@@ -203,6 +203,20 @@ export async function resolveDefaultBranch(owner: string, repo: string, token?: 
   return "main";
 }
 
+export async function resolveGithubCommit(owner: string, repo: string, ref: string, token?: string) {
+  const commit = await githubApi<{ sha?: string; commit?: { tree?: { sha?: string } } }>(
+    `/repos/${owner}/${repo}/commits/${encodeURIComponent(ref)}`,
+    token,
+  );
+  const sha = commit.sha;
+  const treeSha = commit.commit?.tree?.sha;
+  const objectId = /^[a-f0-9]{40}$/i;
+  if (!sha || !treeSha || !objectId.test(sha) || !objectId.test(treeSha)) {
+    throw new Error("GitHub did not return a verifiable commit and tree");
+  }
+  return { sha, treeSha };
+}
+
 export async function listGithubFiles(opts: {
   owner: string;
   repo: string;

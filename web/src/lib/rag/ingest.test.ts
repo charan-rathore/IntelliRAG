@@ -85,12 +85,15 @@ describe("GitHub repository file names survive raw URL construction", () => {
   it("imports a tree entry containing hash, percent and spaces instead of treating them as URL syntax", async () => {
     const original = globalThis.fetch;
     const seen: string[] = [];
+    const commit = "a".repeat(40);
+    const treeSha = "b".repeat(40);
     const body = "Repository source text must preserve special characters in file names. ".repeat(3);
     globalThis.fetch = async (input) => {
       const url = new URL(String(input));
       seen.push(url.href);
-      if (url.hostname === "api.github.com" && url.pathname.endsWith("/git/trees/main")) return Response.json({ sha: "abc1234", tree: [{ path: "docs/hash#percent% space.md", type: "blob", size: body.length }] });
-      if (url.hostname === "raw.githubusercontent.com" && url.pathname === "/probe/special-paths/main/docs/hash%23percent%25%20space.md" && !url.hash) return new Response(body);
+      if (url.pathname === "/repos/probe/special-paths/commits/main") return Response.json({ sha: commit, commit: { tree: { sha: treeSha } } });
+      if (url.hostname === "api.github.com" && url.pathname.endsWith(`/git/trees/${treeSha}`)) return Response.json({ sha: treeSha, tree: [{ path: "docs/hash#percent% space.md", type: "blob", size: body.length }] });
+      if (url.hostname === "raw.githubusercontent.com" && url.pathname === `/probe/special-paths/${commit}/docs/hash%23percent%25%20space.md` && !url.hash) return new Response(body);
       throw new Error(`unexpected URL ${url.href}`);
     };
     try {
@@ -101,6 +104,8 @@ describe("GitHub repository file names survive raw URL construction", () => {
       const { getDocumentBySlug } = await import("./store.server.ts");
       const stored = await getDocumentBySlug(result.titles[0]!);
       assert.equal(stored?.body, body.trim());
+      assert.equal(stored?.source_uri, `https://github.com/probe/special-paths/blob/${commit}/docs/hash%23percent%25%20space.md`);
+      assert.equal(result.originRef, `main@${commit.slice(0, 7)}`);
     } finally { globalThis.fetch = original; }
   });
 });
@@ -121,7 +126,8 @@ it("normalizes mixed-case HTML media types before real storage ingestion", async
 
 it("stores the same prioritized files from a large real repository ingest",async()=>{
  const original=globalThis.fetch;const {ingestFromUrl}=await import('./ingest.server.ts');const {getDocumentBySlug}=await import('./store.server.ts');const {filterGithubTree}=await import('./github.ts');
+ const commit='c'.repeat(40);const treeSha='d'.repeat(40);
  const tree=Array.from({length:20000},(_,i)=>({path:`${i%3?'src':'docs'}/section-${(i*7919)%20000}/module-${i}.${i%7?'ts':'md'}`,type:'blob',size:200}));
- globalThis.fetch=async(input)=>{const url=String(input);if(url.includes('/git/trees/'))return Response.json({sha:'priority-fixture-sha',tree});if(url==='https://api.github.com/repos/probe/priority')return Response.json({default_branch:'main'});if(url.startsWith('https://raw.githubusercontent.com/probe/priority/main/'))return new Response('Repository import preserves prioritized source files and all stored metadata. '.repeat(2));throw new Error(`unexpected ${url}`);};
- try {const result=await ingestFromUrl('https://github.com/probe/priority');assert.equal(result.titles.length,48);const paths=[];for(const slug of result.titles){const doc=await getDocumentBySlug(slug);assert.ok(doc?.body.includes('Repository import preserves'));paths.push(doc?.source_uri?.split('/main/')[1]);}assert.deepEqual(paths,filterGithubTree(tree).map(e=>e.path));}finally{globalThis.fetch=original;}
+ globalThis.fetch=async(input)=>{const url=String(input);if(url.endsWith('/commits/main'))return Response.json({sha:commit,commit:{tree:{sha:treeSha}}});if(url.includes('/git/trees/'))return Response.json({sha:treeSha,tree});if(url==='https://api.github.com/repos/probe/priority')return Response.json({default_branch:'main'});if(url.startsWith(`https://raw.githubusercontent.com/probe/priority/${commit}/`))return new Response('Repository import preserves prioritized source files and all stored metadata. '.repeat(2));throw new Error(`unexpected ${url}`);};
+ try {const result=await ingestFromUrl('https://github.com/probe/priority');assert.equal(result.titles.length,48);const paths=[];for(const slug of result.titles){const doc=await getDocumentBySlug(slug);assert.ok(doc?.body.includes('Repository import preserves'));paths.push(doc?.source_uri?.split(`/${commit}/`)[1]);}assert.deepEqual(paths,filterGithubTree(tree).map(e=>e.path));}finally{globalThis.fetch=original;}
 });
