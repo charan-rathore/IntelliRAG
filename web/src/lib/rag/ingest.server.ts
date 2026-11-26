@@ -356,7 +356,7 @@ async function ingestGithubPull(owner: string, repo: string, number: number) {
   if (pr.changed_files > 100) throw new Error("PR has over 100 changed files; import a smaller PR instead of silently dropping files.");
   const response = await fetch(`${base}/files?per_page=100`, { headers, signal: AbortSignal.timeout(15_000) });
   if (!response.ok) throw new Error(`GitHub PR file fetch failed (${response.status})`);
-  const files = await response.json() as Array<{ filename: string; status: string; patch?: string | null }>;
+  const files = await response.json() as Array<{ filename: string; status: string; patch?: string | null; additions: number; deletions: number }>;
   if (files.length !== pr.changed_files) throw new Error("PR file list is incomplete; cannot claim complete PR ingestion.");
   const [document] = githubPullDocuments({ ...pr, number, files }, owner, repo);
   if (document!.body.length > MAX_BODY) throw new Error(TRUNCATION_ERROR);
