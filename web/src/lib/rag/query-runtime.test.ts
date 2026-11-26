@@ -118,7 +118,7 @@ test("query runtime promises", async (t) => {
     process.env.JEV_DECISION = "1";
     process.env.TYPESAFE_API_KEY = "test-only";
     let jevCalls = 0;
-    const network = t.mock.method(globalThis, "fetch", async (url) => {
+    const network = t.mock.method(globalThis, "fetch", async (url: unknown) => {
       if (String(url).includes("api.typesafe.ai")) jevCalls++;
       throw new Error("Unexpected network request");
     });
