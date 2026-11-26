@@ -769,9 +769,9 @@ function paragraphUnits(text) {
   }
   return out;
 }
-function bagOf(text) {
+function bagOf(tokens) {
   const bag = /* @__PURE__ */ new Map();
-  for (const t of contentTokens(text)) bag.set(t, (bag.get(t) ?? 0) + 1);
+  for (const t of tokens) bag.set(t, (bag.get(t) ?? 0) + 1);
   return bag;
 }
 function cosine(a, b) {
@@ -797,7 +797,8 @@ function packByCoverage(input) {
     const spans = paragraphUnits(chunk.text);
     const units = spans.map(([a, b], i) => {
       const text = chunk.text.slice(a, b);
-      const doc = new Set(contentTokens(text));
+      const tokens = contentTokens(text);
+      const doc = new Set(tokens);
       return {
         src,
         lo: i,
@@ -805,7 +806,7 @@ function packByCoverage(input) {
         text,
         cost: estimateTokens(text),
         terms: new Set(terms.filter((t) => tokenSetMatches(t, doc))),
-        bag: bagOf(text)
+        bag: bagOf(tokens)
       };
     });
     return { chunk, primary: input.primary.has(chunk.chunkId), spans, units };
@@ -816,6 +817,16 @@ function packByCoverage(input) {
     return Math.max(0, s.chunk.score) * (u.terms.size ? 1 : 0.25);
   };
   const all = sources.flatMap((s) => s.units);
+  const similarities = /* @__PURE__ */ new Map();
+  function similarity(a, b) {
+    const forward = similarities.get(a);
+    const cached = forward?.get(b) ?? similarities.get(b)?.get(a);
+    if (cached !== void 0) return cached;
+    const value = cosine(a.bag, b.bag);
+    if (forward) forward.set(b, value);
+    else similarities.set(a, /* @__PURE__ */ new Map([[b, value]]));
+    return value;
+  }
   let beta = input.beta ?? 0;
   if (input.beta == null && all.length > 1) {
     const top = [...all].sort((a, b) => rel(b) + cov(b, /* @__PURE__ */ new Set()) - (rel(a) + cov(a, /* @__PURE__ */ new Set()))).slice(0, 24);
@@ -826,7 +837,7 @@ function packByCoverage(input) {
     let pairs = 0;
     for (let i = 0; i < top.length; i++)
       for (let j = i + 1; j < top.length; j++) {
-        simSum += cosine(top[i].bag, top[j].bag);
+        simSum += similarity(top[i], top[j]);
         pairs++;
       }
     const meanSim = pairs ? simSum / pairs : 0;
@@ -842,7 +853,7 @@ function packByCoverage(input) {
     const covered2 = /* @__PURE__ */ new Set();
     let relSum = 0;
     let tokens = 0;
-    const bags = [];
+    const units = [];
     for (const [src, [lo, hi]] of state2) {
       const s = sources[src];
       tokens += estimateTokens(spanText(s, lo, hi));
@@ -850,11 +861,11 @@ function packByCoverage(input) {
         const u = s.units[i];
         for (const t of u.terms) covered2.add(t);
         relSum += rel(u);
-        bags.push(u.bag);
+        units.push(u);
       }
     }
     let red = 0;
-    for (let i = 0; i < bags.length; i++) for (let j = i + 1; j < bags.length; j++) red += cosine(bags[i], bags[j]);
+    for (let i = 0; i < units.length; i++) for (let j = i + 1; j < units.length; j++) red += similarity(units[i], units[j]);
     let c = 0;
     for (const t of covered2) c += weight.get(t) ?? 0;
     return { value: c + lambda * relSum - beta * red, covered: covered2, tokens };
