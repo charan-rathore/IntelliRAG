@@ -87,3 +87,17 @@ test("memory readiness follows each document across partial and mixed-model repl
     else process.env.DATABASE_URL = oldD;
   }
 });
+
+
+test("direct ephemeral replacement never exposes an empty or partial chunk set", async () => {
+  store.resetMemoryForTests();
+  try {
+    const doc = await store.upsertDocument({ title: "Revision visibility", body: "Old approved amount. ".repeat(200), sourceType: "markdown", sourceUri: "test://atomic-replacement" });
+    const replacement = store.replaceChunks(doc.id, "New approved amount. ".repeat(240), undefined, doc.corpusId);
+    const rows = (await store.loadSearchableChunks({ kind: "all" })).filter(r => r.chunk.document_id === doc.id);
+    assert.ok(rows.length > 1);
+    const expected = await replacement;
+    assert.equal(rows.length, expected);
+    assert.ok(rows.every(r => r.chunk.text.includes("New approved amount")));
+  } finally { store.resetMemoryForTests(); }
+});
