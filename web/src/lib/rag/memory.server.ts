@@ -6,6 +6,7 @@
  */
 import { writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { createHash } from "node:crypto";
 import { SEED_DOCUMENTS } from "./corpus";
 import { REPO_DEMO_DOCUMENT } from "./repo-demo.server";
 import { chunkDocument, type ChunkOptions } from "./chunking";
@@ -123,17 +124,11 @@ async function replaceChunks(
   corpusId: string = SEED_CORPUS_ID,
 ): Promise<number> {
   const s = state();
-  const document = s.documents.find((d) => d.id === documentId);
-  if (document) {
-    document.embedding_model = null;
-    document.indexed_at = null;
-    document.updated_at = nowIso();
-  }
-  s.chunks = s.chunks.filter((c) => c.document_id !== documentId);
   const drafts = chunkDocument(body, opts);
   const created = nowIso();
-  for (const draft of drafts) {
-    s.chunks.push({
+  // Build the full replacement before publishing it. Synchronous SHA-256
+  // avoids yielding between the document update and its chunk publication.
+  const replacement: ChunkRow[] = drafts.map((draft) => ({
       id: crypto.randomUUID(),
       document_id: documentId,
       ordinal: draft.ordinal,
@@ -142,15 +137,21 @@ async function replaceChunks(
       heading: draft.heading,
       embedding: null,
       embedding_model: null,
-      content_hash: await sha256Hex(draft.text),
+      content_hash: createHash("sha256").update(draft.text, "utf8").digest("hex"),
       created_at: created,
       filepath: draft.filepath,
       language: draft.language,
       symbol: draft.symbol,
       chunk_kind: draft.chunkKind,
       corpus_id: corpusId,
-    });
+    }));
+  const document = s.documents.find((d) => d.id === documentId);
+  if (document) {
+    document.embedding_model = null;
+    document.indexed_at = null;
+    document.updated_at = created;
   }
+  s.chunks = s.chunks.filter((c) => c.document_id !== documentId).concat(replacement);
   persist();
   return drafts.length;
 }
