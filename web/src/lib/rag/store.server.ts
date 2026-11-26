@@ -131,19 +131,23 @@ async function upsertDurable(input: UpsertInput, sql: Sql) {
   const hash = await sha256Hex(input.body);
   const slugBase = slugify(input.slugHint || input.title);
   const corpusId = corpusIdForInput(input);
-  // Serialize writers for the same slug, including a document's first insert.
-  // This lock is released by COMMIT/ROLLBACK and works across function instances.
+  // Serialize source updates even when concurrent imports suggest different slugs.
+  // The two-key lock namespace is disjoint from the slug lock below.
+  if (input.sourceUri) {
+    await sql`select pg_advisory_xact_lock(hashtext(${corpusId}), hashtext(${input.sourceUri}))`;
+  }
+  // Serialize allocation of globally unique slugs.
   await sql`select pg_advisory_xact_lock(hashtext(${slugBase}))`;
   const byUri = input.sourceUri
     ? await sql<DocumentRow>`
-        select * from documents where source_uri = ${input.sourceUri} limit 1
+        select * from documents
+        where source_uri = ${input.sourceUri}
+          and coalesce(corpus_id, ${SEED_CORPUS_ID}) = ${corpusId}
+        limit 1
       `
     : [];
-  // A supplied URI is the source identity; a slug collision must never
-  // replace another URI. For URI-less inputs, dedupe within the same corpus.
-  // Without the corpus
-  // filter, two unrelated sources that share a slug hint silently update each
-  // other's document and flap its body on every re-ingest.
+  // Scope URI and slug identities to the corpus so importing a new revision
+  // keeps the documents in the earlier snapshot.
   const existing =
     byUri[0] ??
     (input.sourceUri ? undefined : (

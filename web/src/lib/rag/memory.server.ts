@@ -233,11 +233,10 @@ export async function upsertDocument(input: UpsertInput) {
     language: input.language ?? null,
     kind: input.chunkKind ?? "prose",
   };
-  const existing =
-    (input.sourceUri ? s.documents.find((d) => d.source_uri === input.sourceUri) : undefined) ??
-    // Same rule as the durable store: URI identity takes precedence; only
-    // URI-less inputs can fall back to corpus-scoped slug identity.
-    (input.sourceUri ? undefined : s.documents.find((d) => d.slug === slugBase && (d.corpus_id || SEED_CORPUS_ID) === corpusId));
+  const existing = s.documents.find((document) =>
+    (document.corpus_id || SEED_CORPUS_ID) === corpusId &&
+    (input.sourceUri ? document.source_uri === input.sourceUri : document.slug === slugBase)
+  );
   if (existing && existing.content_hash === hash && existing.corpus_id === corpusId) {
     const docChunks = s.chunks.filter((c) => c.document_id === existing.id);
     const sample = docChunks[0];
