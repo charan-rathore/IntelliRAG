@@ -143,9 +143,9 @@ export function paragraphUnits(text: string): Array<[number, number]> {
   return out;
 }
 
-function bagOf(text: string): Map<string, number> {
+function bagOf(tokens: string[]): Map<string, number> {
   const bag = new Map<string, number>();
-  for (const t of contentTokens(text)) bag.set(t, (bag.get(t) ?? 0) + 1);
+  for (const t of tokens) bag.set(t, (bag.get(t) ?? 0) + 1);
   return bag;
 }
 
@@ -174,7 +174,8 @@ export function packByCoverage(input: CoveragePackInput): { packed: RetrievedChu
     const spans = paragraphUnits(chunk.text);
     const units = spans.map(([a, b], i): Unit => {
       const text = chunk.text.slice(a, b);
-      const doc = new Set(contentTokens(text));
+      const tokens = contentTokens(text);
+      const doc = new Set(tokens);
       return {
         src,
         lo: i,
@@ -182,7 +183,7 @@ export function packByCoverage(input: CoveragePackInput): { packed: RetrievedChu
         text,
         cost: estimateTokens(text),
         terms: new Set(terms.filter((t) => tokenSetMatches(t, doc))),
-        bag: bagOf(text),
+        bag: bagOf(tokens),
       };
     });
     return { chunk, primary: input.primary.has(chunk.chunkId), spans, units };
@@ -198,6 +199,19 @@ export function packByCoverage(input: CoveragePackInput): { packed: RetrievedChu
 
   // ---- adaptive β (AdaGReS): marginal gain of the k̄-th pick ≈ 0 ----
   const all = sources.flatMap((s) => s.units);
+  // Candidate spans revisit the same paragraph pairs. Keep their similarity
+  // local to this query so scoring never retokenizes or rescans a pair.
+  const similarities = new Map<Unit, Map<Unit, number>>();
+  function similarity(a: Unit, b: Unit): number {
+    const forward = similarities.get(a);
+    const cached = forward?.get(b) ?? similarities.get(b)?.get(a);
+    if (cached !== undefined) return cached;
+    const value = cosine(a.bag, b.bag);
+    if (forward) forward.set(b, value);
+    else similarities.set(a, new Map([[b, value]]));
+    return value;
+  }
+
   let beta = input.beta ?? 0;
   if (input.beta == null && all.length > 1) {
     const top = [...all].sort((a, b) => rel(b) + cov(b, new Set()) - (rel(a) + cov(a, new Set()))).slice(0, 24);
@@ -208,7 +222,7 @@ export function packByCoverage(input: CoveragePackInput): { packed: RetrievedChu
     let pairs = 0;
     for (let i = 0; i < top.length; i++)
       for (let j = i + 1; j < top.length; j++) {
-        simSum += cosine(top[i]!.bag, top[j]!.bag);
+        simSum += similarity(top[i]!, top[j]!);
         pairs++;
       }
     const meanSim = pairs ? simSum / pairs : 0;
@@ -229,7 +243,7 @@ export function packByCoverage(input: CoveragePackInput): { packed: RetrievedChu
     const covered = new Set<string>();
     let relSum = 0;
     let tokens = 0;
-    const bags: Array<Map<string, number>> = [];
+    const units: Unit[] = [];
     for (const [src, [lo, hi]] of state) {
       const s = sources[src]!;
       tokens += estimateTokens(spanText(s, lo, hi));
@@ -237,11 +251,11 @@ export function packByCoverage(input: CoveragePackInput): { packed: RetrievedChu
         const u = s.units[i]!;
         for (const t of u.terms) covered.add(t);
         relSum += rel(u);
-        bags.push(u.bag);
+        units.push(u);
       }
     }
     let red = 0;
-    for (let i = 0; i < bags.length; i++) for (let j = i + 1; j < bags.length; j++) red += cosine(bags[i]!, bags[j]!);
+    for (let i = 0; i < units.length; i++) for (let j = i + 1; j < units.length; j++) red += similarity(units[i]!, units[j]!);
     let c = 0;
     for (const t of covered) c += weight.get(t) ?? 0;
     return { value: c + lambda * relSum - beta * red, covered, tokens };
