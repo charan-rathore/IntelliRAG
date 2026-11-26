@@ -101,3 +101,25 @@ describe("calibrateThreshold", () => {
     assert.equal(r.measured, false);
   });
 });
+
+
+describe("cumulative Jev calibration risk", () => {
+  it("does not admit incorrect refusals in higher confidence buckets", async () => {
+    const { calibrateThreshold } = await import("./jev-decision.ts");
+    const r = calibrateThreshold([
+      { id: "draft", answerable: false, lexicalKind: "positive", jevChoice: "refuse", jevConfidence: 0.6 },
+      { id: "approved", answerable: true, lexicalKind: "positive", jevChoice: "refuse", jevConfidence: 0.8 },
+      { id: "missing", answerable: false, lexicalKind: "positive", jevChoice: "refuse", jevConfidence: 0.9 },
+    ]);
+    assert.equal(r.threshold, 0.85);
+    assert.equal(r.measured, true);
+  });
+  it("ignores verdicts outside the eligible gate or probability range", async () => {
+    const { calibrateThreshold } = await import("./jev-decision.ts");
+    const r = calibrateThreshold([
+      { id: "ineligible", answerable: false, lexicalKind: "insufficient", jevChoice: "refuse", jevConfidence: 0.1 },
+      { id: "invalid", answerable: false, lexicalKind: "positive", jevChoice: "refuse", jevConfidence: 1.005 },
+    ]);
+    assert.equal(r.measured, false);
+  });
+});
