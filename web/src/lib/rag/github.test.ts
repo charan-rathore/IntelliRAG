@@ -147,7 +147,7 @@ it('separates PR URLs from issue URLs and keeps their file patches with the disc
   const documents = githubPullDocuments({
     number: 235, title: 'Remove abort listener', state: 'closed', body: 'Prevent leaked listeners',
     html_url: 'https://github.com/sindresorhus/p-queue/pull/235',
-    files: [{filename: 'source/index.ts', status: 'modified', patch: '@@ -1 +1 @@\n+signal.removeEventListener("abort", onAbort);'}],
+    files: [{filename: 'source/index.ts', status: 'modified', patch: '@@ -0,0 +1 @@\n+signal.removeEventListener("abort", onAbort);'}],
   }, 'sindresorhus', 'p-queue');
   assert.equal(documents.length, 1);
   assert.match(documents[0]!.body, /source\/index.ts[\s\S]*removeEventListener/);
