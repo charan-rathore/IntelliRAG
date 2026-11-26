@@ -235,20 +235,55 @@ export type GithubPullSnapshot = {
   body: string | null;
   state: string;
   html_url: string;
-  files: Array<{ filename: string; status: string; patch?: string | null; raw_url?: string }>;
+  files: Array<{ filename: string; status: string; patch?: string | null; additions?: number; deletions?: number; raw_url?: string }>;
 };
+
+/** Validate the supplied diff, not whether GitHub supplied every intended change. */
+function assertCompletePatch(file: GithubPullSnapshot["files"][number]): void {
+  const lines = file.patch!.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  let oldRemaining = 0;
+  let newRemaining = 0;
+  let additions = 0;
+  let deletions = 0;
+  let hunks = 0;
+  const invalid = () => new Error(`PR patch for ${file.filename} is incomplete or inconsistent; cannot claim complete PR ingestion.`);
+  for (const line of lines) {
+    const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
+    if (header) {
+      if (oldRemaining || newRemaining) throw invalid();
+      oldRemaining = Number(header[2] ?? 1);
+      newRemaining = Number(header[4] ?? 1);
+      if (!Number.isSafeInteger(oldRemaining) || !Number.isSafeInteger(newRemaining)) throw invalid();
+      hunks++;
+      continue;
+    }
+    if (!hunks) throw invalid();
+    if (line === "\\ No newline at end of file") continue;
+    if (line.startsWith(" ")) { oldRemaining--; newRemaining--; }
+    else if (line.startsWith("+")) { additions++; newRemaining--; }
+    else if (line.startsWith("-")) { deletions++; oldRemaining--; }
+    else throw invalid();
+    if (oldRemaining < 0 || newRemaining < 0) throw invalid();
+  }
+  if (!hunks || oldRemaining || newRemaining) throw invalid();
+  for (const [declared, actual] of [[file.additions, additions], [file.deletions, deletions]]) {
+    if (declared !== undefined && (!Number.isSafeInteger(declared) || declared !== actual)) throw invalid();
+  }
+}
 
 export function githubPullDocuments(pr: GithubPullSnapshot, owner: string, repo: string) {
   const header = `# ${owner}/${repo} PR #${pr.number}: ${pr.title}\nState: ${pr.state}\nSource: ${pr.html_url}`;
   if (pr.files.some(file => !file.patch?.trim())) {
     throw new Error(`PR #${pr.number} has a file without a readable patch; cannot claim complete PR ingestion.`);
   }
+  pr.files.forEach(assertCompletePatch);
   const files = pr.files.map(file =>
-    `## ${file.filename} (${file.status})\n${file.patch!.trim()}`,
+    `## ${file.filename} (${file.status})\n${file.patch!}`,
   ).join('\n\n');
   return [{
     slug: `pr-${pr.number}`, title: `PR #${pr.number}: ${pr.title}`,
-    body: `${header}\n\n${pr.body ?? ''}\n\n# Changed files\n\n${files}`,
+    body: `${header}\n\n${pr.body ?? ''}\n\n# Changed files\n\n${files}\n\nEnd of PR diff.`,
     filepath: null, chunkKind: 'prose' as const, sourceUri: pr.html_url,
   }];
 }
