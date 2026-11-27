@@ -8,6 +8,7 @@ import { resolveEmbedRoute } from "./embed-route";
 import { LOCAL_EMBED_MODEL, localEmbed, localEmbeddingsAvailable } from "./local-embed.server";
 import {
   GITHUB_MAX_TOTAL_BYTES,
+  githubBlobUrl,
   githubRawUrl,
   githubPullDocuments,
   isCodePath,
@@ -294,7 +295,7 @@ async function ingestGithubRepo(target: {
         title: file.path,
         body,
         sourceType: "github",
-        sourceUri: `https://github.com/${encodeURIComponent(target.owner)}/${encodeURIComponent(target.repo)}/blob/${sha}/${file.path.split("/").map(encodeURIComponent).join("/")}`,
+        sourceUri: githubBlobUrl(target.owner, target.repo, sha, file.path),
         slugHint: `${target.repo}-${file.path}`,
         originRepo: `${target.owner}/${target.repo}`,
         originRef: `${ref}@${sha.slice(0, 7)}`,
@@ -377,16 +378,19 @@ export async function ingestFromUrl(url: string) {
   if (gh?.kind === "issue") return ingestGithubIssue(gh.owner, gh.repo, gh.number);
   if (gh?.kind === "pull") return ingestGithubPull(gh.owner, gh.repo, gh.number);
   if (gh?.kind === "blob") {
-    const body = await fetchText(githubRawUrl(gh.owner, gh.repo, gh.ref, gh.path));
+    const sha = /^[a-f0-9]{40}$/i.test(gh.ref)
+      ? gh.ref.toLowerCase()
+      : (await resolveGithubCommit(gh.owner, gh.repo, gh.ref, githubToken())).sha;
+    const body = await fetchText(githubRawUrl(gh.owner, gh.repo, sha, gh.path));
     const code = isCodePath(gh.path);
     const result = await ingestText({
       title: gh.path.split("/").pop() || gh.path,
       body,
       sourceType: "github",
-      sourceUri: trimmed,
+      sourceUri: githubBlobUrl(gh.owner, gh.repo, sha, gh.path),
       slugHint: `${gh.repo}-${gh.path}`,
       originRepo: `${gh.owner}/${gh.repo}`,
-      originRef: gh.ref,
+      originRef: `${gh.ref}@${sha.slice(0, 7)}`,
       filepath: gh.path,
       language: languageFromPath(gh.path),
       chunkKind: code ? "code" : "prose",
@@ -395,7 +399,7 @@ export async function ingestFromUrl(url: string) {
       ingested: result.skipped ? 0 : 1,
       skipped: result.skipped ? 1 : 0,
       titles: [result.slug],
-      corpusId: githubCorpusId(`${gh.owner}/${gh.repo}`, gh.ref),
+      corpusId: result.corpusId,
     };
   }
   if (gh?.kind === "tree") {
