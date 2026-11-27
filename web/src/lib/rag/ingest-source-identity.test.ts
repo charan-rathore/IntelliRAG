@@ -34,6 +34,17 @@ for (const [name, store] of [['durable', { upsertDocument, getDocumentBySlug }],
     const unchanged = await store.upsertDocument({ ...common, body: 'Beta policy revised: a supervisor must confirm each manual restart.', sourceUri: `probe://${name}/docs/a_b.md` });
     assert.equal(unchanged.id, b.id);
     assert.equal(unchanged.skipped, true);
+    const revisedSnapshot = await store.upsertDocument({
+      ...common,
+      originRef: 'main@next-snapshot',
+      body: 'The next release requires a different restart procedure.',
+      sourceUri: `probe://${name}/docs/a_b.md`,
+    });
+    assert.notEqual(revisedSnapshot.corpusId, b.corpusId);
+    assert.notEqual(revisedSnapshot.id, b.id, 'a new corpus must preserve the earlier snapshot');
+    assert.equal((await store.getDocumentBySlug(b.slug))?.corpus_id, b.corpusId);
+    assert.equal((await store.getDocumentBySlug(revisedSnapshot.slug))?.corpus_id, revisedSnapshot.corpusId);
+
     const inline = { ...common, slugHint: `inline-identity-${name}`, body: 'URI-less inline documents retain their existing corpus-scoped update behavior.' };
     const firstInline = await store.upsertDocument(inline);
     const againInline = await store.upsertDocument({ ...inline, body: inline.body + ' A revised sentence.' });
