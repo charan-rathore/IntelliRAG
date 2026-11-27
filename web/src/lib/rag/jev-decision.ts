@@ -148,7 +148,7 @@ const BUCKETS: Array<[number, number]> = [[0, 0.5], [0.5, 0.7], [0.7, 0.85], [0.
  * Calibration from measured shadow data, not assertion: for each confidence
  * bucket, how often was Jev's refuse/clarify verdict correct (the case was
  * genuinely unanswerable)? The operating threshold is the lowest bucket edge
- * at which tightening never hit an answerable question; below measurement,
+ * at which tightening never hit an answerable question in any admitted bucket; below measurement,
  * fall back to the conservative default.
  */
 export function calibrateThreshold(records: JevShadowRecord[]): {
@@ -158,7 +158,7 @@ export function calibrateThreshold(records: JevShadowRecord[]): {
 } {
   const buckets = BUCKETS.map((range) => ({ range, verdicts: 0, correct: 0, answerableHits: 0 }));
   for (const r of records) {
-    if (r.error || r.jevConfidence == null || (r.jevChoice !== "refuse" && r.jevChoice !== "clarify")) continue;
+    if (r.error || r.lexicalKind !== "positive" || r.jevConfidence == null || !Number.isFinite(r.jevConfidence) || r.jevConfidence < 0 || r.jevConfidence > 1 || (r.jevChoice !== "refuse" && r.jevChoice !== "clarify")) continue;
     const b = buckets.find((b) => r.jevConfidence! >= b.range[0] && r.jevConfidence! < b.range[1]);
     if (!b) continue;
     b.verdicts += 1;
@@ -167,8 +167,10 @@ export function calibrateThreshold(records: JevShadowRecord[]): {
   }
   let threshold = DEFAULT_CONFIDENCE;
   let measured = false;
-  for (const b of buckets) {
-    if (b.verdicts > 0 && b.answerableHits === 0) {
+  for (let i = 0; i < buckets.length; i++) {
+    const b = buckets[i]!;
+    const admitted = buckets.slice(i);
+    if (b.verdicts > 0 && admitted.every((bucket) => bucket.answerableHits === 0)) {
       threshold = b.range[0];
       measured = true;
       break;
