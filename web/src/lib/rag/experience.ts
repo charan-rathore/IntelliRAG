@@ -110,7 +110,7 @@ const normalize = (q: string) => q.normalize("NFKC").toLowerCase().replace(/\s+/
 /** File a rated answer against the passages it was built from. Returns a new log. */
 export function recordExperience(
   log: ExperienceLog,
-  input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string }>; vote: Vote; at?: string; dream?: { strategy: string } },
+  input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string; sourceFingerprint?: string }>; vote: Vote; at?: string; dream?: { strategy: string } },
 ): ExperienceLog {
   const at = input.at ?? new Date().toISOString();
   const entries = { ...log.entries };
@@ -118,7 +118,8 @@ export function recordExperience(
   if (!nq) return log;
   for (const p of input.passages) {
     const key = keyOf(input.corpusId, p.chunkId);
-    const fp = fingerprint(p.text);
+    // A packed excerpt carries the fingerprint of the whole chunk it was cut from; without one, the text is the source.
+    const fp = p.sourceFingerprint ?? fingerprint(p.text);
     const prev = entries[key];
     // Learning about older text doesn't carry over to new text.
     let asked = prev && prev.fingerprint === fp ? prev.asked.filter((a) => normalize(a.q) !== nq) : [];
@@ -246,4 +247,35 @@ export function lintExperience(log: ExperienceLog, passages: Array<{ corpusId: s
     if (e.asked.some((a) => a.vote > 0) && e.asked.some((a) => a.vote < 0)) contested.push(e.chunkId);
   }
   return { log: { version: 1, entries }, stale, contested };
+}
+
+/**
+ * Passages to file a rating against, checked against the stored chunks as they are now.
+ * `stored` maps chunk id to the whole current text of that chunk; it is the only authority.
+ * A cached answer's chunk may be a packed excerpt, so its own text can't be fingerprinted.
+ *  - It carries the fingerprint of the whole chunk it was cut from (set by retrieval on the server).
+ *    That counts only while it still equals the stored chunk's fingerprint; if the chunk has changed
+ *    since, the rating was about older text and is dropped.
+ *  - No carried fingerprint (older cached answers): kept only if its text is exactly the stored chunk; excerpts are dropped.
+ *  - Not in the store any more: drop it.
+ */
+export function passagesToRate(
+  cached: Array<{ chunkId: string; text: string; sourceFingerprint?: string }>,
+  stored: Map<string, string>,
+): Array<{ chunkId: string; text: string; sourceFingerprint?: string }> {
+  const out: Array<{ chunkId: string; text: string; sourceFingerprint?: string }> = [];
+  for (const c of cached) {
+    const whole = stored.get(c.chunkId);
+    if (whole === undefined) continue;
+    if (c.sourceFingerprint === undefined) {
+      // Older cached answer, no fingerprint. Only the whole chunk can prove it is unchanged: a link goes stale when ANY
+      // part of the passage changes, and an excerpt can't show that the rest is the same. An excerpt is dropped, never
+      // filed under an excerpt identity that recall can't use and that would reset the chunk's earlier votes.
+      if (c.text === whole) out.push({ chunkId: c.chunkId, text: whole, sourceFingerprint: fingerprint(whole) });
+      continue;
+    }
+    if (c.sourceFingerprint !== fingerprint(whole)) continue;
+    out.push({ chunkId: c.chunkId, text: whole, sourceFingerprint: c.sourceFingerprint });
+  }
+  return out;
 }

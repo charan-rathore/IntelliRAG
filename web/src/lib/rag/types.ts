@@ -137,6 +137,8 @@ export type RetrievedChunk = {
   symbol: string | null;
   chunkKind: ChunkKind;
   corpusId: string;
+  /** Fingerprint of the whole stored chunk. `text` can be a packed excerpt of it; experience is filed against the source, not the excerpt. */
+  sourceFingerprint?: string;
 };
 
 export type RetrievalStageScores = {

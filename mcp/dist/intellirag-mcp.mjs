@@ -1898,7 +1898,7 @@ function recordExperience(log, input) {
   if (!nq) return log;
   for (const p of input.passages) {
     const key = keyOf(input.corpusId, p.chunkId);
-    const fp = fingerprint(p.text);
+    const fp = p.sourceFingerprint ?? fingerprint(p.text);
     const prev = entries[key];
     let asked = prev && prev.fingerprint === fp ? prev.asked.filter((a) => normalize(a.q) !== nq) : [];
     if (!input.dream && input.vote < 0) {
@@ -2106,7 +2106,8 @@ function toRetrieved(chunkId, meta, score, rank, retriever) {
     language: row.chunk.language,
     symbol: row.chunk.symbol,
     chunkKind: row.chunk.chunk_kind ?? "prose",
-    corpusId: row.corpusId || row.chunk.corpus_id || SEED_CORPUS_ID
+    corpusId: row.corpusId || row.chunk.corpus_id || SEED_CORPUS_ID,
+    sourceFingerprint: fingerprint(row.chunk.text)
   };
 }
 var DEFAULT_CONTEXT_PACKING = "rank";

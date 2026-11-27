@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { chunkDocument } from "./chunking.ts";
 import { retrieveFromRows, type SearchRow } from "./retrieve-core.ts";
-import { emptyExperience, fingerprint, lintExperience, recallExperience, recordExperience, MAX_ASKED_PER_PASSAGE } from "./experience.ts";
+import { emptyExperience, fingerprint, lintExperience, recallExperience, recordExperience, passagesToRate, MAX_ASKED_PER_PASSAGE } from "./experience.ts";
 
 const P = { chunkId: "readme#3", text: "Put queue execution on hold. Start (or resume) executing enqueued tasks within concurrency limit." };
 
@@ -60,6 +60,82 @@ describe("staleness", () => {
   });
 });
 
+describe("filing against an excerpt of a passage", () => {
+  const FULL = "Concurrency limit. Minimum 1. Default Infinity.\n\nPer-operation timeout in milliseconds. Operations fail with a TimeoutError.\n\nPut queue execution on hold.";
+  const EXCERPT = FULL.slice(0, FULL.indexOf("\n\nPer-operation"));
+  const full = { chunkId: "q#1", text: FULL };
+  const excerpt = { chunkId: "q#1", text: EXCERPT, sourceFingerprint: fingerprint(FULL) };
+
+  it("keeps earlier votes when the same passage is later filed as a packed excerpt of it", () => {
+    let log = recordExperience(emptyExperience(), { corpusId: "c", question: "what is the default concurrency", passages: [full], vote: 1 });
+    log = recordExperience(log, { corpusId: "c", question: "limit on parallel jobs", passages: [excerpt], vote: -1 });
+    const e = Object.values(log.entries)[0]!;
+    assert.deepEqual(e.asked.map((a) => a.vote), [1, -1]);
+    assert.equal(e.fingerprint, fingerprint(FULL));
+  });
+
+  it("recalls what was filed from an excerpt, because it is filed against the whole passage", () => {
+    const log = recordExperience(emptyExperience(), { corpusId: "c", question: "what is the default concurrency", passages: [excerpt], vote: 1 });
+    assert.ok((recallExperience(log, "c", [full], "default concurrency value").boost.get("q#1") ?? 0) > 0);
+  });
+
+  it("still starts over when the passage itself changes", () => {
+    let log = recordExperience(emptyExperience(), { corpusId: "c", question: "what is the default concurrency", passages: [excerpt], vote: 1 });
+    const edited = FULL.replace("Default Infinity", "Default 4");
+    assert.equal(recallExperience(log, "c", [{ chunkId: "q#1", text: edited }], "default concurrency value").boost.size, 0);
+    log = recordExperience(log, { corpusId: "c", question: "limit on parallel jobs", passages: [{ chunkId: "q#1", text: EXCERPT, sourceFingerprint: fingerprint(edited) }], vote: -1 });
+    assert.deepEqual(Object.values(log.entries)[0]!.asked.map((a) => a.vote), [-1]);
+  });
+
+  it("without a source fingerprint the text is the source, as before", () => {
+    const log = recordExperience(emptyExperience(), { corpusId: "c", question: "what is the default concurrency", passages: [full], vote: 1 });
+    assert.equal(Object.values(log.entries)[0]!.fingerprint, fingerprint(FULL));
+  });
+});
+
+describe("which passages a rating is filed against", () => {
+  const FULL = "Concurrency limit. Minimum 1. Default Infinity.\n\nPer-operation timeout in milliseconds.";
+  const cachedExcerpt = { chunkId: "q#1", text: "Concurrency limit. Minimum 1. Default Infinity.", sourceFingerprint: fingerprint(FULL) };
+
+  it("files an excerpted answer against the stored whole chunk when its source is unchanged", () => {
+    const out = passagesToRate([cachedExcerpt], new Map([["q#1", FULL]]));
+    assert.deepEqual(out, [{ chunkId: "q#1", text: FULL, sourceFingerprint: fingerprint(FULL) }]);
+  });
+
+  it("drops a rating about older text when the stored chunk has changed since", () => {
+    assert.deepEqual(passagesToRate([cachedExcerpt], new Map([["q#1", FULL.replace("Infinity", "4")]])), []);
+  });
+
+  it("does not take a carried fingerprint as proof: one that matches nothing stored is dropped", () => {
+    assert.deepEqual(passagesToRate([{ ...cachedExcerpt, sourceFingerprint: "forged" }], new Map([["q#1", FULL]])), []);
+  });
+
+  it("drops passages no longer stored", () => {
+    assert.deepEqual(passagesToRate([cachedExcerpt], new Map()), []);
+  });
+
+  it("older cached answers without a fingerprint: the whole stored chunk is filed, an excerpt or changed text never is (any change to the passage makes a link stale)", () => {
+    let log = recordExperience(emptyExperience(), { corpusId: "c", question: "default concurrency", passages: [{ chunkId: "q#1", text: FULL }], vote: 1 });
+    log = recordExperience(log, { corpusId: "c", question: "parallel limit", passages: [{ chunkId: "q#1", text: FULL }], vote: 1 });
+    const stored = new Map([["q#1", FULL]]);
+    const whole = passagesToRate([{ chunkId: "q#1", text: FULL }], stored);
+    assert.deepEqual(whole, [{ chunkId: "q#1", text: FULL, sourceFingerprint: fingerprint(FULL) }]);
+    // an excerpt of an unchanged chunk, and the same excerpt after an edit elsewhere in the chunk, are both unprovable
+    assert.deepEqual(passagesToRate([{ chunkId: "q#1", text: FULL.slice(0, 20) }], stored), []);
+    assert.deepEqual(passagesToRate([{ chunkId: "q#1", text: FULL.slice(0, 20) }], new Map([["q#1", FULL + " Changed."]])), []);
+    assert.deepEqual(passagesToRate([{ chunkId: "q#1", text: "" }], stored), []);
+    // dropping the excerpt leaves the earlier votes untouched
+    const after = passagesToRate([{ chunkId: "q#1", text: FULL.slice(0, 20) }], stored);
+    if (after.length) log = recordExperience(log, { corpusId: "c", question: "how many at once", passages: after, vote: 1 });
+    assert.deepEqual(Object.values(log.entries)[0]!.asked.map((a) => a.vote), [1, 1]);
+  });
+
+  it("survives JSON serialization of a retrieved chunk", () => {
+    const r = JSON.parse(JSON.stringify({ chunkId: "q#1", text: "x", sourceFingerprint: fingerprint(FULL) }));
+    assert.equal(passagesToRate([r], new Map([["q#1", FULL]]))[0]!.sourceFingerprint, fingerprint(FULL));
+  });
+});
+
 describe("retrieval with experience", () => {
   const body = "# queue\n\n## Pausing\n\nPut queue execution on hold. Start (or resume) executing enqueued tasks within concurrency limit.\n\n## Concurrency\n\nConcurrency limit. Minimum 1. Default Infinity.\n\n## Timeouts\n\nPer-operation timeout in milliseconds. Operations fail with a TimeoutError.";
   const rows = chunkDocument(body, { filepath: "readme.md", chunkSize: 40 }).map((c) => ({ title: "queue README", slug: "queue", indexedAt: null, corpusId: "t",
@@ -86,5 +162,11 @@ describe("retrieval with experience", () => {
   it("changes nothing when there is no experience", () => {
     const a = ask("What is the default concurrency?", null), b = ask("What is the default concurrency?", emptyExperience());
     assert.deepEqual(a.chunks.map((c) => c.chunkId), b.chunks.map((c) => c.chunkId));
+  });
+
+  it("marks every packed chunk with the fingerprint of its whole stored text", () => {
+    const r = ask("What is the default concurrency limit and the timeout?", null);
+    assert.ok(r.chunks.length > 0);
+    for (const c of r.chunks) assert.equal(c.sourceFingerprint, fingerprint(rows.find((x) => x.chunk.id === c.chunkId)!.chunk.text));
   });
 });

@@ -2,7 +2,7 @@
  * Graphify sidecar store: graph.json + memory/ + .graphify_learning.json
  * kept together. Mirrors graphify-out/ so repeat queries skip Flash.
  */
-import { emptyExperience, recordExperience, type Vote } from "../experience";
+import { emptyExperience, passagesToRate, recordExperience, type Vote } from "../experience";
 import { addCase, emptyCaseMemory } from "../case-memory";
 import { readFileSync } from "node:fs";
 import { writeAtomicJson } from "./atomic-json.mjs";
@@ -253,7 +253,7 @@ export async function saveQueryResult(input: {
 /** Most passages experience keeps links for, newest first. */
 const EXPERIENCE_CAP = 4000;
 
-function fileExperience(state: GraphState, input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string }>; vote: Vote }) {
+function fileExperience(state: GraphState, input: { corpusId: string; question: string; passages: Array<{ chunkId: string; text: string; sourceFingerprint?: string }>; vote: Vote }) {
   const log = recordExperience(state.experience ?? emptyExperience(), input);
   // A confirmed answer is also a resolved case: its passages answered this question.
   if (input.vote > 0 && input.passages.length) {
@@ -270,11 +270,11 @@ function fileExperience(state: GraphState, input: { corpusId: string; question: 
   state.experience = log;
 }
 
-function passagesOf(chunks: unknown): Array<{ chunkId: string; text: string }> {
+function passagesOf(chunks: unknown): Array<{ chunkId: string; text: string; sourceFingerprint?: string }> {
   if (!Array.isArray(chunks)) return [];
   return chunks
-    .filter((c): c is { chunkId: string; text: string } => typeof c?.chunkId === "string" && typeof c?.text === "string")
-    .map((c) => ({ chunkId: c.chunkId, text: c.text }));
+    .filter((c): c is { chunkId: string; text: string; sourceFingerprint?: unknown } => typeof c?.chunkId === "string" && typeof c?.text === "string")
+    .map((c) => ({ chunkId: c.chunkId, text: c.text, ...(typeof c.sourceFingerprint === "string" ? { sourceFingerprint: c.sourceFingerprint } : {}) }));
 }
 
 /** Everything a corpus has learned, for the sleep cycle and the Memory panel. */
@@ -309,7 +309,11 @@ export async function experienceLog() {
  */
 export async function recordSourcePick(input: { question: string; corpusId: string; chunkId: string; text: string }) {
   const state = await ensureGraph();
-  fileExperience(state, { corpusId: input.corpusId, question: input.question, passages: [{ chunkId: input.chunkId, text: input.text }], vote: 1 });
+  // The client says which chunk was picked; the text filed is the stored chunk's, never the client's.
+  const rows = await loadChunksByIds([input.chunkId], parseCorpusScope(input.corpusId));
+  const row = rows.find((r) => r.chunk.id === input.chunkId);
+  if (!row) return { ok: false as const, links: Object.keys(state.experience?.entries ?? {}).length };
+  fileExperience(state, { corpusId: input.corpusId, question: input.question, passages: [{ chunkId: row.chunk.id, text: row.chunk.text }], vote: 1 });
   await persist(state);
   return { ok: true as const, links: Object.keys(state.experience?.entries ?? {}).length };
 }
@@ -324,7 +328,10 @@ export async function recordOutcome(input: {
   const hash = questionHash(input.question);
   // File the rating against the passages that answer was built from.
   const rated = state.cache.find((c) => c.questionHash === hash && (c.corpusId ?? "seed-lab") === (input.corpusId ?? "seed-lab"));
-  const passages = passagesOf(rated?.chunks);
+  const cached = passagesOf(rated?.chunks);
+  const ids = [...new Set(cached.map((c) => c.chunkId))].slice(0, 256);
+  const stored = new Map((ids.length ? await loadChunksByIds(ids, parseCorpusScope(input.corpusId ?? "seed-lab")) : []).map((r) => [r.chunk.id, r.chunk.text]));
+  const passages = passagesToRate(cached, stored);
   if (passages.length) {
     fileExperience(state, { corpusId: input.corpusId ?? "seed-lab", question: input.question, passages, vote: input.outcome === "useful" ? 1 : -1 });
   }
