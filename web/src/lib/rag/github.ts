@@ -98,13 +98,17 @@ export function parseGithubUrl(url: string): GithubTarget | null {
   throw new Error("Unsupported GitHub URL. Use a repository, file, tree, issue, or pull request URL.");
 }
 
+function githubFilePath(path: string) {
+  // Tree paths contain decoded names, including characters with URL syntax.
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
 export function githubRawUrl(owner: string, repo: string, ref: string, path: string) {
-  // API tree paths are decoded names, not URL fragments. Encode each path
-  // segment so #, %, spaces and non-ASCII characters reach the raw endpoint.
-  const encodedPath = /^[A-Za-z0-9_./~-]*$/.test(path)
-    ? path
-    : path.split("/").map(encodeURIComponent).join("/");
-  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(ref)}/${encodedPath}`;
+  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/${encodeURIComponent(ref)}/${githubFilePath(path)}`;
+}
+
+export function githubBlobUrl(owner: string, repo: string, sha: string, path: string) {
+  return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${sha}/${githubFilePath(path)}`;
 }
 
 export function languageFromPath(path: string): string | null {
