@@ -283,6 +283,7 @@ async function ingestGithubRepo(target: {
   let ingested = 0;
   let skipped = 0;
   const titles: string[] = [];
+  let firstFailure: unknown;
   for (const file of files) {
     if (total >= GITHUB_MAX_TOTAL_BYTES) break;
     const raw = githubRawUrl(target.owner, target.repo, sha, file.path);
@@ -305,9 +306,13 @@ async function ingestGithubRepo(target: {
       if (result.skipped) skipped += 1;
       else ingested += 1;
       titles.push(result.slug);
-    } catch {
+    } catch (error) {
+      firstFailure ??= error;
       skipped += 1;
     }
+  }
+  if (titles.length === 0) {
+    throw new Error("No files were imported from that GitHub tree.", { cause: firstFailure });
   }
   return {
     ingested,
