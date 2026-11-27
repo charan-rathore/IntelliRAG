@@ -16,7 +16,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "npm run test:generation && node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts && npx tsx --test src/lib/rag/*.test.ts src/lib/motion/*.test.ts src/lib/db-boot-failure.test.ts",
+    "test": "npm run test:generation && node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts && tsx --test src/lib/rag/*.test.ts src/lib/motion/*.test.ts src/lib/db-boot-failure.test.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test:hardening": "node --test scripts/hardening.test.cjs",
@@ -94,6 +94,7 @@
     "nitro": "3.0.260610-beta",
     "playwright": "^1.62.0",
     "prettier": "^3.4.0",
+    "tsx": "4.23.15",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.2.0"
