@@ -151,6 +151,19 @@ function guideDone(
   };
 }
 
+async function recordQueryTrace(
+  trace: Parameters<typeof recordTrace>[0],
+  signal?: AbortSignal,
+): Promise<void> {
+  try {
+    await recordTrace(trace);
+  } catch {
+    // A database error can carry the query parameters, including source text.
+    console.warn("IntelliRAG could not persist a query trace.");
+  }
+  signal?.throwIfAborted();
+}
+
 export async function runQueryStream(
   input: {
     question: string;
@@ -378,7 +391,7 @@ export async function runQueryStream(
       assemble: retrieved.assembleMs,
       generate: 0,
     };
-    await recordTrace({
+    await recordQueryTrace({
       question,
       retrievalMode: retrieved.actualMode,
       answer,
@@ -388,7 +401,7 @@ export async function runQueryStream(
       layerLatencies: latencies,
       citationCount: 0,
       totalLatencyMs: performance.now() - started,
-    });
+    }, signal);
     emit({
       type: "done",
       answer,
@@ -430,7 +443,7 @@ export async function runQueryStream(
       assemble: retrieved.assembleMs,
       generate: 0,
     };
-    await recordTrace({
+    await recordQueryTrace({
       question,
       retrievalMode: retrieved.actualMode,
       answer,
@@ -440,7 +453,7 @@ export async function runQueryStream(
       layerLatencies: latencies,
       citationCount: citations.length,
       totalLatencyMs: performance.now() - started,
-    });
+    }, signal);
     emit({
       type: "done",
       answer,
@@ -485,7 +498,7 @@ export async function runQueryStream(
       assemble: retrieved.assembleMs,
       generate: 0,
     };
-    await recordTrace({
+    await recordQueryTrace({
       question,
       retrievalMode: retrieved.actualMode,
       answer,
@@ -495,7 +508,7 @@ export async function runQueryStream(
       layerLatencies: latencies,
       citationCount: citations.length,
       totalLatencyMs: performance.now() - started,
-    });
+    }, signal);
     if (!input.skipCache) {
       const sourceSlugs = citedSourceSlugs(retrieved.chunks, citations);
       await saveQueryResult({ question, policy, answer, sourceNodes: sourceSlugs.map(s => `doc:${s}`), sourceSlugs,
@@ -566,7 +579,7 @@ export async function runQueryStream(
     generate: generateMs,
   };
   const modelUsed = generationModelLabel(runtime.generate.provider);
-  await recordTrace({
+  await recordQueryTrace({
     question,
     retrievalMode: retrieved.actualMode,
     answer,
@@ -576,7 +589,7 @@ export async function runQueryStream(
     layerLatencies: latencies,
     citationCount: citations.length,
     totalLatencyMs: performance.now() - started,
-  });
+  }, signal);
   const sourceSlugs = citedSourceSlugs(retrieved.chunks, citations);
   const sourceNodes = sourceSlugs.map((s) => `doc:${s}`);
   if (!input.skipCache) await saveQueryResult({
