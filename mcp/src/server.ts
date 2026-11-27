@@ -84,8 +84,14 @@ async function call(name: string, a: any): Promise<{ text: string; data: unknown
   switch (name) {
     case "index_folder": { const r = keep(folderCorpus(resolve(a.path ?? process.cwd()), a.include ?? "all")); return { text: `Indexed ${r.files} files (${r.passages} passages) as ${r.corpus}.`, data: r }; }
     case "index_github": { const r = keep(await githubCorpus(a.repo, { ref: a.ref, include: a.include, token: process.env.GITHUB_TOKEN })); return { text: `Indexed ${r.files} files (${r.passages} passages) from ${r.origin} as ${r.corpus}.`, data: r }; }
-    case "ask": { const r = ask(pick(a.corpus), String(a.question), a.session); return { text: render(r), data: r }; }
-    case "search": { const r = search(pick(a.corpus), String(a.query), Math.min(20, Math.max(1, Number(a.limit) || 8))); return { text: r.map((p) => `[${p.ref}] ${p.score} ${p.file}${p.heading ? ` › ${p.heading}` : ""}`).join("\n") || "No candidates.", data: r }; }
+    case "ask": {
+      if (typeof a.question !== "string") throw new Error("Missing or invalid required argument: question (a string to answer from the corpus).");
+      const r = ask(pick(a.corpus), a.question, a.session);
+      return { text: render(r), data: r };
+    }
+    case "search": {
+      if (typeof a.query !== "string") throw new Error("Missing or invalid required argument: query (a string to rank passages for).");
+      const r = search(pick(a.corpus), a.query, Math.min(20, Math.max(1, Number(a.limit) || 8))); return { text: r.map((p) => `[${p.ref}] ${p.score} ${p.file}${p.heading ? ` › ${p.heading}` : ""}`).join("\n") || "No candidates.", data: r }; }
     case "feedback": { const ok = feedback(String(a.session), String(a.ref), Boolean(a.helpful), current ?? undefined); return { text: ok ? "Noted. Questions worded like this one will find that passage." : "Ask something in this session first.", data: { ok } }; }
     case "new_topic": { resetSession(String(a.session)); return { text: "The next question will be searched on its own.", data: { ok: true } }; }
     case "sources": { const r = [...corpora.values()].map((c) => ({ corpus: c.id, origin: c.origin, files: c.files, passages: c.rows.length, current: c === current })); return { text: r.map((c) => `${c.current ? "*" : " "} ${c.corpus}  ${c.origin}  ${c.files} files`).join("\n") || "Nothing indexed yet.", data: r }; }

@@ -2693,11 +2693,13 @@ async function call(name, a) {
       return { text: `Indexed ${r.files} files (${r.passages} passages) from ${r.origin} as ${r.corpus}.`, data: r };
     }
     case "ask": {
-      const r = ask(pick(a.corpus), String(a.question), a.session);
+      if (typeof a.question !== "string") throw new Error("Missing or invalid required argument: question (a string to answer from the corpus).");
+      const r = ask(pick(a.corpus), a.question, a.session);
       return { text: render(r), data: r };
     }
     case "search": {
-      const r = search(pick(a.corpus), String(a.query), Math.min(20, Math.max(1, Number(a.limit) || 8)));
+      if (typeof a.query !== "string") throw new Error("Missing or invalid required argument: query (a string to rank passages for).");
+      const r = search(pick(a.corpus), a.query, Math.min(20, Math.max(1, Number(a.limit) || 8)));
       return { text: r.map((p) => `[${p.ref}] ${p.score} ${p.file}${p.heading ? ` \u203A ${p.heading}` : ""}`).join("\n") || "No candidates.", data: r };
     }
     case "feedback": {

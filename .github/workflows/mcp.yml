@@ -23,7 +23,9 @@ jobs:
           rm mcp/node_modules
           git diff --exit-code -- mcp/dist || (echo "mcp/dist is stale: run npm run mcp:build and commit it" && exit 1)
       - name: Drive it over stdio
-        run: node mcp/test/smoke.mjs
+        run: |
+          node mcp/test/smoke.mjs
+          node mcp/test/input-contract.mjs
       - name: Runs through npx, as agents start it
         run: |
           npm pack --silent >/dev/null

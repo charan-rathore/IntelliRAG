@@ -17,6 +17,6 @@
   },
   "scripts": {
     "mcp:build": "node mcp/build.mjs",
-    "mcp:test": "node mcp/test/smoke.mjs"
+    "mcp:test": "node mcp/test/smoke.mjs && node mcp/test/input-contract.mjs"
   }
 }
