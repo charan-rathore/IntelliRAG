@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { chunkDocument } from "./chunking.ts";
 import { contentTokens } from "./text.ts";
+import snapshot from "../../data/pqueue-demo.json";
 
 describe("code boundaries (java/c): call sites are not symbols", () => {
   it("java: only declarations open chunks; bare statements do not", () => {
@@ -472,4 +473,13 @@ it("keeps an overlap tail from starting inside a surrogate pair", () => {
   const body = "a".repeat(75) + "😀" + "bbb" + "c".repeat(90);
   const chunks = chunkDocument(body,{chunkSize:20,overlap:1});
   assert.ok(chunks.every(c=>!/[\uD800-\uDFFF]/u.test(c.text)),JSON.stringify(chunks.map(c=>c.text)));
+});
+
+it("resumes overlap on a complete source line in the pinned README", () => {
+  const sourceLines = new Set(snapshot.body.split("\n").map((line) => line.trim()));
+  const badStarts = chunkDocument(snapshot.body)
+    .slice(1)
+    .map((chunk, index) => ({ ordinal: index + 1, firstLine: chunk.text.split("\n", 1)[0]!.trim() }))
+    .filter(({ firstLine }) => !sourceLines.has(firstLine));
+  assert.deepEqual(badStarts, []);
 });
