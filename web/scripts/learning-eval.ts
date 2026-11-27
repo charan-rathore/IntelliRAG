@@ -59,7 +59,7 @@ function train(questions: Array<{ id: string; q: string }>, noise: number, seed:
     let useful = res.chunks.length > 0 && complete(res.chunks.map((c) => c.text), quotes);
     if (r() < noise) useful = !useful;
     if (res.chunks.length) {
-      log = recordExperience(log, { corpusId: 'learn', question: q, passages: res.chunks.map((c) => ({ chunkId: c.chunkId, text: c.text })), vote: useful ? 1 : -1 });
+      log = recordExperience(log, { corpusId: 'learn', question: q, passages: res.chunks.map((c) => ({ chunkId: c.chunkId, text: c.text, sourceFingerprint: c.sourceFingerprint })), vote: useful ? 1 : -1 });
     }
     // Source picks: when the answer missed, the person opens the Evidence panel
     // (the top eight candidates) and marks the passages that do answer it.

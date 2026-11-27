@@ -66,7 +66,7 @@ function defsFor(all: SearchRow[], scoped: SearchRow[], scopeKey: string): Defin
   byScope.set(scopeKey, { fp, defs });
   return defs;
 }
-import { recallExperience, type ExperienceLog, type ExperiencePolicy } from "./experience";
+import { fingerprint as passageFingerprint, recallExperience, type ExperienceLog, type ExperiencePolicy } from "./experience";
 import type {
   ChunkKind,
   ChunkRow,
@@ -119,6 +119,7 @@ function toRetrieved(
     symbol: row.chunk.symbol,
     chunkKind: (row.chunk.chunk_kind ?? "prose") as ChunkKind,
     corpusId: row.corpusId || row.chunk.corpus_id || SEED_CORPUS_ID,
+    sourceFingerprint: passageFingerprint(row.chunk.text),
   };
 }
 

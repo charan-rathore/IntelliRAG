@@ -84,7 +84,7 @@ function train(s: Setting, policy: Harness, qs: Array<{ id: string; q: string }>
     const r = ask(s, q, log, policy);
     const quotes = gold.get(id)!;
     const useful = r.chunks.length > 0 && complete(r.chunks.map((c) => c.text), quotes);
-    if (r.chunks.length) log = recordExperience(log, { corpusId: 'sim', question: q, passages: r.chunks.map((c) => ({ chunkId: c.chunkId, text: c.text })), vote: useful ? 1 : -1 });
+    if (r.chunks.length) log = recordExperience(log, { corpusId: 'sim', question: q, passages: r.chunks.map((c) => ({ chunkId: c.chunkId, text: c.text, sourceFingerprint: c.sourceFingerprint })), vote: useful ? 1 : -1 });
     if (!useful) {
       const picked = r.candidates.slice(0, 8).map((c) => byId.get(c.chunkId)!).filter((row) => row && holds(row.chunk.text, quotes));
       if (picked.length) log = recordExperience(log, { corpusId: 'sim', question: q, passages: picked.map((row) => ({ chunkId: row.chunk.id, text: row.chunk.text })), vote: 1 });
