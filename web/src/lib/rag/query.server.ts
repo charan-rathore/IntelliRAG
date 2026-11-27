@@ -371,9 +371,9 @@ export async function runQueryStream(
   const jev = await jevSecondOpinion({
     question,
     passages: retrieved.chunks.slice(0, 5),
-    gate: retrieved.evidenceGate,
+    gate: { ...retrieved.evidenceGate, kind: evidenceKind },
   });
-  if (evidenceKind !== "insufficient") evidenceKind = jev.kind;
+  evidenceKind = jev.kind;
   if (queryVector && embeddingModel && evidenceKind==="positive" && retrieved.chunks.length) {
     try { await rememberRetrievedVectors(retrieved.chunks.map(c=>c.chunkId),embeddingModel,queryVector.length,corpusKey); }
     catch { /* A learning-store failure must not break fresh source-grounded answers. */ }

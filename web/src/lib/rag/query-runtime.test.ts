@@ -112,6 +112,35 @@ test("query runtime promises", async (t) => {
     state.cache = [];
   });
 
+  await t.test("session grounding veto reaches Jev before any provider call", async () => {
+    const oldFlag = process.env.JEV_DECISION;
+    const oldKey = process.env.TYPESAFE_API_KEY;
+    process.env.JEV_DECISION = "1";
+    process.env.TYPESAFE_API_KEY = "test-only";
+    let jevCalls = 0;
+    const network = t.mock.method(globalThis, "fetch", async (url: unknown) => {
+      if (String(url).includes("api.typesafe.ai")) jevCalls++;
+      throw new Error("Unexpected network request");
+    });
+    try {
+      const events: QueryEvent[] = [];
+      await runQueryStream({
+        question: "And what about xylophone?",
+        history: [{ query: "What caused the Kubernetes pod scheduling failures?", packed: [] }],
+        skipCache: true, retrievalMode: "keyword",
+      }, (event) => events.push(event));
+      const sources = events.find((event) => event.type === "sources");
+      const done = events.find((event) => event.type === "done");
+      assert.ok(sources?.type === "sources" && sources.chunks.length > 0);
+      assert.ok(done?.type === "done" && done.refused);
+      assert.equal(jevCalls, 0);
+    } finally {
+      network.mock.restore();
+      if (oldFlag === undefined) delete process.env.JEV_DECISION; else process.env.JEV_DECISION = oldFlag;
+      if (oldKey === undefined) delete process.env.TYPESAFE_API_KEY; else process.env.TYPESAFE_API_KEY = oldKey;
+    }
+  });
+
   await t.test("no provider returns a fresh extractive answer without network generation", async () => {
     assert.deepEqual(resolveRuntime(), { embed: null, generate: null });
     // Any accidental provider call is counted and fails without leaving this process.
