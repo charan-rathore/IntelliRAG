@@ -218,7 +218,7 @@ export function RunPreview({ onTour }: { onTour: () => void }) {
         <li>Retrieval packs supporting passages from that source.</li>
         <li>The answer cites those passages, or refuses when evidence is missing.</li>
       </ol>
-      <Button className="mt-4 w-full" size="sm" onClick={onTour}>
+      <Button className="mt-4 w-full" size="sm" variant="ghost" onClick={onTour}>
         Watch the guided tour
       </Button>
     </div>
