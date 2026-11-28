@@ -614,44 +614,46 @@ export function Console({ initial }: { initial: Snapshot }) {
             <svg viewBox="0 0 24 24" className="size-[18px]"><path d="M6 5h5a4 4 0 0 1 0 8H6z" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/><path d="M6 13v6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/><circle cx="17.5" cy="17.5" r="2.5" fill="#f4e36b"/></svg>
           </span>
           <div className="min-w-0">
-            <p className="font-display text-lg leading-tight tracking-[-0.03em]">IntelliRAG</p>
-            <p className="hidden whitespace-nowrap text-xs text-muted lg:block">
+            <p className="hidden font-display text-lg leading-tight tracking-[-0.03em] xl:block">IntelliRAG</p>
+            <p className="hidden whitespace-nowrap text-xs text-muted xl:block">
               Ask a source, see the proof
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <span
-            className={cn(
-              "hidden rounded-full border px-3 py-1 text-xs font-medium tabular-nums sm:inline-flex",
-              indexing ? "border-warn/40 text-warn" : "border-border text-muted",
-            )}
+            className={cn("ir-status hidden xl:inline-flex", indexing && "is-busy")}
+            title="Answer mode"
           >
+            <i aria-hidden />
             {healthLabel}
           </span>
           <span data-tour="tour-view">
             <ViewToggle value={view} onChange={setView} />
           </span>
-          <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search sources (Ctrl+K)" className="inline-flex min-h-9 items-center gap-2 rounded-sm border border-border px-2.5 text-sm text-muted hover:border-fg/30 hover:text-fg">
+          <button type="button" onClick={() => setSearchOpen(true)} aria-label="Search sources (Ctrl+K)" className="inline-flex min-h-9 items-center gap-2 rounded-[10px] border border-border px-2.5 text-sm text-muted transition-colors hover:border-fg/30 hover:text-fg">
             <Search className="size-4" aria-hidden />
             <span className="hidden md:inline">Search code</span>
             <kbd className="hidden font-mono text-[11px] text-subtle lg:inline">⌘K</kbd>
           </button>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</Button>
-          <Button variant="ghost" size="sm" aria-expanded={graphOpen} onClick={() => setGraphOpen(true)}>Graph</Button>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" aria-expanded={memoryOpen} onClick={() => setMemoryOpen(true)}>Memory</Button>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</Button>
-          <a href="/architecture.html" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline xl:inline-flex">Architecture</a>
-          <a href="/walkthrough" className="hidden min-h-11 items-center px-2 text-sm text-muted underline-offset-4 hover:text-fg hover:underline sm:inline-flex">Watch demo</a>
+          {/* Panels: one quiet group. An open panel is marked the way a cited
+              passage is: a highlighter stroke under its name. */}
+          <nav aria-label="Panels" className="ir-hnav">
+            <button type="button" className="ir-htab hidden sm:inline-flex" data-tour="tour-sources" aria-expanded={corpusOpen} onClick={() => setCorpusOpen(!corpusOpen)}>Sources</button>
+            <button type="button" className="ir-htab inline-flex" aria-expanded={graphOpen} onClick={() => setGraphOpen(true)}>Graph</button>
+            <button type="button" className="ir-htab hidden sm:inline-flex" aria-expanded={memoryOpen} onClick={() => setMemoryOpen(true)}>Memory</button>
+            <button type="button" className="ir-htab hidden sm:inline-flex" data-tour="tour-evidence" aria-expanded={auditOpen} onClick={() => setAuditOpen(!auditOpen)}>Evidence</button>
+          </nav>
+          <span className="ir-hsep hidden lg:block" aria-hidden />
+          <a href="/walkthrough" className="ir-hlink hidden lg:inline-flex">Watch demo</a>
+          <a href="/architecture.html" className="ir-hlink hidden xl:inline-flex">Architecture</a>
+          <button type="button" className="ir-hlink hidden lg:inline-flex" onClick={() => setTourOpen(true)}>Tour</button>
           <span data-tour="tour-settings">
-            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)} aria-label="Settings and API key" className="px-2.5">
               <KeyRound className="size-4" />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden 2xl:inline">Settings</span>
             </Button>
           </span>
-          <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => setTourOpen(true)}>
-            Tour
-          </Button>
         </div>
       </header>
 
@@ -664,7 +666,7 @@ export function Console({ initial }: { initial: Snapshot }) {
             <p className="text-sm text-fg">
               Try cited answers without an API key. Bring a source or start with a runbook below.
             </p>
-            <Button size="sm" onClick={() => setSettingsOpen(true)}>
+            <Button size="sm" variant="ghost" onClick={() => setSettingsOpen(true)}>
               Add API key
             </Button>
           </div>
