@@ -181,6 +181,12 @@ export function filterGithubTree(entries: GithubTreeEntry[], prefix = ""): Githu
     .map(({ entry }) => entry);
 }
 
+class GithubApiError extends Error {
+  constructor(readonly status: number, path: string) {
+    super(`GitHub API ${status} for ${path}`);
+  }
+}
+
 export async function githubApi<T>(path: string, token?: string): Promise<T> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
@@ -192,7 +198,7 @@ export async function githubApi<T>(path: string, token?: string): Promise<T> {
     return githubApi<T>(path);
   }
   if (!res.ok) {
-    throw new Error(`GitHub API ${res.status} for ${path}`);
+    throw new GithubApiError(res.status, path);
   }
   return (await res.json()) as T;
 }
@@ -219,6 +225,40 @@ export async function resolveGithubCommit(owner: string, repo: string, ref: stri
     throw new Error("GitHub did not return a verifiable commit and tree");
   }
   return { sha, treeSha };
+}
+
+export async function resolveGithubLocation(input: {
+  owner: string;
+  repo: string;
+  ref: string;
+  path: string;
+  token?: string;
+}) {
+  const { owner, repo, ref, path, token } = input;
+  try {
+    const commit = await resolveGithubCommit(owner, repo, ref, token);
+    return { ...commit, ref, path };
+  } catch (error) {
+    if (!path || !(error instanceof GithubApiError) ||
+        (error.status !== 404 && error.status !== 422)) throw error;
+
+    // GitHub's copied links can put a slash-delimited ref directly before the path.
+    const matchingRefRoot = `/repos/${owner}/${repo}/git/matching-refs`;
+    const candidates = await Promise.all(["heads", "tags"].map(async (kind) => {
+      const matches = await githubApi<Array<{ ref: string }>>(
+        `${matchingRefRoot}/${kind}/${encodeURIComponent(ref)}/`,
+        token,
+      );
+      return matches.map(({ ref: match }) => match.slice(`refs/${kind}/`.length));
+    }));
+    const location = `${ref}/${path}`;
+    const matchedRef = candidates.flat()
+      .filter((candidate) => location === candidate || location.startsWith(`${candidate}/`))
+      .sort((a, b) => b.length - a.length)[0];
+    if (!matchedRef) throw error;
+    const commit = await resolveGithubCommit(owner, repo, matchedRef, token);
+    return { ...commit, ref: matchedRef, path: location.slice(matchedRef.length + 1) };
+  }
 }
 
 export async function listGithubFiles(opts: {

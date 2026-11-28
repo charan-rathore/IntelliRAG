@@ -16,7 +16,7 @@ import {
   listGithubFiles,
   parseGithubUrl,
   resolveDefaultBranch,
-  resolveGithubCommit,
+  resolveGithubLocation,
 } from "./github";
 import { resolveRuntime } from "./keys.server";
 import { getStorageStatus } from "./storage";
@@ -268,13 +268,15 @@ async function ingestGithubRepo(target: {
   path?: string;
 }) {
   const token = githubToken();
-  const ref = target.ref || (await resolveDefaultBranch(target.owner, target.repo, token));
-  const { sha, treeSha } = await resolveGithubCommit(target.owner, target.repo, ref, token);
+  const requestedRef = target.ref || (await resolveDefaultBranch(target.owner, target.repo, token));
+  const { ref, path, sha, treeSha } = await resolveGithubLocation({
+    owner: target.owner, repo: target.repo, ref: requestedRef, path: target.path ?? "", token,
+  });
   const { files } = await listGithubFiles({
     owner: target.owner,
     repo: target.repo,
     ref: treeSha,
-    prefix: target.path,
+    prefix: path,
     token,
   });
   if (!files.length) {
@@ -378,21 +380,22 @@ export async function ingestFromUrl(url: string) {
   if (gh?.kind === "issue") return ingestGithubIssue(gh.owner, gh.repo, gh.number);
   if (gh?.kind === "pull") return ingestGithubPull(gh.owner, gh.repo, gh.number);
   if (gh?.kind === "blob") {
-    const sha = /^[a-f0-9]{40}$/i.test(gh.ref)
-      ? gh.ref.toLowerCase()
-      : (await resolveGithubCommit(gh.owner, gh.repo, gh.ref, githubToken())).sha;
-    const body = await fetchText(githubRawUrl(gh.owner, gh.repo, sha, gh.path));
-    const code = isCodePath(gh.path);
+    const { sha, ref, path } = /^[a-f0-9]{40}$/i.test(gh.ref)
+      ? { sha: gh.ref.toLowerCase(), ref: gh.ref, path: gh.path }
+      : await resolveGithubLocation({ ...gh, token: githubToken() });
+    if (!path) throw new Error("GitHub file URL has no file path");
+    const body = await fetchText(githubRawUrl(gh.owner, gh.repo, sha, path));
+    const code = isCodePath(path);
     const result = await ingestText({
-      title: gh.path.split("/").pop() || gh.path,
+      title: path.split("/").pop() || path,
       body,
       sourceType: "github",
-      sourceUri: githubBlobUrl(gh.owner, gh.repo, sha, gh.path),
-      slugHint: `${gh.repo}-${gh.path}`,
+      sourceUri: githubBlobUrl(gh.owner, gh.repo, sha, path),
+      slugHint: `${gh.repo}-${path}`,
       originRepo: `${gh.owner}/${gh.repo}`,
-      originRef: `${gh.ref}@${sha.slice(0, 7)}`,
-      filepath: gh.path,
-      language: languageFromPath(gh.path),
+      originRef: `${ref}@${sha.slice(0, 7)}`,
+      filepath: path,
+      language: languageFromPath(path),
       chunkKind: code ? "code" : "prose",
     });
     return {
